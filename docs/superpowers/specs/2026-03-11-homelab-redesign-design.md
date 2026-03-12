@@ -60,7 +60,7 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 - **Runs on**: pikachu
 - **Resources**: 16GB RAM minimum (more if available after LXC allocation). Dedicated VM for game server hosting.
 - **Managed by**: Pelican Panel (running in K8s) connects to this node as a remote game server host.
-- **Note**: Pikachu has 32GB total. Homey + Homebridge LXCs are lightweight (~1-2GB combined). K3s agent VM (regieleki) needs ~8GB. This leaves ~16-20GB for the Pelican VM.
+- **Resource budget**: Pikachu has 32GB total. Proxmox host overhead ~2GB + Homey/Homebridge LXCs ~2GB + K3s agent VM (regieleki) ~8GB = ~12GB reserved, leaving ~20GB for the Pelican VM.
 
 ### Other VMs/LXCs (outside K8s)
 
@@ -134,7 +134,7 @@ data/
 - **GitOps repo**: The GitHub repo IS the backup for all K8s manifests and configuration. Cluster can be rebuilt entirely from the repo.
 - **TrueNAS ZFS**: Automated snapshot schedule (hourly/daily/weekly retention) via built-in snapshot tasks.
 
-Future consideration: Add Velero + S3-compatible storage for K8s-native backup/restore if the need arises.
+Future consideration: Add K8s-native backup/restore tooling if the need arises.
 
 ---
 
@@ -265,7 +265,8 @@ homelab/
 │   │   │   ├── regidrago.tf
 │   │   │   ├── munchlax.tf
 │   │   │   ├── pelican-node.tf # Game server VM on pikachu
-│   │   │   └── pikachu-lxcs.tf # Homey + Homebridge LXCs
+│   │   │   ├── pikachu-lxcs.tf # Homey + Homebridge LXCs
+│   │   │   └── netboot.tf     # Netboot.xyz LXC
 │   │   └── terraform.tfstate   # Local state initially; migrate to remote state later
 │   │
 │   └── unifi/                  # filipowm/unifi provider — networking
@@ -317,7 +318,9 @@ homelab/
 │   │   ├── tailscale/
 │   │   ├── tautulli/
 │   │   ├── uptime-kuma/
+│   │   ├── unifi-exporter/
 │   │   └── wizarr/
+│   ├── dev-lab/                # Experimental/career dev workloads (see Section 8)
 │   └── repositories/           # HelmRepository and OCIRepository sources
 │
 ├── docs/                       # Documentation
