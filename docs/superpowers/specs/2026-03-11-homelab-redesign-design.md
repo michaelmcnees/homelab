@@ -131,7 +131,7 @@ data/
 | VLAN 10 | 10.0.10.0/24 | K8s — K3s node VMs, pod/service CIDRs |
 | VLAN 20 | 10.0.20.0/24 | Trusted clients — desktops, laptops, phones |
 | VLAN 30 | 10.0.30.0/24 | IoT — smart home devices, cameras |
-| VLAN 40 | 10.0.40.0/24 | Storage — Ceph replication, NFS, iSCSI |
+| VLAN 40 | 10.0.40.0/24 | Storage — Ceph replication, NFS |
 
 Firewall rules: trusted clients can reach K8s services and management. IoT reaches only Homey and the internet. Storage VLAN isolated to Proxmox hosts and K3s nodes.
 
@@ -198,7 +198,7 @@ homelab/
 │   │   ├── regidrago.tf
 │   │   ├── munchlax.tf
 │   │   └── pikachu-lxcs.tf     # Homey + Homebridge LXCs
-│   └── terraform.tfstate       # (or remote state in MinIO)
+│   └── terraform.tfstate       # Local state initially; migrate to MinIO remote state after K8s is running
 │
 ├── ansible/                    # Ansible — configuration layer
 │   ├── inventory/
@@ -218,9 +218,12 @@ homelab/
 │   │   └── observability/      # kube-prometheus-stack, Loki, Beszel, Uptime Kuma
 │   ├── apps/
 │   │   ├── adguard/
+│   │   ├── bazarr/
 │   │   ├── beszel/
 │   │   ├── booklore/
-│   │   ├── grafana/            # (part of kube-prometheus-stack, may not need separate dir)
+│   │   ├── gramps/
+│   │   ├── lidarr/
+│   │   ├── lidarr-kids/
 │   │   ├── lldap/
 │   │   ├── mariadb/
 │   │   ├── minio/
@@ -231,9 +234,12 @@ homelab/
 │   │   ├── postgresql/
 │   │   ├── prowlarr/
 │   │   ├── pushover-alerts/    # Alertmanager config for Pushover
+│   │   ├── radarr/
 │   │   ├── recyclarr/
 │   │   ├── redis/
 │   │   ├── seer/               # Replaces Overseerr
+│   │   ├── sonarr/
+│   │   ├── sonarr-anime/
 │   │   ├── tailscale/
 │   │   ├── tautulli/
 │   │   ├── uptime-kuma/
@@ -282,6 +288,22 @@ tasks:
 ```
 
 All commands discoverable via `task --list`.
+
+### Namespace Strategy
+
+K8s namespaces group services by function for isolation and NetworkPolicy boundaries:
+
+| Namespace | Contents |
+|-----------|----------|
+| `flux-system` | Flux controllers (auto-created) |
+| `infrastructure` | Traefik, cert-manager, MetalLB, ExternalDNS |
+| `observability` | Prometheus, Grafana, Loki, Alertmanager, Beszel, Uptime Kuma |
+| `auth` | Pocket ID, LLDAP, OAuth2-Proxy |
+| `databases` | PostgreSQL, MariaDB, Redis |
+| `media` | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr, Seer, Wizarr, Tautulli |
+| `apps` | Outline, Booklore, Gramps, Pelican Panel, Homey |
+| `storage` | MinIO, democratic-csi |
+| `networking` | AdGuard Home, Tailscale |
 
 ### How Changes Flow
 
@@ -411,12 +433,21 @@ Home Dashboard
 - Tautulli
 - Prowlarr
 - Recyclarr
+- Sonarr
+- Sonarr (anime instance)
+- Radarr
+- Lidarr
+- Lidarr (kids music instance)
+- Bazarr
 
 **Infrastructure Services**
 - PostgreSQL
 - MariaDB
 - Redis
 - MinIO
+
+**Genealogy**
+- Gramps
 
 **Gaming**
 - Pelican Panel
