@@ -301,7 +301,7 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 | `auth` | Pocket ID, LLDAP, OAuth2-Proxy |
 | `databases` | PostgreSQL, MariaDB, Redis |
 | `media` | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr, Seer, Wizarr, Tautulli |
-| `apps` | Outline, Booklore, Gramps, Pelican Panel, Homey |
+| `apps` | Outline, Booklore, Gramps, Pelican Panel |
 | `storage` | MinIO, democratic-csi |
 | `networking` | AdGuard Home, Tailscale |
 
