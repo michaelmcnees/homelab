@@ -11,6 +11,9 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 - **Full observability**: Know about problems before anyone in the house complains.
 - **Proper remote access**: Tailscale subnet routing for secure access from anywhere.
 - **Selective public exposure**: Wizarr, Booklore, Pocket ID, and other chosen services safely exposed to the internet.
+- **Unifi as Code**: Manage network infrastructure (VLANs, SSIDs, firewall rules) declaratively via OpenTofu.
+- **Dev lab**: Isolated environment for career development, experimentation, and learning.
+- **Thorough documentation**: Break-glass guide, in-case-of-death plan, and operational runbooks.
 
 ### Non-Goals
 
@@ -29,7 +32,7 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 | pve1 | **charmander** | Dell 5050, i7-7700T, 32GB RAM, 250GB NVMe + 1TB SATA SSD | K3s server (control plane) + Ceph OSD |
 | pve2 | **squirtle** | Dell 5050, i7-7700T, 32GB RAM, 250GB NVMe + 1TB SATA SSD | K3s server (control plane) + Ceph OSD |
 | pve3 | **bulbasaur** | Dell 5050, i7-7700T, 32GB RAM, 250GB NVMe + 1TB SATA SSD | K3s server (control plane) + Ceph OSD |
-| pve4 | **pikachu** | Dell 5050, i7-7700T, 32GB RAM, 250GB NVMe | K3s agent (worker) + LXCs (Homey, Homebridge) |
+| pve4 | **pikachu** | Dell 5050, i7-7700T, 32GB RAM, 250GB NVMe | K3s agent (worker) + LXCs + Pelican VM |
 | pve5 | **snorlax** | Custom NAS, i3-13100, 64GB RAM, 200GB SSD + HBA card | TrueNAS VM (munchlax) + K3s agent (worker) |
 
 ### K3s Cluster — 5 VMs (Regi naming theme)
@@ -46,9 +49,18 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 
 - **Hostname**: munchlax
 - **Runs on**: snorlax (pve5)
-- **Passthrough**: HBA card (all 8x 20TB Exos drives + 2x 1TB NVMe metadata SSDs) + iGPU (QuickSync for Plex/Tdarr)
+- **Passthrough**: HBA card (all 8x 20TB Exos drives) + iGPU (QuickSync for Plex/Tdarr)
+- **NVMe metadata drives**: The 2x 1TB M.2 NVMe SSDs are on the motherboard (not HBA-connected). Passed to the TrueNAS VM separately (as virtual disks backed by local storage, or via PCIe/virtio passthrough) to continue serving as the mirrored metadata vdev.
 - **RAM allocation**: ~32GB to munchlax, ~30GB remaining for K3s agent + Proxmox overhead
 - **Boot disk**: Ceph-backed (live-migratable, though passthrough pins it to snorlax in practice)
+
+### Pelican Game Server VM
+
+- **Hostname**: TBD (Pokémon name)
+- **Runs on**: pikachu
+- **Resources**: 16GB RAM minimum (more if available after LXC allocation). Dedicated VM for game server hosting.
+- **Managed by**: Pelican Panel (running in K8s) connects to this node as a remote game server host.
+- **Note**: Pikachu has 32GB total. Homey + Homebridge LXCs are lightweight (~1-2GB combined). K3s agent VM (regieleki) needs ~8GB. This leaves ~16-20GB for the Pelican VM.
 
 ### Other VMs/LXCs (outside K8s)
 
@@ -57,10 +69,12 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 | Homey (self-hosted) | LXC | pikachu | Host networking required |
 | Homebridge | LXC | pikachu | Host networking + USB access |
 | Netboot.xyz | LXC | any Proxmox host | PXE/TFTP needs management network access |
+| Pelican game server | VM | pikachu | 16GB+ RAM, runs game instances managed by Pelican Panel |
 
 ### IaC Tooling for Infrastructure
 
 - **OpenTofu** (bpg/proxmox provider): Declaratively manages all VMs and LXCs — specs, disks, network interfaces, passthrough devices.
+- **OpenTofu** (filipowm/unifi provider): Manages Unifi network infrastructure — VLANs, SSIDs, firewall rules, port profiles. See Section 3 for details.
 - **Ansible**: Configures Proxmox hosts (Ceph, networking, repos, SSH hardening) and K3s VM OS (packages, users, kernel params, K3s bootstrap).
 
 ---
@@ -73,6 +87,7 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 
 - K3s VM boot disks (HA, live-migratable)
 - Munchlax boot disk
+- Pelican VM boot disk
 - Any other VM/LXC disks
 
 ### Kubernetes Persistent Volumes — democratic-csi
@@ -83,6 +98,8 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 |---------------|---------|----------|
 | `truenas-nfs` | democratic-csi -> TrueNAS NFS | Most workloads (databases, app data, configs). ReadWriteMany. |
 | `local-path` | Rancher local-path-provisioner | Ephemeral/cache data that doesn't need cross-node persistence. |
+
+Why democratic-csi over Longhorn: The Dell nodes have limited local storage (250GB NVMe minus Proxmox). Longhorn would compete for that space. democratic-csi puts all persistent data on TrueNAS's massive ZFS pool — K3s nodes stay stateless compute. Simpler, more storage, fewer moving parts.
 
 ### TrueNAS Dataset Layout
 
@@ -97,14 +114,12 @@ data/
 │   ├── sabnzbd/
 │   ├── stash/
 │   ├── lazylibrarian/
-│   ├── romm/
-│   └── gitea/
+│   └── romm/
 ├── k8s/                    # democratic-csi managed (auto-creates child datasets)
 │   ├── nfs/
 │   └── snapshots/
 ├── backups/
 │   ├── proxmox/            # VM/LXC backups via NFS
-│   ├── velero/             # K8s backup target
 │   └── timemachine/        # macOS Time Machine targets
 ├── homes/
 │   ├── michael/
@@ -114,10 +129,12 @@ data/
 
 ### Backups
 
-- **Proxmox VMs/LXCs**: Built-in Proxmox backup to `nfs-backups` share. Scheduled nightly.
-- **K8s workloads**: Velero with TrueNAS-backed S3 target (MinIO). Snapshots both K8s resources and persistent volume data.
-- **GitOps repo**: The GitHub repo IS the backup for all K8s manifests. Cluster can be rebuilt from the repo.
+- **Proxmox VMs/LXCs**: Built-in Proxmox backup to `nfs-backups` share on TrueNAS. Scheduled nightly.
+- **K8s persistent data**: Protected by TrueNAS ZFS snapshots (automated hourly/daily/weekly retention). democratic-csi creates per-PVC datasets, so each service's data gets independent snapshot coverage.
+- **GitOps repo**: The GitHub repo IS the backup for all K8s manifests and configuration. Cluster can be rebuilt entirely from the repo.
 - **TrueNAS ZFS**: Automated snapshot schedule (hourly/daily/weekly retention) via built-in snapshot tasks.
+
+Future consideration: Add Velero + S3-compatible storage for K8s-native backup/restore if the need arises.
 
 ---
 
@@ -132,10 +149,58 @@ data/
 | VLAN 20 | 10.0.20.0/24 | Trusted clients — desktops, laptops, phones |
 | VLAN 30 | 10.0.30.0/24 | IoT — smart home devices, cameras |
 | VLAN 40 | 10.0.40.0/24 | Storage — Ceph replication, NFS |
+| VLAN 50 | 10.0.50.0/24 | Guest — internet-only, no LAN access |
 
-Firewall rules: trusted clients can reach K8s services and management. IoT reaches only Homey and the internet. Storage VLAN isolated to Proxmox hosts and K3s nodes.
+Firewall rules between VLANs:
+- **Trusted** (VLAN 20): Can reach K8s services, management, and storage.
+- **IoT** (VLAN 30): Can reach Homey and the internet. No other LAN access.
+- **Guest** (VLAN 50): Internet only. Completely isolated from all other VLANs. Rate-limited.
+- **Storage** (VLAN 40): Isolated to Proxmox hosts and K3s nodes only.
+- **K8s** (VLAN 10): Can reach storage VLAN and management VLAN (for Proxmox API).
 
 VLAN segmentation is high-value but can be migrated incrementally — not a day-one blocker.
+
+### WiFi SSIDs & VLAN Mapping
+
+| SSID | VLAN | Purpose |
+|------|------|---------|
+| McNet | VLAN 20 (Trusted) | Family devices — phones, laptops, tablets |
+| McNet_IoT | VLAN 30 (IoT) | Smart home devices, cameras |
+| McNet Guest | VLAN 50 (Guest) | Visitors — internet only, no LAN access |
+
+All SSIDs broadcast from U7 Pro Wall APs. VLAN tagging handled by the APs and trunk ports to switches.
+
+### Unifi as Code — OpenTofu
+
+The `filipowm/unifi` Terraform provider manages the entire Unifi network declaratively:
+
+**What it manages:**
+- Networks (VLANs, subnets, DHCP ranges)
+- WiFi SSIDs and their VLAN assignments
+- Firewall rules between VLANs
+- Port profiles for switch ports
+- Device settings
+
+**What it doesn't manage (manual):**
+- Physical device adoption
+- Firmware updates
+- AP placement and RF tuning
+
+This lives in a separate OpenTofu module:
+
+```
+terraform/
+├── proxmox/                # bpg/proxmox provider — VMs, LXCs
+│   ├── main.tf
+│   ├── nodes/
+│   └── ...
+└── unifi/                  # filipowm/unifi provider — network infra
+    ├── main.tf
+    ├── networks.tf         # VLANs, subnets
+    ├── wireless.tf         # SSIDs, VLAN mappings
+    ├── firewall.tf         # Inter-VLAN rules
+    └── port-profiles.tf    # Switch port configs
+```
 
 ### DNS
 
@@ -143,8 +208,9 @@ VLAN segmentation is high-value but can be migrated incrementally — not a day-
 |--------|----------|---------|
 | `mcnees.me` | Cloudflare (public) | Externally exposed services |
 | `home.mcnees.me` | AdGuard Home (internal) | Internal services |
+| `dev.home.mcnees.me` | AdGuard Home (internal) | Dev lab services (see Section 8) |
 
-- **AdGuard Home**: Wildcard `*.home.mcnees.me` -> MetalLB VIP (Traefik).
+- **AdGuard Home**: Wildcard `*.home.mcnees.me` -> MetalLB VIP (Traefik). Covers both production internal and dev lab services.
 - **ExternalDNS**: Runs in K8s, manages Cloudflare records for public `*.mcnees.me` services automatically when Ingress resources are created.
 
 ### Ingress & TLS
@@ -172,7 +238,7 @@ Future consideration: evaluate Caddy as an alternative ingress controller once t
 
 | Layer | Tool | Manages |
 |-------|------|---------|
-| Infrastructure | **OpenTofu** | Proxmox VMs/LXCs — specs, disks, NICs, passthrough |
+| Infrastructure | **OpenTofu** | Proxmox VMs/LXCs + Unifi networking — specs, disks, NICs, passthrough, VLANs, SSIDs, firewall |
 | Configuration | **Ansible** | OS-level setup on Proxmox hosts + K3s VM base config |
 | Workloads | **Flux CD** | Everything inside K8s — Helm releases, manifests, kustomizations |
 
@@ -186,19 +252,28 @@ The homelab repo lives on **GitHub** (Flux points at GitHub — no self-hosted g
 
 ```
 homelab/
-├── terraform/                  # OpenTofu — infrastructure layer
-│   ├── main.tf                 # Provider config (bpg/proxmox)
-│   ├── variables.tf
-│   ├── outputs.tf
-│   ├── nodes/
-│   │   ├── regirock.tf
-│   │   ├── regice.tf
-│   │   ├── registeel.tf
-│   │   ├── regieleki.tf
-│   │   ├── regidrago.tf
-│   │   ├── munchlax.tf
-│   │   └── pikachu-lxcs.tf     # Homey + Homebridge LXCs
-│   └── terraform.tfstate       # Local state initially; migrate to MinIO remote state after K8s is running
+├── terraform/
+│   ├── proxmox/                # bpg/proxmox provider — infrastructure
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   ├── outputs.tf
+│   │   ├── nodes/
+│   │   │   ├── regirock.tf
+│   │   │   ├── regice.tf
+│   │   │   ├── registeel.tf
+│   │   │   ├── regieleki.tf
+│   │   │   ├── regidrago.tf
+│   │   │   ├── munchlax.tf
+│   │   │   ├── pelican-node.tf # Game server VM on pikachu
+│   │   │   └── pikachu-lxcs.tf # Homey + Homebridge LXCs
+│   │   └── terraform.tfstate   # Local state initially; migrate to remote state later
+│   │
+│   └── unifi/                  # filipowm/unifi provider — networking
+│       ├── main.tf
+│       ├── networks.tf
+│       ├── wireless.tf
+│       ├── firewall.tf
+│       └── port-profiles.tf
 │
 ├── ansible/                    # Ansible — configuration layer
 │   ├── inventory/
@@ -226,7 +301,6 @@ homelab/
 │   │   ├── lidarr-kids/
 │   │   ├── lldap/
 │   │   ├── mariadb/
-│   │   ├── minio/
 │   │   ├── oauth2-proxy/
 │   │   ├── outline/
 │   │   ├── pelican-panel/
@@ -246,11 +320,16 @@ homelab/
 │   │   └── wizarr/
 │   └── repositories/           # HelmRepository and OCIRepository sources
 │
-├── Taskfile.yml                # Command guardrails
+├── docs/                       # Documentation
+│   ├── superpowers/
+│   │   └── specs/
+│   ├── runbooks/               # Operational runbooks
+│   │   ├── break-glass.md      # Emergency recovery procedures
+│   │   ├── in-case-of-death.md # Full handoff documentation
+│   │   └── common-tasks.md     # How-tos for routine operations
+│   └── architecture/           # Architecture diagrams and decisions
 │
-├── docs/
-│   └── superpowers/
-│       └── specs/
+├── Taskfile.yml                # Command guardrails
 │
 └── reference/                  # Old configs for reference
 ```
@@ -263,14 +342,24 @@ Manual OpenTofu/Ansible runs with documented, consistent commands:
 # Taskfile.yml
 tasks:
   infra:plan:
-    desc: Preview infrastructure changes
+    desc: Preview Proxmox infrastructure changes
     cmd: tofu plan
-    dir: terraform
+    dir: terraform/proxmox
 
   infra:apply:
-    desc: Apply infrastructure changes
+    desc: Apply Proxmox infrastructure changes
     cmd: tofu apply
-    dir: terraform
+    dir: terraform/proxmox
+
+  network:plan:
+    desc: Preview Unifi network changes
+    cmd: tofu plan
+    dir: terraform/unifi
+
+  network:apply:
+    desc: Apply Unifi network changes
+    cmd: tofu apply
+    dir: terraform/unifi
 
   ansible:proxmox:
     desc: Configure Proxmox hosts
@@ -302,8 +391,9 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 | `databases` | PostgreSQL, MariaDB, Redis |
 | `media` | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr, Seer, Wizarr, Tautulli |
 | `apps` | Outline, Booklore, Gramps, Pelican Panel |
-| `storage` | MinIO, democratic-csi |
+| `storage` | democratic-csi |
 | `networking` | AdGuard Home, Tailscale |
+| `dev-lab` | Development/experimentation workloads (see Section 8) |
 
 ### How Changes Flow
 
@@ -311,6 +401,7 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 |-------------|----------|
 | Deploy/update a K8s app | Edit manifests under `kubernetes/`, commit, push. Flux auto-deploys in 2-5 min. |
 | Change VM resources | Edit `.tf` file, commit, `task infra:apply`. |
+| Change network config | Edit `.tf` file in `terraform/unifi/`, commit, `task network:apply`. |
 | Update OS/host config | Edit Ansible playbook/role, commit, `task ansible:proxmox`. |
 | Something breaks | `git log` to find the change, `git revert`, push. Flux rolls back automatically. |
 
@@ -348,6 +439,7 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 - Ceph cluster health and capacity
 - TrueNAS ZFS pool status, disk health
 - K3s node readiness and resource pressure
+- Unifi network health (via SNMP or Unifi API exporter)
 
 **Tier 2 — Platform** (are the foundations working?)
 - Flux sync status
@@ -361,6 +453,7 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 - Plex/Tautulli streaming metrics
 - AdGuard query rates and block stats
 - Per-app resource consumption
+- Pelican game server status
 
 ### Alerting — Pushover
 
@@ -376,9 +469,10 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 Home Dashboard
 ├── Cluster Overview        # Node health, resource usage, Ceph status
 ├── Flux Status             # Sync state of all kustomizations/helmreleases
-├── Network                 # Traefik requests, AdGuard stats, Tailscale
+├── Network                 # Traefik requests, AdGuard stats, Tailscale, Unifi
 ├── Storage                 # TrueNAS pools, PVC usage, backup status
 ├── Media                   # Plex streams, Tdarr queue, SABnzbd
+├── Gaming                  # Pelican server status
 └── Alerts                  # Recent firings, silences, alert history
 ```
 
@@ -396,14 +490,14 @@ Home Dashboard
 | Stash | Direct media access |
 | LazyLibrarian | Direct dataset access |
 | Romm | Direct dataset access |
-| Gitea | Personal projects (homelab repo on GitHub) |
 
-### LXCs on Pikachu — Host Networking Required
+### VMs/LXCs on Pikachu — Special Requirements
 
-| Service | Reason |
-|---------|--------|
-| Homey (self-hosted) | Host networking |
-| Homebridge | Host networking + USB access |
+| Service | Type | Reason |
+|---------|------|--------|
+| Homey (self-hosted) | LXC | Host networking required |
+| Homebridge | LXC | Host networking + USB access |
+| Pelican game server | VM (16GB+) | Game instance hosting, managed by Pelican Panel in K8s |
 
 ### LXC on Proxmox Host — Network Boot
 
@@ -444,13 +538,12 @@ Home Dashboard
 - PostgreSQL
 - MariaDB
 - Redis
-- MinIO
 
 **Genealogy**
 - Gramps
 
 **Gaming**
-- Pelican Panel
+- Pelican Panel (manages game servers on the Pelican VM)
 
 **Monitoring & Ops**
 - Grafana (via kube-prometheus-stack)
@@ -469,6 +562,8 @@ Home Dashboard
 | Home Assistant | Homey (self-hosted) |
 | InfluxDB | Prometheus |
 | n8n | Removed |
+| Gitea | Removed (homelab repo on GitHub, no longer needed) |
+| MinIO | Removed from initial plan (add later if needed) |
 
 ---
 
@@ -499,7 +594,8 @@ User request -> Traefik -> OAuth2-Proxy (middleware)
 ### Network Security
 
 - **K8s NetworkPolicies**: Default-deny between namespaces, explicit allows for known traffic (apps -> PostgreSQL, Traefik -> all app namespaces).
-- **VLAN segmentation**: IoT, K8s, management, and storage traffic isolated at the network layer.
+- **VLAN segmentation**: IoT, K8s, management, storage, and guest traffic isolated at the network layer.
+- **Guest network**: Internet-only, completely isolated from all other VLANs, rate-limited.
 - **Traefik entrypoint separation**: External (81/444) and internal on separate ports.
 
 ### Host Security
@@ -511,6 +607,75 @@ User request -> Traefik -> OAuth2-Proxy (middleware)
 
 ### Backup Security
 
-- Velero backups encrypted at rest in MinIO.
 - SOPS age key + Proxmox root credentials stored in password manager — the only things NOT in the repo.
 - TrueNAS encryption keys backed up separately from the pools they protect.
+
+---
+
+## Section 8: Dev Lab
+
+An isolated environment within K8s for career development, experimentation, and learning — spinning up databases, deploying web apps, testing new technologies — without risk to production services.
+
+### Implementation
+
+- **Namespace**: `dev-lab` with its own resource quotas (CPU/memory limits) to prevent experiments from starving production workloads.
+- **DNS**: `*.dev.home.mcnees.me` — separate subdomain so it's clear what's dev vs. production.
+- **Traefik**: Dedicated IngressRoute entries under the dev subdomain. Same internal entrypoint as production (no public exposure).
+- **Storage**: Uses the same `truenas-nfs` storage class. democratic-csi creates datasets under `data/k8s/nfs/` — no special config needed.
+- **NetworkPolicies**: Dev lab namespace can reach databases namespace (for testing against shared databases) and the internet, but not production app namespaces.
+- **Auth**: Dev services behind the same OAuth2-Proxy chain — only Michael has access.
+
+### What it enables
+
+- Spin up a PostgreSQL instance and a web app to test a project idea
+- Deploy a staging version of a service before promoting to production
+- Experiment with new Helm charts or K8s features safely
+- Career development: build and deploy portfolio projects in a real K8s environment
+
+### Cleanup
+
+Dev lab resources are not GitOps-managed by default — you can `kubectl apply` directly for quick experiments without committing to the repo. For longer-running dev projects, add them under `kubernetes/dev-lab/` in the GitOps repo.
+
+---
+
+## Section 9: Documentation
+
+### Documentation as a First-Class Deliverable
+
+Documentation lives in the repo under `docs/` and is maintained alongside infrastructure changes.
+
+### Break-Glass Guide (`docs/runbooks/break-glass.md`)
+
+Emergency recovery procedures for when things go wrong. Covers:
+
+- **Cluster won't boot**: How to access Proxmox directly, check Ceph health, restart VMs manually.
+- **Flux is broken**: How to bypass GitOps and `kubectl apply` directly to restore services.
+- **TrueNAS/munchlax is down**: How to access data, restore from ZFS snapshots, rebuild the VM.
+- **Network is down**: How to access Proxmox console without network, reset Unifi gear.
+- **Secrets are lost**: How to recover from password manager, re-bootstrap SOPS.
+- **Complete rebuild**: Step-by-step instructions to rebuild the entire lab from the repo + backups.
+
+Each scenario includes: symptoms, diagnosis steps, fix commands, and verification.
+
+### In-Case-of-Death Plan (`docs/runbooks/in-case-of-death.md`)
+
+A non-technical guide written for Hannah (or another trusted person) covering:
+
+- **What exists**: Plain-English description of the homelab, what it does, and why it matters for the household (Plex, backups, smart home, etc.).
+- **What to keep running**: Which services the household depends on daily (Plex, Time Machine, smart home, internet).
+- **How to keep it running**: Simple restart procedures — "if X stops working, do Y." No K8s knowledge required.
+- **Who to call**: Contact information for technically-capable friends who could help with complex issues.
+- **How to shut it down safely**: If the decision is made to decommission, how to gracefully shut everything down and preserve important data (family photos, documents, backups).
+- **Credentials**: Where to find the password manager, master passwords, and recovery keys. Stored securely outside the repo.
+
+### Common Tasks Runbook (`docs/runbooks/common-tasks.md`)
+
+How-tos for routine operations:
+
+- Adding a new service to K8s
+- Updating a Helm chart version
+- Adding a new user to LLDAP
+- Expanding TrueNAS storage
+- Adding a new VLAN
+- Restoring from backup
+- Debugging a failed Flux sync
