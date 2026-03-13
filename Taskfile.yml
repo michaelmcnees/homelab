@@ -1,0 +1,66 @@
+version: '3'
+
+tasks:
+  infra:init:
+    desc: Initialize OpenTofu for Proxmox
+    dir: terraform/proxmox
+    cmd: tofu init
+
+  infra:plan:
+    desc: Preview Proxmox infrastructure changes
+    dir: terraform/proxmox
+    cmd: tofu plan
+
+  infra:apply:
+    desc: Apply Proxmox infrastructure changes
+    dir: terraform/proxmox
+    cmd: tofu apply
+
+  network:init:
+    desc: Initialize OpenTofu for Unifi
+    dir: terraform/unifi
+    cmd: tofu init
+
+  network:plan:
+    desc: Preview Unifi network changes
+    dir: terraform/unifi
+    cmd: tofu plan
+
+  network:apply:
+    desc: Apply Unifi network changes
+    dir: terraform/unifi
+    cmd: tofu apply
+
+  ansible:proxmox:
+    desc: Configure Proxmox hosts
+    dir: ansible
+    cmd: ansible-playbook playbooks/proxmox-setup.yml
+
+  ansible:k3s-prepare:
+    desc: Prepare K3s node VMs (OS config)
+    dir: ansible
+    cmd: ansible-playbook playbooks/k3s-prepare.yml
+
+  ansible:k3s-install:
+    desc: Install K3s cluster
+    dir: ansible
+    cmd: ansible-playbook playbooks/k3s-install.yml
+
+  ansible:postgresql:
+    desc: Configure PostgreSQL LXC (install, databases, users)
+    dir: ansible
+    cmd: ansible-playbook playbooks/postgresql-setup.yml
+
+  flux:bootstrap:
+    desc: Bootstrap Flux CD onto the cluster
+    cmd: |
+      flux bootstrap github \
+        --owner=${GITHUB_USER} \
+        --repository=homelab \
+        --path=kubernetes \
+        --personal \
+        --private=false
+
+  flux:check:
+    desc: Check Flux sync status
+    cmd: flux get all

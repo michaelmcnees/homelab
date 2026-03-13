@@ -1,0 +1,23 @@
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+
+# Ansible
+*.retry
+ansible/kubeconfig.yaml
+ansible/inventory/group_vars/k3s_cluster.yml
+
+# SOPS
+*.age.key
+
+# OS
+.DS_Store
+*.swp
+
+# IDE
+.vscode/
+.idea/
