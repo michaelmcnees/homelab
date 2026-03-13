@@ -1,0 +1,88 @@
+---
+- name: Prepare nodes for K3s
+  hosts: k3s_cluster
+  become: true
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install prerequisite packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - open-iscsi
+          - nfs-common
+          - qemu-guest-agent
+          - unattended-upgrades
+        state: present
+
+    - name: Enable and start qemu-guest-agent
+      systemd:
+        name: qemu-guest-agent
+        enabled: true
+        state: started
+
+    - name: Disable swap
+      command: swapoff -a
+      when: ansible_swaptotal_mb > 0
+
+    - name: Remove swap from fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: '\sswap\s'
+        state: absent
+
+    - name: Load required kernel modules
+      modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - br_netfilter
+        - overlay
+        - ip_tables
+        - ip_vs
+        - ip_vs_rr
+        - ip_vs_wrr
+        - ip_vs_sh
+
+    - name: Persist kernel modules
+      copy:
+        content: |
+          br_netfilter
+          overlay
+          ip_tables
+          ip_vs
+          ip_vs_rr
+          ip_vs_wrr
+          ip_vs_sh
+        dest: /etc/modules-load.d/k3s.conf
+        mode: '0644'
+
+    - name: Set sysctl params for K3s
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+        sysctl_file: /etc/sysctl.d/k3s.conf
+        reload: true
+      loop:
+        - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+        - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+        - { key: "net.ipv4.ip_forward", value: "1" }
+        - { key: "fs.inotify.max_user_instances", value: "512" }
+        - { key: "fs.inotify.max_user_watches", value: "524288" }
+
+    - name: Enable unattended-upgrades for security updates
+      copy:
+        content: |
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+          APT::Periodic::AutocleanInterval "7";
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        mode: '0644'
