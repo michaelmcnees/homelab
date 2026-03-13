@@ -1,5 +1,5 @@
 module "regidrago" {
-  source = "../modules/k3s-node"
+  source = "./modules/k3s-node"
 
   vm_name        = "regidrago"
   target_node    = "snorlax"

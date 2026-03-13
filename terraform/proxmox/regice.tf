@@ -1,5 +1,5 @@
 module "regice" {
-  source = "../modules/k3s-node"
+  source = "./modules/k3s-node"
 
   vm_name        = "regice"
   target_node    = "squirtle"

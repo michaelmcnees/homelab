@@ -1,5 +1,5 @@
 module "registeel" {
-  source = "../modules/k3s-node"
+  source = "./modules/k3s-node"
 
   vm_name        = "registeel"
   target_node    = "bulbasaur"

@@ -1,5 +1,5 @@
 module "regieleki" {
-  source = "../modules/k3s-node"
+  source = "./modules/k3s-node"
 
   vm_name        = "regieleki"
   target_node    = "pikachu"

@@ -1,5 +1,5 @@
 module "regirock" {
-  source = "../modules/k3s-node"
+  source = "./modules/k3s-node"
 
   vm_name        = "regirock"
   target_node    = "charmander"
