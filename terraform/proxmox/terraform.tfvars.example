@@ -1,0 +1,6 @@
+proxmox_endpoint   = "https://10.0.0.x:8006"
+proxmox_username   = "root@pam"
+proxmox_password   = "changeme"
+vm_ssh_public_key  = "ssh-ed25519 AAAA... michael@workstation"
+vm_default_gateway = "10.0.0.1"
+vm_dns_servers     = "10.0.0.53"
