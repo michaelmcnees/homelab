@@ -70,7 +70,8 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 |----------|------|------|--------|
 | PostgreSQL | LXC | any (Ceph HA) | Central database for all apps. Proxmox HA restarts on any node if host fails. See "Database Architecture" below. |
 | Homey (self-hosted) | LXC | pikachu | Host networking required |
-| Homebridge | LXC | pikachu | Host networking + USB access |
+| Homebridge | LXC | pikachu | Host networking + USB access (camera duties moved to Scrypted in K8s) |
+| Proxmox Backup Server | LXC or VM | any (Ceph HA) | Deduplicated, incremental VM/LXC backups. Stores backup data on TrueNAS NFS share. |
 | Netboot.xyz | LXC | any Proxmox host | PXE/TFTP needs management network access |
 | Pelican game server | VM | pikachu | 16GB+ RAM, runs game instances managed by Pelican Panel |
 
@@ -104,7 +105,9 @@ A single **PostgreSQL LXC** on Proxmox serves as the central database for all ap
 
 - **OpenTofu** (bpg/proxmox provider): Declaratively manages all VMs and LXCs — specs, disks, network interfaces, passthrough devices.
 - **OpenTofu** (filipowm/unifi provider): Manages Unifi network infrastructure — VLANs, SSIDs, firewall rules, port profiles. See Section 3 for details.
-- **Ansible**: Configures Proxmox hosts (Ceph, networking, repos, SSH hardening), K3s VM OS (packages, users, kernel params, K3s bootstrap), and PostgreSQL LXC (installation, configuration, database/user creation).
+- **OpenTofu** (cloudflare/cloudflare provider): Manages Cloudflare zone settings, DNS records (MX, SPF, DKIM, etc. that ExternalDNS doesn't handle), page rules, and WAF rules.
+- **OpenTofu** (tailscale/tailscale provider): Manages Tailscale ACL policies, DNS settings, device authorization rules, and subnet route approvals.
+- **Ansible**: Configures Proxmox hosts (Ceph, networking, repos, SSH hardening), K3s VM OS (packages, users, kernel params, K3s bootstrap), PostgreSQL LXC (installation, configuration, database/user creation), TrueNAS (datasets, shares, users, permissions via REST API), and AdGuard Home (DNS rewrites, upstream servers, filtering lists, client settings via REST API).
 
 ---
 
@@ -147,6 +150,19 @@ With databases externalized to the PostgreSQL LXC, most K8s apps no longer manag
 
 **Escape hatch:** If NFS performance becomes an issue for a service, moving it to `local-path` is a PVC migration — not an architecture change.
 
+### Future Enhancement: NVMe Pool + Optane Metadata
+
+When Intel Optane drives become affordable, add a pair as a mirrored metadata special vdev on the HDD pool (replacing the current 1TB NVMe metadata vdev). Then repurpose the 2x existing 1TB NVMe drives + 2x new 1TB NVMe drives into a 4x RAIDZ1 NVMe pool (~3TB usable).
+
+**Workloads to move to NVMe pool:**
+- `data/k8s/` — All democratic-csi PVCs get NVMe speeds (Paperless OCR, Ollama model loading, app configs)
+- `data/apps/` — TrueNAS app datasets (Plex metadata/database, Tdarr transcode cache, SABnzbd)
+- `data/backups/pbs/` — PBS dedup index is heavily random-read; NVMe dramatically speeds up restores and verify jobs
+
+**Stays on HDD pool:** `media/`, `homes/`, `isos/`, `backups/postgresql/`, `backups/timemachine/` — all sequential/throughput-oriented.
+
+This is a hardware purchase + pool migration, not an architecture change — democratic-csi and TrueNAS apps just point at a different pool.
+
 ### TrueNAS Dataset Layout
 
 ```
@@ -165,7 +181,8 @@ data/
 │   ├── nfs/
 │   └── snapshots/
 ├── backups/
-│   ├── proxmox/            # VM/LXC backups via NFS
+│   ├── pbs/                # Proxmox Backup Server datastore (deduplicated, incremental)
+│   ├── postgresql/         # pg_dump logical backups from PostgreSQL LXC
 │   └── timemachine/        # macOS Time Machine targets
 ├── homes/
 │   ├── michael/
@@ -175,12 +192,34 @@ data/
 
 ### Backups
 
-- **Proxmox VMs/LXCs**: Built-in Proxmox backup to `nfs-backups` share on TrueNAS. Scheduled nightly.
+#### Proxmox Backup Server (PBS)
+
+A **PBS instance** (LXC or lightweight VM) provides deduplicated, incremental backups for all VMs and LXCs. Replaces the current vzdump-over-NFS approach.
+
+- **Hostname**: TBD (Pokémon name)
+- **Runs on**: Any Proxmox node (Ceph-backed disk = live-migratable)
+- **Resources**: 2GB RAM, 2 vCPU (PBS is lightweight)
+- **Backup storage**: NFS datastore pointing at TrueNAS (`data/backups/pbs/`)
+- **Managed by**: OpenTofu (LXC provisioning) + Ansible (PBS installation, datastore config, backup job schedules)
+
+**Why PBS over vzdump-to-NFS:**
+- **Block-level deduplication**: K3s VMs share ~90% identical Ubuntu base — PBS stores common blocks once, not 5x. Significant space savings.
+- **Incremental forever**: After the first full backup, only changed blocks transfer. Nightly backups complete in seconds instead of minutes.
+- **Integrity verification**: Scheduled verify jobs catch bit-rot before you need a restore.
+- **Granular file restore**: Mount a backup and pull individual files without restoring the entire VM.
+- **Retention policies**: keep-last/daily/weekly/monthly/yearly with automatic pruning.
+
+**Backup schedule:**
+- **Nightly**: All VMs and LXCs (incremental — fast after first full)
+- **Verification**: Weekly integrity check of all backup chunks
+- **Retention**: 7 daily, 4 weekly, 3 monthly, 1 yearly
+
+#### Other Backup Layers
+
+- **PostgreSQL**: `pg_dump` cron inside the LXC writes logical backups to TrueNAS (`data/backups/postgresql/`). Supplements the PBS VM-level backup with application-consistent database dumps.
 - **K8s persistent data**: Protected by TrueNAS ZFS snapshots (automated hourly/daily/weekly retention). democratic-csi creates per-PVC datasets, so each service's data gets independent snapshot coverage.
 - **GitOps repo**: The GitHub repo IS the backup for all K8s manifests and configuration. Cluster can be rebuilt entirely from the repo.
 - **TrueNAS ZFS**: Automated snapshot schedule (hourly/daily/weekly retention) via built-in snapshot tasks.
-
-Future consideration: Add K8s-native backup/restore tooling if the need arises.
 
 ---
 
@@ -240,12 +279,24 @@ terraform/
 │   ├── main.tf
 │   ├── nodes/
 │   └── ...
-└── unifi/                  # filipowm/unifi provider — network infra
+├── unifi/                  # filipowm/unifi provider — network infra
+│   ├── main.tf
+│   ├── networks.tf         # VLANs, subnets
+│   ├── wireless.tf         # SSIDs, VLAN mappings
+│   ├── firewall.tf         # Inter-VLAN rules
+│   └── port-profiles.tf    # Switch port configs
+│
+├── cloudflare/             # cloudflare/cloudflare provider — DNS & security
+│   ├── main.tf
+│   ├── zone.tf             # Zone settings, SSL mode, security level
+│   ├── dns.tf              # MX, SPF, DKIM, DMARC, and other records ExternalDNS doesn't manage
+│   └── rules.tf            # Page rules, WAF rules
+│
+└── tailscale/              # tailscale/tailscale provider — mesh networking
     ├── main.tf
-    ├── networks.tf         # VLANs, subnets
-    ├── wireless.tf         # SSIDs, VLAN mappings
-    ├── firewall.tf         # Inter-VLAN rules
-    └── port-profiles.tf    # Switch port configs
+    ├── acls.tf             # ACL policies, tag owners
+    ├── dns.tf              # MagicDNS settings, search domains
+    └── device-auth.tf      # Device authorization rules, subnet route approvals
 ```
 
 ### DNS
@@ -284,7 +335,7 @@ Future consideration: evaluate Caddy as an alternative ingress controller once t
 
 | Layer | Tool | Manages |
 |-------|------|---------|
-| Infrastructure | **OpenTofu** | Proxmox VMs/LXCs + Unifi networking — specs, disks, NICs, passthrough, VLANs, SSIDs, firewall |
+| Infrastructure | **OpenTofu** | Proxmox VMs/LXCs, Unifi networking, Cloudflare DNS/security, Tailscale ACLs/routing |
 | Configuration | **Ansible** | OS-level setup on Proxmox hosts + K3s VM base config |
 | Workloads | **Flux CD** | Everything inside K8s — Helm releases, manifests, kustomizations |
 
@@ -312,16 +363,29 @@ homelab/
 │   │   │   ├── munchlax.tf
 │   │   │   ├── pelican-node.tf # Game server VM on pikachu
 │   │   │   ├── postgresql-lxc.tf # PostgreSQL database LXC (Ceph HA)
+│   │   │   ├── pbs.tf           # Proxmox Backup Server LXC/VM (Ceph HA)
 │   │   │   ├── pikachu-lxcs.tf # Homey + Homebridge LXCs
 │   │   │   └── netboot.tf     # Netboot.xyz LXC
 │   │   └── terraform.tfstate   # Local state initially; migrate to remote state later
 │   │
-│   └── unifi/                  # filipowm/unifi provider — networking
+│   ├── unifi/                  # filipowm/unifi provider — networking
+│   │   ├── main.tf
+│   │   ├── networks.tf
+│   │   ├── wireless.tf
+│   │   ├── firewall.tf
+│   │   └── port-profiles.tf
+│   │
+│   ├── cloudflare/             # cloudflare/cloudflare provider — DNS & security
+│   │   ├── main.tf
+│   │   ├── zone.tf
+│   │   ├── dns.tf
+│   │   └── rules.tf
+│   │
+│   └── tailscale/              # tailscale/tailscale provider — mesh networking
 │       ├── main.tf
-│       ├── networks.tf
-│       ├── wireless.tf
-│       ├── firewall.tf
-│       └── port-profiles.tf
+│       ├── acls.tf
+│       ├── dns.tf
+│       └── device-auth.tf
 │
 ├── ansible/                    # Ansible — configuration layer
 │   ├── inventory/
@@ -331,7 +395,10 @@ homelab/
 │   │   ├── proxmox-setup.yml
 │   │   ├── k3s-prepare.yml
 │   │   ├── k3s-install.yml
-│   │   └── postgresql-setup.yml  # PostgreSQL LXC: install, configure, create databases/users
+│   │   ├── postgresql-setup.yml  # PostgreSQL LXC: install, configure, create databases/users
+│   │   ├── truenas-setup.yml     # TrueNAS: datasets, shares, users, permissions via REST API
+│   │   ├── adguard-setup.yml     # AdGuard Home: DNS rewrites, upstream servers, filters, client settings
+│   │   └── pbs-setup.yml         # PBS: installation, datastore config, backup job schedules, retention
 │   └── roles/
 │
 ├── kubernetes/                 # Flux — workload layer
@@ -362,6 +429,8 @@ homelab/
 │   │   ├── prowlarr/
 │   │   ├── radarr/
 │   │   ├── recyclarr/
+│   │   ├── dbgate/
+│   │   ├── scrypted/
 │   │   ├── seer/               # Replaces Overseerr
 │   │   ├── sonarr/
 │   │   ├── sonarr-anime/
@@ -414,6 +483,26 @@ tasks:
     cmd: tofu apply
     dir: terraform/unifi
 
+  cloudflare:plan:
+    desc: Preview Cloudflare DNS/security changes
+    cmd: tofu plan
+    dir: terraform/cloudflare
+
+  cloudflare:apply:
+    desc: Apply Cloudflare DNS/security changes
+    cmd: tofu apply
+    dir: terraform/cloudflare
+
+  tailscale:plan:
+    desc: Preview Tailscale ACL/DNS changes
+    cmd: tofu plan
+    dir: terraform/tailscale
+
+  tailscale:apply:
+    desc: Apply Tailscale ACL/DNS changes
+    cmd: tofu apply
+    dir: terraform/tailscale
+
   ansible:proxmox:
     desc: Configure Proxmox hosts
     cmd: ansible-playbook playbooks/proxmox-setup.yml
@@ -427,6 +516,21 @@ tasks:
   ansible:postgresql:
     desc: Configure PostgreSQL LXC (install, databases, users)
     cmd: ansible-playbook playbooks/postgresql-setup.yml
+    dir: ansible
+
+  ansible:truenas:
+    desc: Configure TrueNAS datasets, shares, users, permissions
+    cmd: ansible-playbook playbooks/truenas-setup.yml
+    dir: ansible
+
+  ansible:adguard:
+    desc: Configure AdGuard Home DNS rewrites, filters, settings
+    cmd: ansible-playbook playbooks/adguard-setup.yml
+    dir: ansible
+
+  ansible:pbs:
+    desc: Configure Proxmox Backup Server (datastores, jobs, retention)
+    cmd: ansible-playbook playbooks/pbs-setup.yml
     dir: ansible
 
   flux:bootstrap:
@@ -448,7 +552,7 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 | `auth` | Pocket ID, LLDAP, OAuth2-Proxy |
 | `databases` | Redis (cache/session store) |
 | `media` | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr, Seer, Wizarr, Tautulli |
-| `apps` | Outline, Booklore, Gramps, Pelican Panel, Paperless-ngx, Paperless-ai, Ollama |
+| `apps` | Outline, Booklore, Gramps, Pelican Panel, Paperless-ngx, Paperless-ai, Ollama, Scrypted, DbGate |
 | `storage` | democratic-csi |
 | `networking` | AdGuard Home, Tailscale |
 | `dev-lab` | Development/experimentation workloads (see Section 8) |
@@ -460,7 +564,11 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 | Deploy/update a K8s app | Edit manifests under `kubernetes/`, commit, push. Flux auto-deploys in 2-5 min. |
 | Change VM resources | Edit `.tf` file, commit, `task infra:apply`. |
 | Change network config | Edit `.tf` file in `terraform/unifi/`, commit, `task network:apply`. |
+| Change DNS/Cloudflare | Edit `.tf` file in `terraform/cloudflare/`, commit, `task cloudflare:apply`. |
+| Change Tailscale ACLs | Edit `.tf` file in `terraform/tailscale/`, commit, `task tailscale:apply`. |
 | Update OS/host config | Edit Ansible playbook/role, commit, `task ansible:proxmox`. |
+| Change TrueNAS datasets/shares | Edit Ansible vars, commit, `task ansible:truenas`. |
+| Change AdGuard DNS config | Edit Ansible vars, commit, `task ansible:adguard`. |
 | Something breaks | `git log` to find the change, `git revert`, push. Flux rolls back automatically. |
 
 ---
@@ -599,6 +707,10 @@ Home Dashboard
 
 **Infrastructure Services**
 - Redis (in-cluster cache/session store for Outline, Paperless-ngx, etc. — `databases` namespace)
+- DbGate (multi-database admin UI — connects to PostgreSQL LXC, Redis, and any dev-lab databases)
+
+**Home & Cameras**
+- Scrypted (unified camera bridge — HKSV for Apple Home, RTSP rebroadcast for Homey)
 
 **Genealogy**
 - Gramps
@@ -630,6 +742,25 @@ Home Dashboard
 **Node scheduling:** Ollama should prefer regidrago (snorlax, 16GB worker) where there's the most memory headroom. Soft affinity — not a hard requirement.
 
 **Anthropic API fallback:** Paperless-ai supports any OpenAI-compatible API. If local model quality is insufficient for certain document types, it can be pointed at the Anthropic API (via a compatible proxy) without architecture changes. Preference is local-first for privacy.
+
+### Camera Integration — Scrypted
+
+**Scrypted** replaces the separate camera integrations in Homebridge and Homey with a single unified bridge.
+
+**Before:** Unifi Protect → Homebridge plugin → Apple Home, AND Unifi Protect → Homey plugin → Homey (two separate connections, two integrations to maintain).
+
+**After:** Unifi Protect → Scrypted → HomeKit Secure Video (HKSV) for Apple Home, AND RTSP rebroadcast available for Homey.
+
+| Feature | Benefit |
+|---------|---------|
+| HomeKit Secure Video | Better quality and reliability than Homebridge camera plugin |
+| RTSP rebroadcast | Connects to each camera once, serves multiple consumers — reduces Protect controller load |
+| Local object detection | Person/vehicle/animal detection without cloud |
+| Prebuffering | HKSV clips capture moments *before* motion trigger |
+
+**Deployment:** Runs in K8s (`apps` namespace). Needs network access to Unifi Protect on the IoT/management VLAN but does not need host networking. Software transcoding is sufficient for a handful of cameras. Hardware transcoding via iGPU passthrough is an option if needed later.
+
+**Note:** Homebridge remains as an LXC for non-camera plugins that need host networking or USB access. Its camera responsibilities move to Scrypted. Homey may still use its native Unifi Protect integration for automation triggers — test during implementation whether Scrypted's RTSP rebroadcast can replace that too.
 
 ### Retired
 
