@@ -1,0 +1,95 @@
+---
+- name: Configure Proxmox hosts
+  hosts: proxmox_hosts
+  become: true
+
+  tasks:
+    - name: Install security packages
+      apt:
+        name:
+          - fail2ban
+          - unattended-upgrades
+          - apt-listchanges
+        state: present
+        update_cache: true
+
+    - name: Configure SSH - disable password auth
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      loop:
+        - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }
+        - { regexp: '^#?PermitRootLogin', line: 'PermitRootLogin prohibit-password' }
+        - { regexp: '^#?PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
+      notify: restart sshd
+
+    - name: Configure fail2ban for SSH
+      copy:
+        content: |
+          [sshd]
+          enabled = true
+          port = ssh
+          filter = sshd
+          logpath = /var/log/auth.log
+          maxretry = 5
+          bantime = 3600
+          findtime = 600
+        dest: /etc/fail2ban/jail.d/sshd.conf
+        mode: '0644'
+      notify: restart fail2ban
+
+    - name: Configure fail2ban for Proxmox web UI
+      copy:
+        content: |
+          [proxmox]
+          enabled = true
+          port = https,http,8006
+          filter = proxmox
+          logpath = /var/log/daemon.log
+          maxretry = 3
+          bantime = 3600
+          findtime = 600
+        dest: /etc/fail2ban/jail.d/proxmox.conf
+        mode: '0644'
+      notify: restart fail2ban
+
+    - name: Create fail2ban filter for Proxmox
+      copy:
+        content: |
+          [Definition]
+          failregex = pvedaemon\[.*authentication failure; rhost=<HOST> user=.* msg=.*
+          ignoreregex =
+        dest: /etc/fail2ban/filter.d/proxmox.conf
+        mode: '0644'
+      notify: restart fail2ban
+
+    - name: Enable unattended-upgrades for security updates
+      copy:
+        content: |
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+          APT::Periodic::AutocleanInterval "7";
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        mode: '0644'
+
+    - name: Ensure services are enabled and started
+      systemd:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop:
+        - fail2ban
+        - unattended-upgrades
+
+  handlers:
+    - name: restart sshd
+      systemd:
+        name: sshd
+        state: restarted
+
+    - name: restart fail2ban
+      systemd:
+        name: fail2ban
+        state: restarted
