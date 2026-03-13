@@ -45,13 +45,15 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 | k3s-agent-1 | **regieleki** | pikachu | Worker |
 | k3s-agent-2 | **regidrago** | snorlax | Worker |
 
+> **Why VMs, not LXCs?** K3s nodes run as VMs intentionally. LXCs share the host kernel, so a misbehaving K8s workload (OOM, bad syscall, cgroup conflict) can take down the Proxmox host and everything else on it. K8s also pushes kernel boundaries hard — iptables, overlay filesystems, containerd, nested cgroups — which works in LXC but runs closer to the edge with each upgrade. VMs contain the blast radius: a kernel panic inside a K3s VM doesn't touch Proxmox. The RAM overhead (~2-3GB per VM for the guest kernel) is acceptable on 32GB+ nodes. LXCs are the right choice for single-purpose, trusted workloads like PostgreSQL, Homey, and Homebridge where you control exactly what runs.
+
 ### TrueNAS VM
 
 - **Hostname**: munchlax
 - **Runs on**: snorlax (pve5)
 - **Passthrough**: HBA card (all 8x 20TB Exos drives) + iGPU (QuickSync for Plex/Tdarr)
 - **NVMe metadata drives**: The 2x 1TB M.2 NVMe SSDs are on the motherboard (not HBA-connected). Passed to the TrueNAS VM separately (as virtual disks backed by local storage, or via PCIe/virtio passthrough) to continue serving as the mirrored metadata vdev.
-- **RAM allocation**: ~32GB to munchlax, ~30GB remaining for K3s agent + Proxmox overhead
+- **RAM allocation**: ~32GB to munchlax, ~16GB to regidrago (K3s agent), ~16GB remaining for Proxmox overhead
 - **Boot disk**: Ceph-backed (live-migratable, though passthrough pins it to snorlax in practice)
 
 ### Pelican Game Server VM
@@ -66,16 +68,43 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 
 | Workload | Type | Host | Reason |
 |----------|------|------|--------|
+| PostgreSQL | LXC | any (Ceph HA) | Central database for all apps. Proxmox HA restarts on any node if host fails. See "Database Architecture" below. |
 | Homey (self-hosted) | LXC | pikachu | Host networking required |
 | Homebridge | LXC | pikachu | Host networking + USB access |
 | Netboot.xyz | LXC | any Proxmox host | PXE/TFTP needs management network access |
 | Pelican game server | VM | pikachu | 16GB+ RAM, runs game instances managed by Pelican Panel |
 
+### Database Architecture — PostgreSQL LXC
+
+A single **PostgreSQL LXC** on Proxmox serves as the central database for all applications that support it. This eliminates SQLite-on-NFS issues, simplifies backups, and gives native disk performance on Ceph-backed storage.
+
+- **Hostname**: TBD (Pokémon name)
+- **Runs on**: Any Proxmox node (Ceph-backed disk = live-migratable, Proxmox HA enabled)
+- **Resources**: 2-4GB RAM, 2 vCPU (lightweight — homelab query volume is low)
+- **Storage**: Ceph-backed LXC disk (fast local I/O, replicated across nodes)
+- **Backups**: Proxmox nightly LXC backup + PostgreSQL `pg_dump` cron for logical backups to TrueNAS
+- **Managed by**: OpenTofu (LXC provisioning) + Ansible (PostgreSQL installation, configuration, database/user creation)
+
+**Apps using PostgreSQL (configured via environment variables):**
+
+| App | Config Method |
+|-----|---------------|
+| Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Prowlarr | `*__POSTGRES__HOST`, `*__POSTGRES__PORT`, etc. env vars |
+| Bazarr | PostgreSQL env vars |
+| Paperless-ngx | `PAPERLESS_DBENGINE=postgresql`, `PAPERLESS_DBHOST`, etc. |
+| Outline | `DATABASE_URL` connection string (requires Postgres) |
+| Gramps Web | PostgreSQL connection string |
+| Pocket ID | `DB_CONNECTION_STRING` env var |
+| Pelican Panel | Database connection env vars |
+| LLDAP | Planned — env var config exists but documentation is sparse. Falls back to SQLite on `local-path` if Postgres doesn't work. |
+
+**Redis** runs as a K8s deployment (not in the LXC). It's a cache/session store, not a durable database — running it in-cluster next to the apps that use it (Outline, Paperless-ngx, etc.) minimizes latency. Uses `local-path` storage for optional persistence.
+
 ### IaC Tooling for Infrastructure
 
 - **OpenTofu** (bpg/proxmox provider): Declaratively manages all VMs and LXCs — specs, disks, network interfaces, passthrough devices.
 - **OpenTofu** (filipowm/unifi provider): Manages Unifi network infrastructure — VLANs, SSIDs, firewall rules, port profiles. See Section 3 for details.
-- **Ansible**: Configures Proxmox hosts (Ceph, networking, repos, SSH hardening) and K3s VM OS (packages, users, kernel params, K3s bootstrap).
+- **Ansible**: Configures Proxmox hosts (Ceph, networking, repos, SSH hardening), K3s VM OS (packages, users, kernel params, K3s bootstrap), and PostgreSQL LXC (installation, configuration, database/user creation).
 
 ---
 
@@ -88,6 +117,7 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 - K3s VM boot disks (HA, live-migratable)
 - Munchlax boot disk
 - Pelican VM boot disk
+- PostgreSQL LXC disk (HA, live-migratable — critical shared database)
 - Any other VM/LXC disks
 
 ### Kubernetes Persistent Volumes — democratic-csi
@@ -96,10 +126,26 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 
 | Storage Class | Backend | Use Case |
 |---------------|---------|----------|
-| `truenas-nfs` | democratic-csi -> TrueNAS NFS | Most workloads (databases, app data, configs). ReadWriteMany. |
-| `local-path` | Rancher local-path-provisioner | Ephemeral/cache data that doesn't need cross-node persistence. |
+| `truenas-nfs` | democratic-csi -> TrueNAS NFS | Most workloads (bulk data, media references, document storage). ReadWriteMany. |
+| `local-path` | Rancher local-path-provisioner | SQLite fallbacks (e.g., LLDAP), Redis persistence, anything with NFS/locking issues. Node-local Ceph-backed storage. |
 
 Why democratic-csi over Longhorn: The Dell nodes have limited local storage (250GB NVMe minus Proxmox). Longhorn would compete for that space. democratic-csi puts all persistent data on TrueNAS's massive ZFS pool — K3s nodes stay stateless compute. Simpler, more storage, fewer moving parts.
+
+### Storage Class Selection Guide
+
+With databases externalized to the PostgreSQL LXC, most K8s apps no longer manage their own databases. This dramatically simplifies storage — almost everything can go on `truenas-nfs`.
+
+| Use `local-path` | Use `truenas-nfs` |
+|-------------------|-------------------|
+| Redis (optional persistence) | Paperless-ngx document storage |
+| LLDAP (if Postgres fallback to SQLite) | Ollama model files |
+| Any app with known NFS/locking issues | Media references, bulk downloads |
+| | App configs (no longer databases — just config files) |
+| | Everything else by default |
+
+**Why this is simpler now:** The *arr apps, Paperless-ngx, Gramps, Outline, Pocket ID, and Pelican Panel all use the PostgreSQL LXC for their databases. Their K8s PVCs only store config files and cache — safe on NFS.
+
+**Escape hatch:** If NFS performance becomes an issue for a service, moving it to `local-path` is a PVC migration — not an architecture change.
 
 ### TrueNAS Dataset Layout
 
@@ -265,6 +311,7 @@ homelab/
 │   │   │   ├── regidrago.tf
 │   │   │   ├── munchlax.tf
 │   │   │   ├── pelican-node.tf # Game server VM on pikachu
+│   │   │   ├── postgresql-lxc.tf # PostgreSQL database LXC (Ceph HA)
 │   │   │   ├── pikachu-lxcs.tf # Homey + Homebridge LXCs
 │   │   │   └── netboot.tf     # Netboot.xyz LXC
 │   │   └── terraform.tfstate   # Local state initially; migrate to remote state later
@@ -283,7 +330,8 @@ homelab/
 │   ├── playbooks/
 │   │   ├── proxmox-setup.yml
 │   │   ├── k3s-prepare.yml
-│   │   └── k3s-install.yml
+│   │   ├── k3s-install.yml
+│   │   └── postgresql-setup.yml  # PostgreSQL LXC: install, configure, create databases/users
 │   └── roles/
 │
 ├── kubernetes/                 # Flux — workload layer
@@ -291,35 +339,37 @@ homelab/
 │   ├── infrastructure/
 │   │   ├── controllers/        # Traefik, cert-manager, MetalLB, ExternalDNS
 │   │   ├── configs/            # ClusterIssuers, MetalLB pools
-│   │   └── observability/      # kube-prometheus-stack, Loki, Beszel, Uptime Kuma
+│   │   └── observability/      # kube-prometheus-stack, Loki, Beszel, Uptime Kuma, Unifi exporter
+│   │       ├── beszel/
+│   │       ├── pushover-alerts/  # Alertmanager Pushover receiver config
+│   │       ├── unifi-exporter/
+│   │       └── uptime-kuma/
 │   ├── apps/
 │   │   ├── adguard/
 │   │   ├── bazarr/
-│   │   ├── beszel/
 │   │   ├── booklore/
 │   │   ├── gramps/
 │   │   ├── lidarr/
 │   │   ├── lidarr-kids/
 │   │   ├── lldap/
-│   │   ├── mariadb/
 │   │   ├── oauth2-proxy/
+│   │   ├── ollama/
 │   │   ├── outline/
+│   │   ├── paperless-ai/
+│   │   ├── paperless-ngx/
 │   │   ├── pelican-panel/
 │   │   ├── pocket-id/
-│   │   ├── postgresql/
 │   │   ├── prowlarr/
-│   │   ├── pushover-alerts/    # Alertmanager config for Pushover
 │   │   ├── radarr/
 │   │   ├── recyclarr/
-│   │   ├── redis/
 │   │   ├── seer/               # Replaces Overseerr
 │   │   ├── sonarr/
 │   │   ├── sonarr-anime/
 │   │   ├── tailscale/
 │   │   ├── tautulli/
-│   │   ├── uptime-kuma/
-│   │   ├── unifi-exporter/
 │   │   └── wizarr/
+│   ├── databases/
+│   │   └── redis/
 │   ├── dev-lab/                # Experimental/career dev workloads (see Section 8)
 │   └── repositories/           # HelmRepository and OCIRepository sources
 │
@@ -374,6 +424,11 @@ tasks:
     cmd: ansible-playbook playbooks/k3s-install.yml
     dir: ansible
 
+  ansible:postgresql:
+    desc: Configure PostgreSQL LXC (install, databases, users)
+    cmd: ansible-playbook playbooks/postgresql-setup.yml
+    dir: ansible
+
   flux:bootstrap:
     desc: Bootstrap Flux onto the cluster
     cmd: flux bootstrap github --owner=<github-user> --repository=homelab --path=kubernetes --personal
@@ -389,11 +444,11 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 |-----------|----------|
 | `flux-system` | Flux controllers (auto-created) |
 | `infrastructure` | Traefik, cert-manager, MetalLB, ExternalDNS |
-| `observability` | Prometheus, Grafana, Loki, Alertmanager, Beszel, Uptime Kuma |
+| `observability` | Prometheus, Grafana, Loki, Alertmanager, Beszel, Uptime Kuma, Unifi exporter |
 | `auth` | Pocket ID, LLDAP, OAuth2-Proxy |
-| `databases` | PostgreSQL, MariaDB, Redis |
+| `databases` | Redis (cache/session store) |
 | `media` | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr, Seer, Wizarr, Tautulli |
-| `apps` | Outline, Booklore, Gramps, Pelican Panel |
+| `apps` | Outline, Booklore, Gramps, Pelican Panel, Paperless-ngx, Paperless-ai, Ollama |
 | `storage` | democratic-csi |
 | `networking` | AdGuard Home, Tailscale |
 | `dev-lab` | Development/experimentation workloads (see Section 8) |
@@ -523,6 +578,11 @@ Home Dashboard
 **Productivity & Knowledge**
 - Outline
 - Booklore
+- Paperless-ngx (document management, OCR, search)
+- Paperless-ai (auto-tagging and classification companion for Paperless-ngx)
+
+**AI/ML**
+- Ollama (local LLM inference — serves Paperless-ai and other local AI workloads)
 
 **Media Management**
 - Seer (replaces Overseerr — migration required)
@@ -538,9 +598,7 @@ Home Dashboard
 - Bazarr
 
 **Infrastructure Services**
-- PostgreSQL
-- MariaDB
-- Redis
+- Redis (in-cluster cache/session store for Outline, Paperless-ngx, etc. — `databases` namespace)
 
 **Genealogy**
 - Gramps
@@ -555,6 +613,23 @@ Home Dashboard
 - Alertmanager (-> Pushover)
 - Uptime Kuma
 - Beszel (server component)
+- Unifi exporter (Prometheus metrics from Unifi controller)
+
+### Document Processing — Paperless-ngx + Local AI
+
+**Paperless-ngx** handles document ingestion, OCR, storage, and search. **Paperless-ai** watches for new documents and sends them to an LLM for automatic tagging, classification, and summarization. **Ollama** runs the LLM locally — no documents leave the network.
+
+| Component | RAM | Storage Class | Notes |
+|-----------|-----|---------------|-------|
+| Paperless-ngx | ~1GB | `truenas-nfs` (documents), PostgreSQL LXC (db) | Core document management |
+| Paperless-ai | ~512MB | — | Stateless companion, calls Ollama API |
+| Ollama | 4-6GB limit | `truenas-nfs` (model files) | Serves LLM inference |
+
+**Default model:** Llama 3.2 3B (Q4 quantized) — ~2-3GB RAM, strong at classification and summarization. Upgrade path to Llama 3.1 8B (Q4, ~5GB) if quality is insufficient.
+
+**Node scheduling:** Ollama should prefer regidrago (snorlax, 16GB worker) where there's the most memory headroom. Soft affinity — not a hard requirement.
+
+**Anthropic API fallback:** Paperless-ai supports any OpenAI-compatible API. If local model quality is insufficient for certain document types, it can be pointed at the Anthropic API (via a compatible proxy) without architecture changes. Preference is local-first for privacy.
 
 ### Retired
 
@@ -596,7 +671,7 @@ User request -> Traefik -> OAuth2-Proxy (middleware)
 
 ### Network Security
 
-- **K8s NetworkPolicies**: Default-deny between namespaces, explicit allows for known traffic (apps -> PostgreSQL, Traefik -> all app namespaces).
+- **K8s NetworkPolicies**: Default-deny between namespaces, explicit allows for known traffic (apps -> PostgreSQL LXC IP, apps -> Redis, Traefik -> all app namespaces).
 - **VLAN segmentation**: IoT, K8s, management, storage, and guest traffic isolated at the network layer.
 - **Guest network**: Internet-only, completely isolated from all other VLANs, rate-limited.
 - **Traefik entrypoint separation**: External (81/444) and internal on separate ports.
@@ -625,7 +700,7 @@ An isolated environment within K8s for career development, experimentation, and 
 - **DNS**: `*.dev.home.mcnees.me` — separate subdomain so it's clear what's dev vs. production.
 - **Traefik**: Dedicated IngressRoute entries under the dev subdomain. Same internal entrypoint as production (no public exposure).
 - **Storage**: Uses the same `truenas-nfs` storage class. democratic-csi creates datasets under `data/k8s/nfs/` — no special config needed.
-- **NetworkPolicies**: Dev lab namespace can reach databases namespace (for testing against shared databases) and the internet, but not production app namespaces.
+- **NetworkPolicies**: Dev lab namespace can reach the PostgreSQL LXC IP (for testing against shared databases), Redis in the databases namespace, and the internet, but not production app namespaces.
 - **Auth**: Dev services behind the same OAuth2-Proxy chain — only Michael has access.
 
 ### What it enables
