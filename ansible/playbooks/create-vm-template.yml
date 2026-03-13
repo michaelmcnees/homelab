@@ -1,0 +1,70 @@
+---
+# Creates a cloud-init Ubuntu 24.04 VM template on a Proxmox node.
+# Run once per Proxmox node that will host K3s VMs.
+#
+# Usage: ansible-playbook playbooks/create-vm-template.yml -e "target_node=charmander"
+#
+# Prerequisites: SSH access to the Proxmox node as root.
+
+- name: Create cloud-init VM template
+  hosts: "{{ target_node }}"
+  become: true
+  vars:
+    template_vmid: 9000
+    template_name: "ubuntu-2404-cloud-init"
+    ubuntu_image_url: "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
+    ubuntu_image_file: "/tmp/noble-server-cloudimg-amd64.img"
+    storage_pool: "local-lvm"
+
+  tasks:
+    - name: Check if template already exists
+      command: qm status {{ template_vmid }}
+      register: template_check
+      failed_when: false
+      changed_when: false
+
+    - name: Download Ubuntu cloud image
+      get_url:
+        url: "{{ ubuntu_image_url }}"
+        dest: "{{ ubuntu_image_file }}"
+        mode: '0644'
+      when: template_check.rc != 0
+
+    - name: Create VM for template
+      command: >
+        qm create {{ template_vmid }}
+        --name {{ template_name }}
+        --memory 2048
+        --cores 2
+        --net0 virtio,bridge=vmbr0
+        --ostype l26
+        --scsihw virtio-scsi-single
+        --agent enabled=1
+      when: template_check.rc != 0
+
+    - name: Import disk from cloud image
+      command: >
+        qm set {{ template_vmid }}
+        --scsi0 {{ storage_pool }}:0,import-from={{ ubuntu_image_file }},discard=on,ssd=1
+      when: template_check.rc != 0
+
+    - name: Add cloud-init drive
+      command: qm set {{ template_vmid }} --ide2 {{ storage_pool }}:cloudinit
+      when: template_check.rc != 0
+
+    - name: Set boot order to scsi0
+      command: qm set {{ template_vmid }} --boot order=scsi0
+      when: template_check.rc != 0
+
+    - name: Enable serial console for cloud-init
+      command: qm set {{ template_vmid }} --serial0 socket --vga serial0
+      when: template_check.rc != 0
+
+    - name: Convert to template
+      command: qm template {{ template_vmid }}
+      when: template_check.rc != 0
+
+    - name: Clean up downloaded image
+      file:
+        path: "{{ ubuntu_image_file }}"
+        state: absent
