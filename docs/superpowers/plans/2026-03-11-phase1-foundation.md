@@ -91,20 +91,31 @@ tasks:
     dir: terraform/unifi
     cmd: tofu apply
 
+  ansible:collections:
+    desc: Install Ansible collections (k3s-ansible, etc.)
+    dir: ansible
+    cmd: ansible-galaxy collection install -r collections/requirements.yml
+
   ansible:proxmox:
     desc: Configure Proxmox hosts
     dir: ansible
     cmd: ansible-playbook playbooks/proxmox-setup.yml
 
   ansible:k3s-prepare:
-    desc: Prepare K3s node VMs (OS config)
+    desc: Prepare K3s node VMs (OS config + k3s prereqs)
     dir: ansible
+    deps: [ansible:collections]
     cmd: ansible-playbook playbooks/k3s-prepare.yml
 
   ansible:k3s-install:
-    desc: Install K3s cluster
+    desc: Install K3s cluster (uses k3s-ansible collection)
     dir: ansible
     cmd: ansible-playbook playbooks/k3s-install.yml
+
+  ansible:k3s-upgrade:
+    desc: Upgrade K3s cluster (update k3s_version in group_vars first)
+    dir: ansible
+    cmd: ansible-playbook playbooks/k3s-upgrade.yml
 
   flux:bootstrap:
     desc: Bootstrap Flux CD onto the cluster
@@ -967,15 +978,56 @@ ls -la terraform/proxmox/terraform.tfstate
 
 ---
 
-## Chunk 3: Ansible K3s Cluster Setup
+## Chunk 3: Ansible K3s Cluster Setup (using k3s-ansible collection)
 
-### Task 8: Create Ansible inventory for K3s nodes
+> **Note:** This chunk uses the official [k3s-io/k3s-ansible](https://github.com/k3s-io/k3s-ansible) collection (`k3s.orchestration`) instead of hand-rolled playbooks. The collection handles K3s installation, HA detection, config file management, kubeconfig merging, and provides upgrade/reset playbooks out of the box.
+
+### Task 8: Install k3s-ansible collection and create inventory
 
 **Files:**
+- Create: `ansible/collections/requirements.yml`
+- Modify: `ansible/ansible.cfg`
 - Modify: `ansible/inventory/hosts.yml`
 - Create: `ansible/inventory/group_vars/k3s_cluster.yml`
 
-- [ ] **Step 1: Update `ansible/inventory/hosts.yml` to include K3s nodes**
+- [ ] **Step 1: Create `ansible/collections/requirements.yml`**
+
+```yaml
+---
+collections:
+  - name: k3s.orchestration
+    version: ">=1.2.0"
+  - name: community.general
+    version: ">=7.0.0"
+  - name: ansible.posix
+    version: ">=1.5.0"
+```
+
+- [ ] **Step 2: Update `ansible/ansible.cfg` to include collections path**
+
+```ini
+[defaults]
+inventory = inventory/hosts.yml
+host_key_checking = False
+retry_files_enabled = False
+collections_path = ~/.ansible/collections:/usr/share/ansible/collections
+
+[privilege_escalation]
+become = True
+become_method = sudo
+```
+
+- [ ] **Step 3: Install the collection**
+
+```bash
+task ansible:collections
+```
+
+Expected: Collection `k3s.orchestration` installed to `~/.ansible/collections`.
+
+- [ ] **Step 4: Update `ansible/inventory/hosts.yml` with k3s-ansible group names**
+
+The collection expects groups named `server` and `agent` (not `k3s_servers`/`k3s_agents`):
 
 ```yaml
 ---
@@ -999,9 +1051,10 @@ all:
           ansible_host: 10.0.0.74
           ansible_user: root
 
+    # k3s-ansible collection expects 'server' and 'agent' group names
     k3s_cluster:
       children:
-        k3s_servers:
+        server:
           hosts:
             regirock:
               ansible_host: 10.0.0.80
@@ -1009,7 +1062,7 @@ all:
               ansible_host: 10.0.0.81
             registeel:
               ansible_host: 10.0.0.82
-        k3s_agents:
+        agent:
           hosts:
             regieleki:
               ansible_host: 10.0.0.83
@@ -1020,46 +1073,47 @@ all:
         ansible_become: true
 ```
 
-- [ ] **Step 2: Create `ansible/inventory/group_vars/k3s_cluster.yml.example`** (committed to repo as reference)
+- [ ] **Step 5: Create `ansible/inventory/group_vars/k3s_cluster.yml.example`** (committed to repo as reference)
 
 ```yaml
 ---
-# K3s cluster configuration
+# K3s cluster configuration (k3s-ansible collection variables)
 # Copy to k3s_cluster.yml and fill in real values. k3s_cluster.yml is gitignored.
-k3s_version: "v1.31.6+k3s1"  # Check https://github.com/k3s-io/k3s/releases for latest stable
-k3s_token: "CHANGE_ME_GENERATE_WITH_openssl_rand_-base64_64"
+
+# K3s version — check https://github.com/k3s-io/k3s/releases for latest stable
+k3s_version: "v1.31.6+k3s1"
+
+# Cluster token — generate with: openssl rand -base64 64
+token: "CHANGE_ME_GENERATE_WITH_openssl_rand_-base64_64"
+
+# API endpoint — first server node IP (or VIP if using kube-vip later)
+api_endpoint: "10.0.0.80"
+api_port: 6443
+
+# K3s server config — written to /etc/rancher/k3s/config.yaml on server nodes
+# We disable built-in traefik, servicelb, and local-storage because
+# Phase 2 deploys MetalLB, Traefik, and democratic-csi via Flux CD.
+server_config_yaml: |
+  disable:
+    - traefik
+    - servicelb
+    - local-storage
+  flannel-backend: vxlan
+  tls-san:
+    - "10.0.0.80"
+
+# K3s agent config — written to /etc/rancher/k3s/config.yaml on agent nodes
+# agent_config_yaml: |
 ```
 
 Then create the actual `ansible/inventory/group_vars/k3s_cluster.yml` (gitignored, NOT committed):
+copy the example and fill in a real token.
 
-```yaml
----
-# K3s cluster configuration
-k3s_version: "v1.31.6+k3s1"
-k3s_token: "CHANGE_ME_GENERATE_WITH_openssl_rand_-base64_64"
-
-# First server node is the bootstrap node
-k3s_server_init: "regirock"
-k3s_api_endpoint: "10.0.0.80"  # Points to first server; consider a VIP later
-k3s_api_port: 6443
-
-# K3s server extra args
-k3s_server_extra_args: >-
-  --disable=traefik
-  --disable=servicelb
-  --disable=local-storage
-  --flannel-backend=vxlan
-  --tls-san={{ k3s_api_endpoint }}
-
-# K3s agent extra args
-k3s_agent_extra_args: ""
-```
-
-- [ ] **Step 3: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add ansible/inventory/hosts.yml ansible/inventory/group_vars/k3s_cluster.yml.example
-git commit -m "ansible: K3s cluster inventory with server and agent groups"
+git add ansible/collections/requirements.yml ansible/ansible.cfg ansible/inventory/hosts.yml ansible/inventory/group_vars/k3s_cluster.yml.example
+git commit -m "ansible: adopt k3s-ansible collection with inventory and config"
 ```
 
 ---
@@ -1069,12 +1123,19 @@ git commit -m "ansible: K3s cluster inventory with server and agent groups"
 **Files:**
 - Create: `ansible/playbooks/k3s-prepare.yml`
 
-**Context:** Prepares Ubuntu VMs for K3s: disables swap, loads kernel modules, sets sysctl params, installs prerequisites.
+**Context:** Installs homelab-specific packages (open-iscsi, nfs-common, qemu-guest-agent) and then runs the k3s-ansible collection's `prereq` role for K3s-specific setup (sysctl, kernel modules, swap, etc.).
 
 - [ ] **Step 1: Create `ansible/playbooks/k3s-prepare.yml`**
 
 ```yaml
 ---
+# Prepares K3s nodes with homelab-specific packages, then runs
+# the k3s.orchestration prereq role for K3s-specific setup
+# (sysctl, kernel modules, etc.)
+#
+# Usage: task ansible:k3s-prepare
+#   or:  ansible-playbook playbooks/k3s-prepare.yml
+
 - name: Prepare nodes for K3s
   hosts: k3s_cluster
   become: true
@@ -1085,16 +1146,16 @@ git commit -m "ansible: K3s cluster inventory with server and agent groups"
         update_cache: true
         cache_valid_time: 3600
 
-    - name: Install prerequisite packages
+    - name: Install homelab-specific packages
       apt:
         name:
           - apt-transport-https
           - ca-certificates
           - curl
           - gnupg
-          - open-iscsi
-          - nfs-common
-          - qemu-guest-agent
+          - open-iscsi       # Required for democratic-csi iSCSI (future)
+          - nfs-common       # Required for democratic-csi NFS mounts
+          - qemu-guest-agent # Proxmox VM integration
           - unattended-upgrades
         state: present
 
@@ -1104,56 +1165,6 @@ git commit -m "ansible: K3s cluster inventory with server and agent groups"
         enabled: true
         state: started
 
-    - name: Disable swap
-      command: swapoff -a
-      when: ansible_swaptotal_mb > 0
-
-    - name: Remove swap from fstab
-      lineinfile:
-        path: /etc/fstab
-        regexp: '\sswap\s'
-        state: absent
-
-    - name: Load required kernel modules
-      modprobe:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - br_netfilter
-        - overlay
-        - ip_tables
-        - ip_vs
-        - ip_vs_rr
-        - ip_vs_wrr
-        - ip_vs_sh
-
-    - name: Persist kernel modules
-      copy:
-        content: |
-          br_netfilter
-          overlay
-          ip_tables
-          ip_vs
-          ip_vs_rr
-          ip_vs_wrr
-          ip_vs_sh
-        dest: /etc/modules-load.d/k3s.conf
-        mode: '0644'
-
-    - name: Set sysctl params for K3s
-      sysctl:
-        name: "{{ item.key }}"
-        value: "{{ item.value }}"
-        state: present
-        sysctl_file: /etc/sysctl.d/k3s.conf
-        reload: true
-      loop:
-        - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
-        - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
-        - { key: "net.ipv4.ip_forward", value: "1" }
-        - { key: "fs.inotify.max_user_instances", value: "512" }
-        - { key: "fs.inotify.max_user_watches", value: "524288" }
-
     - name: Enable unattended-upgrades for security updates
       copy:
         content: |
@@ -1162,6 +1173,9 @@ git commit -m "ansible: K3s cluster inventory with server and agent groups"
           APT::Periodic::AutocleanInterval "7";
         dest: /etc/apt/apt.conf.d/20auto-upgrades
         mode: '0644'
+
+  roles:
+    - role: k3s.orchestration.prereq
 ```
 
 - [ ] **Step 2: Run the preparation playbook**
@@ -1170,62 +1184,62 @@ git commit -m "ansible: K3s cluster inventory with server and agent groups"
 task ansible:k3s-prepare
 ```
 
-Expected: All 5 nodes prepared. No errors.
+Expected: All 5 nodes prepared. The `prereq` role handles swap, kernel modules, sysctl, and br_netfilter automatically.
 
 - [ ] **Step 3: Verify a node**
 
 ```bash
-ssh mcnees@10.0.0.80 "swapon --show && sysctl net.ipv4.ip_forward && lsmod | grep br_netfilter"
+ssh mcnees@10.0.0.80 "swapon --show && sysctl net.ipv4.ip_forward && lsmod | grep br_netfilter && dpkg -l | grep open-iscsi"
 ```
 
-Expected: No swap, `ip_forward = 1`, `br_netfilter` loaded.
+Expected: No swap, `ip_forward = 1`, `br_netfilter` loaded, `open-iscsi` installed.
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add ansible/playbooks/k3s-prepare.yml
-git commit -m "ansible: add K3s node preparation playbook"
+git commit -m "ansible: add K3s node preparation playbook (k3s-ansible prereq + homelab extras)"
 ```
 
 ---
 
-### Task 10: Create K3s installation playbook
+### Task 10: Create K3s installation and lifecycle playbooks
 
 **Files:**
 - Create: `ansible/playbooks/k3s-install.yml`
+- Create: `ansible/playbooks/k3s-upgrade.yml`
+- Create: `ansible/playbooks/k3s-reset.yml`
 
-**Context:** Installs K3s — first server bootstraps the cluster, remaining servers join, then agents join. Uses the official K3s install script.
+**Context:** Uses the k3s-ansible collection roles (`k3s_server`, `k3s_agent`) for installation. The collection handles HA detection (auto `--cluster-init`), config file creation (`/etc/rancher/k3s/config.yaml` from `server_config_yaml`), token management, and kubeconfig setup. We add a final play to fetch and fix the kubeconfig locally.
 
 - [ ] **Step 1: Create `ansible/playbooks/k3s-install.yml`**
 
 ```yaml
 ---
-# Step 1: Install K3s on the first server (bootstrap node)
-- name: Bootstrap K3s first server
-  hosts: "{{ k3s_server_init }}"
+# Installs K3s cluster using the official k3s-ansible collection.
+# Handles bootstrap server, additional servers, and agent nodes.
+#
+# Prerequisites:
+#   - Run 'task ansible:k3s-prepare' first
+#   - ansible/inventory/group_vars/k3s_cluster.yml must exist with real values
+#
+# Usage: task ansible:k3s-install
+#   or:  ansible-playbook playbooks/k3s-install.yml
+
+- name: Install K3s server nodes
+  hosts: server
+  roles:
+    - role: k3s.orchestration.k3s_server
+
+- name: Install K3s agent nodes
+  hosts: agent
+  roles:
+    - role: k3s.orchestration.k3s_agent
+
+- name: Fetch kubeconfig to local machine
+  hosts: server[0]
   become: true
-
   tasks:
-    - name: Check if K3s is already installed
-      stat:
-        path: /usr/local/bin/k3s
-      register: k3s_binary
-
-    - name: Install K3s on bootstrap server
-      shell: |
-        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" sh -s - server \
-          --cluster-init \
-          --token "{{ k3s_token }}" \
-          {{ k3s_server_extra_args }}
-      when: not k3s_binary.stat.exists
-
-    - name: Wait for K3s to be ready
-      command: k3s kubectl get nodes
-      register: k3s_ready
-      retries: 30
-      delay: 10
-      until: k3s_ready.rc == 0
-
     - name: Fetch kubeconfig
       fetch:
         src: /etc/rancher/k3s/k3s.yaml
@@ -1238,64 +1252,60 @@ git commit -m "ansible: add K3s node preparation playbook"
       replace:
         path: "{{ playbook_dir }}/../kubeconfig.yaml"
         regexp: 'https://127.0.0.1:6443'
-        replace: "https://{{ k3s_api_endpoint }}:{{ k3s_api_port }}"
-
-# Step 2: Join additional server nodes
-- name: Join additional K3s servers
-  hosts: k3s_servers:!{{ k3s_server_init }}
-  become: true
-  serial: 1  # Join one at a time for stability
-
-  tasks:
-    - name: Check if K3s is already installed
-      stat:
-        path: /usr/local/bin/k3s
-      register: k3s_binary
-
-    - name: Join K3s server cluster
-      shell: |
-        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" sh -s - server \
-          --server "https://{{ k3s_api_endpoint }}:{{ k3s_api_port }}" \
-          --token "{{ k3s_token }}" \
-          {{ k3s_server_extra_args }}
-      when: not k3s_binary.stat.exists
-
-    - name: Wait for node to be ready
-      command: k3s kubectl get nodes
-      register: k3s_ready
-      retries: 30
-      delay: 10
-      until: k3s_ready.rc == 0
-
-# Step 3: Join agent nodes
-- name: Join K3s agent nodes
-  hosts: k3s_agents
-  become: true
-
-  tasks:
-    - name: Check if K3s is already installed
-      stat:
-        path: /usr/local/bin/k3s
-      register: k3s_binary
-
-    - name: Join K3s as agent
-      shell: |
-        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" sh -s - agent \
-          --server "https://{{ k3s_api_endpoint }}:{{ k3s_api_port }}" \
-          --token "{{ k3s_token }}" \
-          {{ k3s_agent_extra_args }}
-      when: not k3s_binary.stat.exists
-
-    - name: Wait for agent to register
-      delegate_to: "{{ k3s_server_init }}"
-      command: k3s kubectl get node {{ inventory_hostname }}
-      register: agent_ready
-      retries: 30
-      delay: 10
-      until: agent_ready.rc == 0
+        replace: "https://{{ api_endpoint }}:{{ api_port | default(6443) }}"
 ```
 
-- [ ] **Step 2: Generate a K3s token**
+- [ ] **Step 2: Create `ansible/playbooks/k3s-upgrade.yml`**
+
+```yaml
+---
+# Upgrades K3s cluster using the official k3s-ansible collection.
+# Updates k3s_version in group_vars/k3s_cluster.yml before running.
+#
+# Usage: task ansible:k3s-upgrade
+#   or:  ansible-playbook playbooks/k3s-upgrade.yml
+
+- name: Upgrade K3s server nodes
+  hosts: server
+  roles:
+    - role: k3s.orchestration.k3s_server
+
+- name: Upgrade K3s agent nodes
+  hosts: agent
+  roles:
+    - role: k3s.orchestration.k3s_agent
+```
+
+- [ ] **Step 3: Create `ansible/playbooks/k3s-reset.yml`**
+
+```yaml
+---
+# Completely removes K3s from all nodes. DESTRUCTIVE — use with caution.
+# This will delete all K3s data, pods, and cluster state.
+#
+# Usage: ansible-playbook playbooks/k3s-reset.yml
+#   (intentionally NOT in Taskfile to prevent accidental use)
+
+- name: Reset K3s agent nodes
+  hosts: agent
+  become: true
+  tasks:
+    - name: Run K3s agent uninstall script
+      command: /usr/local/bin/k3s-agent-uninstall.sh
+      args:
+        removes: /usr/local/bin/k3s-agent-uninstall.sh
+
+- name: Reset K3s server nodes
+  hosts: server
+  become: true
+  tasks:
+    - name: Run K3s server uninstall script
+      command: /usr/local/bin/k3s-uninstall.sh
+      args:
+        removes: /usr/local/bin/k3s-uninstall.sh
+```
+
+- [ ] **Step 4: Generate a K3s token**
 
 ```bash
 openssl rand -base64 64
@@ -1303,15 +1313,15 @@ openssl rand -base64 64
 
 Copy the output and update `ansible/inventory/group_vars/k3s_cluster.yml` — replace `CHANGE_ME_GENERATE_WITH_openssl_rand_-base64_64` with the generated token.
 
-- [ ] **Step 3: Run the K3s install playbook**
+- [ ] **Step 5: Run the K3s install playbook**
 
 ```bash
 task ansible:k3s-install
 ```
 
-Expected: K3s cluster bootstrapped. All 5 nodes joined. Kubeconfig saved to `ansible/kubeconfig.yaml`.
+Expected: K3s cluster bootstrapped via collection roles. All 5 nodes joined. Kubeconfig saved to `ansible/kubeconfig.yaml`.
 
-- [ ] **Step 4: Set up local kubeconfig**
+- [ ] **Step 6: Set up local kubeconfig**
 
 ```bash
 # Merge into existing kubeconfig (safe — won't overwrite other clusters)
@@ -1330,7 +1340,7 @@ cp ansible/kubeconfig.yaml ~/.kube/config
 chmod 600 ~/.kube/config
 ```
 
-- [ ] **Step 5: Verify the cluster**
+- [ ] **Step 7: Verify the cluster**
 
 ```bash
 kubectl get nodes -o wide
@@ -1346,7 +1356,7 @@ regieleki   Ready    <none>                      Xm    v1.31.6+k3s1
 regidrago   Ready    <none>                      Xm    v1.31.6+k3s1
 ```
 
-- [ ] **Step 6: Verify disabled defaults**
+- [ ] **Step 8: Verify disabled defaults**
 
 ```bash
 kubectl get pods -A
@@ -1354,11 +1364,11 @@ kubectl get pods -A
 
 Expected: No Traefik, no ServiceLB, no local-path-provisioner pods. Only core K3s components (coredns, metrics-server, etc.).
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add ansible/playbooks/k3s-install.yml
-git commit -m "ansible: add K3s cluster installation playbook"
+git add ansible/playbooks/k3s-install.yml ansible/playbooks/k3s-upgrade.yml ansible/playbooks/k3s-reset.yml
+git commit -m "ansible: K3s install/upgrade/reset playbooks using k3s-ansible collection"
 ```
 
 **Note:** Both `ansible/kubeconfig.yaml` and `ansible/inventory/group_vars/k3s_cluster.yml` are already in `.gitignore` (added in Task 1). Only the `.example` file is committed. The real token and kubeconfig never enter the repo.
