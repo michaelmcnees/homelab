@@ -1,0 +1,24 @@
+---
+# Completely removes K3s from all nodes. DESTRUCTIVE — use with caution.
+# This will delete all K3s data, pods, and cluster state.
+#
+# Usage: ansible-playbook playbooks/k3s-reset.yml
+#   (intentionally NOT in Taskfile to prevent accidental use)
+
+- name: Reset K3s agent nodes
+  hosts: agent
+  become: true
+  tasks:
+    - name: Run K3s agent uninstall script
+      command: /usr/local/bin/k3s-agent-uninstall.sh
+      args:
+        removes: /usr/local/bin/k3s-agent-uninstall.sh
+
+- name: Reset K3s server nodes
+  hosts: server
+  become: true
+  tasks:
+    - name: Run K3s server uninstall script
+      command: /usr/local/bin/k3s-uninstall.sh
+      args:
+        removes: /usr/local/bin/k3s-uninstall.sh

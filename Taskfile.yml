@@ -31,20 +31,31 @@ tasks:
     dir: terraform/unifi
     cmd: tofu apply
 
+  ansible:collections:
+    desc: Install Ansible collections (k3s-ansible, etc.)
+    dir: ansible
+    cmd: ansible-galaxy collection install -r collections/requirements.yml
+
   ansible:proxmox:
     desc: Configure Proxmox hosts
     dir: ansible
     cmd: ansible-playbook playbooks/proxmox-setup.yml
 
   ansible:k3s-prepare:
-    desc: Prepare K3s node VMs (OS config)
+    desc: Prepare K3s node VMs (OS config + k3s prereqs)
     dir: ansible
+    deps: [ansible:collections]
     cmd: ansible-playbook playbooks/k3s-prepare.yml
 
   ansible:k3s-install:
-    desc: Install K3s cluster
+    desc: Install K3s cluster (uses k3s-ansible collection)
     dir: ansible
     cmd: ansible-playbook playbooks/k3s-install.yml
+
+  ansible:k3s-upgrade:
+    desc: Upgrade K3s cluster (update k3s_version in group_vars first)
+    dir: ansible
+    cmd: ansible-playbook playbooks/k3s-upgrade.yml
 
   ansible:postgresql:
     desc: Configure PostgreSQL LXC (install, databases, users)

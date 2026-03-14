@@ -1,0 +1,16 @@
+---
+# Upgrades K3s cluster using the official k3s-ansible collection.
+# Updates k3s_version in group_vars/k3s_cluster.yml before running.
+#
+# Usage: task ansible:k3s-upgrade
+#   or:  ansible-playbook playbooks/k3s-upgrade.yml
+
+- name: Upgrade K3s server nodes
+  hosts: server
+  roles:
+    - role: k3s.orchestration.k3s_server
+
+- name: Upgrade K3s agent nodes
+  hosts: agent
+  roles:
+    - role: k3s.orchestration.k3s_agent

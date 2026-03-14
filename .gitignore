@@ -14,6 +14,9 @@ ansible/inventory/group_vars/k3s_cluster.yml
 # SOPS
 *.age.key
 
+# Reference repos (cloned for reference, not part of project)
+reference/
+
 # OS
 .DS_Store
 *.swp

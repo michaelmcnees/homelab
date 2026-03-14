@@ -1,5 +1,28 @@
 ---
-# K3s cluster configuration
+# K3s cluster configuration (k3s-ansible collection variables)
 # Copy to k3s_cluster.yml and fill in real values. k3s_cluster.yml is gitignored.
-k3s_version: "v1.31.6+k3s1"  # Check https://github.com/k3s-io/k3s/releases for latest stable
-k3s_token: "CHANGE_ME_GENERATE_WITH_openssl_rand_-base64_64"
+
+# K3s version — check https://github.com/k3s-io/k3s/releases for latest stable
+k3s_version: "v1.31.6+k3s1"
+
+# Cluster token — generate with: openssl rand -base64 64
+token: "CHANGE_ME_GENERATE_WITH_openssl_rand_-base64_64"
+
+# API endpoint — first server node IP (or VIP if using kube-vip later)
+api_endpoint: "10.0.0.80"
+api_port: 6443
+
+# K3s server config — written to /etc/rancher/k3s/config.yaml on server nodes
+# We disable built-in traefik, servicelb, and local-storage because
+# Phase 2 deploys MetalLB, Traefik, and democratic-csi via Flux CD.
+server_config_yaml: |
+  disable:
+    - traefik
+    - servicelb
+    - local-storage
+  flannel-backend: vxlan
+  tls-san:
+    - "10.0.0.80"
+
+# K3s agent config — written to /etc/rancher/k3s/config.yaml on agent nodes
+# agent_config_yaml: |

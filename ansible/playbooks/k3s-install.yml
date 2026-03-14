@@ -1,30 +1,28 @@
 ---
-# Step 1: Install K3s on the first server (bootstrap node)
-- name: Bootstrap K3s first server
-  hosts: "{{ k3s_server_init }}"
+# Installs K3s cluster using the official k3s-ansible collection.
+# Handles bootstrap server, additional servers, and agent nodes.
+#
+# Prerequisites:
+#   - Run 'task ansible:k3s-prepare' first
+#   - ansible/inventory/group_vars/k3s_cluster.yml must exist with real values
+#
+# Usage: task ansible:k3s-install
+#   or:  ansible-playbook playbooks/k3s-install.yml
+
+- name: Install K3s server nodes
+  hosts: server
+  roles:
+    - role: k3s.orchestration.k3s_server
+
+- name: Install K3s agent nodes
+  hosts: agent
+  roles:
+    - role: k3s.orchestration.k3s_agent
+
+- name: Fetch kubeconfig to local machine
+  hosts: server[0]
   become: true
-
   tasks:
-    - name: Check if K3s is already installed
-      stat:
-        path: /usr/local/bin/k3s
-      register: k3s_binary
-
-    - name: Install K3s on bootstrap server
-      shell: |
-        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" sh -s - server \
-          --cluster-init \
-          --token "{{ k3s_token }}" \
-          {{ k3s_server_extra_args }}
-      when: not k3s_binary.stat.exists
-
-    - name: Wait for K3s to be ready
-      command: k3s kubectl get nodes
-      register: k3s_ready
-      retries: 30
-      delay: 10
-      until: k3s_ready.rc == 0
-
     - name: Fetch kubeconfig
       fetch:
         src: /etc/rancher/k3s/k3s.yaml
@@ -37,58 +35,4 @@
       replace:
         path: "{{ playbook_dir }}/../kubeconfig.yaml"
         regexp: 'https://127.0.0.1:6443'
-        replace: "https://{{ k3s_api_endpoint }}:{{ k3s_api_port }}"
-
-# Step 2: Join additional server nodes
-- name: Join additional K3s servers
-  hosts: k3s_servers:!{{ k3s_server_init }}
-  become: true
-  serial: 1  # Join one at a time for stability
-
-  tasks:
-    - name: Check if K3s is already installed
-      stat:
-        path: /usr/local/bin/k3s
-      register: k3s_binary
-
-    - name: Join K3s server cluster
-      shell: |
-        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" sh -s - server \
-          --server "https://{{ k3s_api_endpoint }}:{{ k3s_api_port }}" \
-          --token "{{ k3s_token }}" \
-          {{ k3s_server_extra_args }}
-      when: not k3s_binary.stat.exists
-
-    - name: Wait for node to be ready
-      command: k3s kubectl get nodes
-      register: k3s_ready
-      retries: 30
-      delay: 10
-      until: k3s_ready.rc == 0
-
-# Step 3: Join agent nodes
-- name: Join K3s agent nodes
-  hosts: k3s_agents
-  become: true
-
-  tasks:
-    - name: Check if K3s is already installed
-      stat:
-        path: /usr/local/bin/k3s
-      register: k3s_binary
-
-    - name: Join K3s as agent
-      shell: |
-        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" sh -s - agent \
-          --server "https://{{ k3s_api_endpoint }}:{{ k3s_api_port }}" \
-          --token "{{ k3s_token }}" \
-          {{ k3s_agent_extra_args }}
-      when: not k3s_binary.stat.exists
-
-    - name: Wait for agent to register
-      delegate_to: "{{ k3s_server_init }}"
-      command: k3s kubectl get node {{ inventory_hostname }}
-      register: agent_ready
-      retries: 30
-      delay: 10
-      until: agent_ready.rc == 0
+        replace: "https://{{ api_endpoint }}:{{ api_port | default(6443) }}"
