@@ -1,16 +1,20 @@
 ---
 # Upgrades K3s cluster using the official k3s-ansible collection.
-# Updates k3s_version in group_vars/k3s_cluster.yml before running.
+# Update k3s_version in group_vars/k3s_cluster.yml before running.
 #
 # Usage: task ansible:k3s-upgrade
 #   or:  ansible-playbook playbooks/k3s-upgrade.yml
 
+# Servers upgraded one at a time to avoid etcd learner issues
 - name: Upgrade K3s server nodes
   hosts: server
+  become: true
+  serial: 1
   roles:
-    - role: k3s.orchestration.k3s_server
+    - role: k3s.orchestration.k3s_upgrade
 
 - name: Upgrade K3s agent nodes
   hosts: agent
+  become: true
   roles:
-    - role: k3s.orchestration.k3s_agent
+    - role: k3s.orchestration.k3s_upgrade

@@ -11,11 +11,15 @@
 
 - name: Install K3s server nodes
   hosts: server
+  gather_facts: true
+  become: true
   roles:
     - role: k3s.orchestration.k3s_server
 
 - name: Install K3s agent nodes
   hosts: agent
+  gather_facts: true
+  become: true
   roles:
     - role: k3s.orchestration.k3s_agent
 
