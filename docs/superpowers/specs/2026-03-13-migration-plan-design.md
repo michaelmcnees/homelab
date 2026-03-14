@@ -131,7 +131,10 @@ Two independent tracks that can run in parallel or in either order.
 6. Destroy MariaDB LXC — confirmed unused.
 7. Verify charmander, squirtle, bulbasaur, pikachu have zero VMs/LXCs.
 
-**Exception:** Homey and Homebridge LXCs can stay on pikachu (host networking requirement, they never move to K3s) or temporarily move to Mew if pikachu needs to be fully clean.
+**Exceptions:**
+- Homey and Homebridge LXCs can stay on pikachu (host networking requirement, they never move to K3s) or temporarily move to Mew if pikachu needs to be fully clean.
+- Docker LXC (servarr + Gramps) stays on its current node (charmander or squirtle) — it has an NFS mount to TrueNAS media that can't be replicated on Mew. This means one K3s server VM deploys later (after servarr migrates to K3s in Stage 4 Wave 4). The cluster starts as 2 servers + 2 agents initially, with the 5th node added after the Docker LXC is destroyed.
+- Booklore and LazyLibrarian LXCs also depend on NFS mounts — shut them down during Stage 0 (LazyLibrarian is being retired, Booklore migrates in Stage 4 Wave 6).
 
 **Data preservation:** LXCs move intact with all data — this is a Proxmox migration, not a service migration.
 

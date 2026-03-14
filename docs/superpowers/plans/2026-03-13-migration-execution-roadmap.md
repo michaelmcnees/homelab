@@ -11,11 +11,12 @@ Use this to track where you are in the migration. When starting a new Claude ses
 | Step | Type | Task | Status |
 |------|------|------|--------|
 | 0A.1 | 🖥️ Physical | Inventory all LXCs: note CTID, current node, storage backend (Ceph vs local) | ⬜ |
-| 0A.2 | 🖥️ Physical | Live-migrate Ceph-backed LXCs to Mew (one at a time, zero downtime) | ⬜ |
+| 0A.2 | 🖥️ Physical | Live-migrate Ceph-backed LXCs to Mew (one at a time, zero downtime). **Skip:** Docker LXC (NFS dep, stays on its node) | ⬜ |
 | 0A.3 | 🖥️ Physical | Backup/restore local-storage LXCs to Mew (schedule off-hours, brief downtime each) | ⬜ |
-| 0A.4 | 🖥️ Physical | Verify critical services on Mew: AdGuard DNS, Traefik ingress, Homey/Homebridge | ⬜ |
-| 0A.5 | 🖥️ Physical | Destroy old K3s VMs (articuno–ho-oh, hass) and MariaDB LXC | ⬜ |
-| 0A.6 | 🖥️ Physical | Verify charmander/squirtle/bulbasaur are clean. Pikachu has only homey/homebridge/pelican-wings | ⬜ |
+| 0A.4 | 🖥️ Physical | Shut down Booklore + LazyLibrarian LXCs (NFS dep, can't move to Mew) | ⬜ |
+| 0A.5 | 🖥️ Physical | Verify critical services on Mew: AdGuard DNS, Traefik ingress, Homey/Homebridge | ⬜ |
+| 0A.6 | 🖥️ Physical | Destroy old K3s VMs (articuno–ho-oh, hass) and MariaDB LXC | ⬜ |
+| 0A.7 | 🖥️ Physical | Verify nodes clean. Docker LXC's node (charmander or squirtle) keeps that one LXC — all others empty | ⬜ |
 
 ### 0B: Snorlax Conversion
 
@@ -57,7 +58,7 @@ Use this to track where you are in the migration. When starting a new Claude ses
 | 2.1 | 💻 Software | Update OpenTofu VM definitions (bird names, VLAN 10 interfaces) | ⬜ |
 | 2.2 | 💻 Software | Update Ansible inventory + group_vars (bird names, VLAN 10 IPs) | ⬜ |
 | 2.3 | 🔀 Both | Run cloud-init template playbook on each Proxmox node | ⬜ |
-| 2.4 | 🔀 Both | `tofu apply` — create 5 K3s VMs | ⬜ |
+| 2.4 | 🔀 Both | `tofu apply` — create 4 K3s VMs (skip the node hosting Docker LXC) | ⬜ |
 | 2.5 | 🔀 Both | `task ansible:k3s-prepare` — OS prep + prereqs | ⬜ |
 | 2.6 | 🔀 Both | `task ansible:k3s-install` — bootstrap HA cluster | ⬜ |
 | 2.7 | 🔀 Both | Deploy kube-vip for API VIP at 10.0.10.10 | ⬜ |
@@ -97,6 +98,7 @@ Each wave follows: export data → deploy to K3s → import data → verify → 
 | 4.2 | 🔀 Both | **Wave 2:** Traefik cutover — update DNS records to K3s Traefik. | ⬜ |
 | 4.3 | 🔀 Both | **Wave 3:** Auth chain verification — test SSO end-to-end. | ⬜ |
 | 4.4 | 🔀 Both | **Wave 4:** Servarr stack (sonarr×2, radarr, lidarr×2, bazarr, prowlarr, recyclarr). Migrate Docker volumes. | ⬜ |
+| 4.4b | 🔀 Both | Destroy Docker LXC, deploy 5th K3s VM on freed node, join to cluster | ⬜ |
 | 4.5 | 🔀 Both | **Wave 5:** Seer, Wizarr, Tautulli. Mostly config migration. | ⬜ |
 | 4.6 | 🔀 Both | **Wave 6:** Outline, Booklore, Paperless-ngx+ai, Gramps. Migrate DBs + file data. | ⬜ |
 | 4.7 | 🔀 Both | **Wave 7:** Ollama + OpenWebUI, n8n. | ⬜ |
