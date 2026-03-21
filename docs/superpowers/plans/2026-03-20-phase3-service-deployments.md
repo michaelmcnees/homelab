@@ -32,7 +32,6 @@
 - DbGate — database admin tool, low priority
 - Netboot.xyz — stays as LXC, no K8s migration needed
 - Unifi exporter — Prometheus integration, deploy after observability stack is stable
-- Paperless-ngx + Paperless-ai — document processing, to be added if/when needed
 
 ---
 
@@ -795,7 +794,9 @@ postgresql_databases:
   - { name: outline, owner: outline }
   - { name: invoice_ninja, owner: invoice_ninja }
   - { name: chatwoot, owner: chatwoot }
-  # New for servarr:
+  # New for Phase 3:
+  - { name: paperless, owner: paperless }
+  # Servarr:
   - { name: sonarr_main, owner: sonarr }
   - { name: sonarr_log, owner: sonarr }
   - { name: sonarr_anime_main, owner: sonarr_anime }
@@ -1838,7 +1839,7 @@ git add -A && git commit -m "cleanup: remove temporary ExternalService routes fo
 
 ## Wave 6: AI & Dashboard
 
-Deploy Ollama, Open WebUI, and Homepage — all fresh installs.
+Deploy Ollama, Open WebUI, Homepage, Paperless-ngx, and Paperless-ai — all fresh installs.
 
 ### Task 16: Deploy Ollama
 
@@ -2090,13 +2091,222 @@ git add kubernetes/apps/homepage/
 git commit -m "feat: deploy Homepage dashboard"
 ```
 
+### Task 19: Deploy Paperless-ngx
+
+**Files:**
+- Create: `kubernetes/apps/paperless-ngx/deployment.yaml`
+- Create: `kubernetes/apps/paperless-ngx/service.yaml`
+- Create: `kubernetes/apps/paperless-ngx/ingress.yaml`
+- Create: `kubernetes/apps/paperless-ngx/certificate.yaml`
+- Create: `kubernetes/apps/paperless-ngx/configmap.yaml`
+- Create: `kubernetes/apps/paperless-ngx/secret.sops.yaml`
+- Create: `kubernetes/apps/paperless-ngx/pvc.yaml`
+- Create: `kubernetes/apps/paperless-ngx/kustomization.yaml`
+- Modify: `kubernetes/apps/kustomization.yaml`
+
+**Context:** Paperless-ngx is a document management system with OCR and full-text search. Uses PostgreSQL on metagross, Redis in the `databases` namespace (DB 0, default), and NFS for document storage. Fresh deploy — no existing data to migrate.
+
+- [ ] **Step 1: Add paperless database to metagross**
+
+Add to the PostgreSQL playbook vars:
+
+```yaml
+  - { name: paperless, owner: paperless }
+```
+
+Run: `task ansible:postgresql`
+
+- [ ] **Step 2: Create Paperless-ngx deployment**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-ngx
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: paperless-ngx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paperless-ngx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paperless-ngx
+    spec:
+      containers:
+        - name: paperless-ngx
+          image: ghcr.io/paperless-ngx/paperless-ngx:2
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: PAPERLESS_DBENGINE
+              value: postgresql
+            - name: PAPERLESS_DBHOST
+              value: metagross.internal
+            - name: PAPERLESS_DBPORT
+              value: "5432"
+            - name: PAPERLESS_DBNAME
+              value: paperless
+            - name: PAPERLESS_REDIS
+              value: redis://redis.databases.svc:6379/0
+            - name: PAPERLESS_URL
+              value: https://paperless.home.mcnees.me
+            - name: PAPERLESS_OCR_LANGUAGE
+              value: eng
+            - name: PAPERLESS_CONSUMER_POLLING
+              value: "30"
+            - name: PAPERLESS_TIKA_ENABLED
+              value: "false"
+          envFrom:
+            - secretRef:
+                name: paperless-ngx-secrets
+          volumeMounts:
+            - name: data
+              mountPath: /usr/src/paperless/data
+            - name: media
+              mountPath: /usr/src/paperless/media
+            - name: consume
+              mountPath: /usr/src/paperless/consume
+            - name: export
+              mountPath: /usr/src/paperless/export
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 200m
+            limits:
+              memory: 2Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: paperless-data
+        - name: media
+          persistentVolumeClaim:
+            claimName: paperless-media
+        - name: consume
+          persistentVolumeClaim:
+            claimName: paperless-consume
+        - name: export
+          persistentVolumeClaim:
+            claimName: paperless-export
+```
+
+Secret (SOPS): `PAPERLESS_DBUSER`, `PAPERLESS_DBPASS`, `PAPERLESS_SECRET_KEY` (generate via `openssl rand -hex 32`), `PAPERLESS_ADMIN_USER`, `PAPERLESS_ADMIN_PASSWORD`
+
+PVCs:
+- `paperless-data` — `truenas-nfs`, 5Gi (index, thumbnails, classifier)
+- `paperless-media` — `truenas-nfs`, 50Gi (original + archived documents)
+- `paperless-consume` — `truenas-nfs`, 5Gi (inbox for new documents)
+- `paperless-export` — `truenas-nfs`, 10Gi (document export backups)
+
+IngressRoute on internal entrypoint, host `paperless.home.mcnees.me`. Paperless has its own auth.
+
+- [ ] **Step 3: Commit and deploy**
+
+```bash
+git add kubernetes/apps/paperless-ngx/ ansible/
+git commit -m "feat: deploy Paperless-ngx document management with PostgreSQL on metagross"
+```
+
+- [ ] **Step 4: Create admin account and verify**
+
+Access `https://paperless.home.mcnees.me`. The `PAPERLESS_ADMIN_USER` and `PAPERLESS_ADMIN_PASSWORD` env vars create the initial superuser. Upload a test document and verify OCR processing.
+
+### Task 20: Deploy Paperless-ai
+
+**Files:**
+- Create: `kubernetes/apps/paperless-ai/deployment.yaml`
+- Create: `kubernetes/apps/paperless-ai/service.yaml`
+- Create: `kubernetes/apps/paperless-ai/configmap.yaml`
+- Create: `kubernetes/apps/paperless-ai/secret.sops.yaml`
+- Create: `kubernetes/apps/paperless-ai/kustomization.yaml`
+- Modify: `kubernetes/apps/kustomization.yaml`
+
+**Context:** Paperless-ai is a companion app that auto-tags and classifies documents using Ollama. It connects to both Paperless-ngx (API) and Ollama (inference). No ingress needed — it runs as a background worker polling Paperless-ngx for new documents.
+
+- [ ] **Step 1: Create Paperless-ai deployment**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-ai
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: paperless-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paperless-ai
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paperless-ai
+    spec:
+      containers:
+        - name: paperless-ai
+          image: clusterpedia/paperless-ai:v2
+          envFrom:
+            - configMapRef:
+                name: paperless-ai-config
+            - secretRef:
+                name: paperless-ai-secrets
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 50m
+            limits:
+              memory: 256Mi
+```
+
+ConfigMap:
+```yaml
+PAPERLESS_API_URL: http://paperless-ngx.apps.svc:8000
+OLLAMA_API_URL: http://ollama.apps.svc:11434
+AI_MODEL: llama3.2
+```
+
+Secret (SOPS): `PAPERLESS_API_TOKEN` (generate from Paperless-ngx admin UI after Task 19)
+
+No ingress, no PVC — stateless worker.
+
+- [ ] **Step 2: Commit and deploy**
+
+```bash
+git add kubernetes/apps/paperless-ai/
+git commit -m "feat: deploy Paperless-ai auto-tagger with Ollama backend"
+```
+
+- [ ] **Step 3: Verify auto-tagging**
+
+Upload a document to Paperless-ngx. Watch Paperless-ai logs for classification activity:
+
+```bash
+kubectl logs -n apps -l app.kubernetes.io/name=paperless-ai -f
+```
+
+Verify the document gets auto-tagged/classified.
+
 ---
 
 ## Wave 7: Media Extended
 
 Migrate Tautulli and RomM (data migrations), deploy LazyLibrarian/Readarr and Stash (fresh).
 
-### Task 19: Deploy and migrate Tautulli
+### Task 21: Deploy and migrate Tautulli
 
 **Files:**
 - Create: `kubernetes/media/tautulli/deployment.yaml`
@@ -2182,7 +2392,7 @@ git add kubernetes/media/tautulli/
 git commit -m "feat: deploy Tautulli with data migration from old LXC"
 ```
 
-### Task 20: Deploy and migrate RomM
+### Task 22: Deploy and migrate RomM
 
 **Files:**
 - Create: `kubernetes/media/romm/deployment.yaml`
@@ -2292,7 +2502,7 @@ git commit -m "feat: deploy RomM with PostgreSQL migration to metagross"
 
 Stop the old TrueNAS RomM app after verification.
 
-### Task 21: Deploy LazyLibrarian (or Readarr alternative)
+### Task 23: Deploy LazyLibrarian (or Readarr alternative)
 
 **Files:**
 - Create: `kubernetes/media/lazylibrarian/` (or `kubernetes/media/readarr/`)
@@ -2317,7 +2527,7 @@ If LazyLibrarian:
 
 Follow the established pattern for whichever app is chosen.
 
-### Task 22: Deploy Stash (or alternative)
+### Task 24: Deploy Stash (or alternative)
 
 **Files:**
 - Create: `kubernetes/media/stash/` (or alternative)
@@ -2400,7 +2610,7 @@ Delete `tautulli.yaml`, `romm.yaml`, `lazylibrarian.yaml`, `stash.yaml` from tem
 
 Migrate Pelican Panel to K8s with PostgreSQL data migration.
 
-### Task 23: Deploy and migrate Pelican Panel
+### Task 25: Deploy and migrate Pelican Panel
 
 **Files:**
 - Create: `kubernetes/apps/pelican-panel/deployment.yaml`
@@ -2506,7 +2716,7 @@ Remove `pelican-panel.yaml` from temporary directory. Destroy old Pelican Panel 
 
 Deploy RustFS, Invoice Ninja, and Chatwoot for Hudsonville Digital Foundry. All fresh deploys.
 
-### Task 24: Deploy RustFS
+### Task 26: Deploy RustFS
 
 **Files:**
 - Create: `kubernetes/storage/rustfs/deployment.yaml`
@@ -2646,7 +2856,7 @@ git add kubernetes/storage/ kubernetes/flux-system/storage.yaml kubernetes/flux-
 git commit -m "feat: deploy RustFS S3-compatible object storage with bucket provisioning"
 ```
 
-### Task 25: Deploy Invoice Ninja
+### Task 27: Deploy Invoice Ninja
 
 **Files:**
 - Create: `kubernetes/hdf/invoice-ninja/deployment.yaml`
@@ -2722,7 +2932,7 @@ git add kubernetes/hdf/invoice-ninja/
 git commit -m "feat: deploy Invoice Ninja for HDF client billing"
 ```
 
-### Task 26: Deploy Chatwoot
+### Task 28: Deploy Chatwoot
 
 **Files:**
 - Create: `kubernetes/hdf/chatwoot/deployment-web.yaml`
@@ -2769,7 +2979,7 @@ git add kubernetes/hdf/chatwoot/ kubernetes/hdf/kustomization.yaml kubernetes/fl
 git commit -m "feat: deploy Chatwoot for HDF client support"
 ```
 
-### Task 27: Configure Chatwoot widget in Invoice Ninja
+### Task 29: Configure Chatwoot widget in Invoice Ninja
 
 **Files:** None (manual configuration task)
 
@@ -2794,7 +3004,7 @@ Load the Invoice Ninja client portal in a browser. Verify the Chatwoot widget ap
 
 ## Post-Migration Cleanup
 
-### Task 28: Clean up temporary ExternalService routes
+### Task 30: Clean up temporary ExternalService routes
 
 **Files:**
 - Remove: `kubernetes/apps/external-services/temporary/` (entire directory)
@@ -2818,7 +3028,7 @@ rm -rf kubernetes/apps/external-services/temporary/
 git add -A && git commit -m "cleanup: remove empty temporary ExternalService directory"
 ```
 
-### Task 29: Destroy old LXCs and clean up Mew
+### Task 31: Destroy old LXCs and clean up Mew
 
 **Files:** None (operational task)
 
