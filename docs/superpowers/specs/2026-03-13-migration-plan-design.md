@@ -15,37 +15,43 @@ Migration plan for moving the McNees homelab from its current state (mix of Prox
 ### Non-Goals
 
 - Migrating the 57 existing DHCP reservations into OpenTofu during the initial migration (cleanup task in Stage 5).
-- Migrating TrueNAS apps (Plex, Tdarr, SABnzbd, etc.) — they stay on munchlax.
-- Setting up Ceph on snorlax (no spare SSD for an OSD).
+- Migrating TrueNAS apps (Plex, Tdarr, SABnzbd, etc.) — they stay on snorlax (TrueNAS VM on rayquaza).
+- Setting up Ceph on rayquaza beyond the existing OSD.
 
 ---
 
 ## Current State
 
-### Proxmox Cluster
+### Proxmox Cluster (Current)
 
 6 nodes: charmander, squirtle, bulbasaur, pikachu, snorlax (bare-metal TrueNAS), mew (spare, 256GB RAM).
 
-All nodes except snorlax are in the Proxmox cluster. Snorlax runs TrueNAS bare-metal and needs to be converted.
+All nodes except snorlax are in the Proxmox cluster. Snorlax runs TrueNAS bare-metal and will be converted to rayquaza (Proxmox) with snorlax as a TrueNAS VM.
 
-### Mew — Swing Node
+### Target Proxmox Cluster
 
-Dual E5-2667 v2 (16C/32T), 256GB RAM, 1.44TB disk. Already in the Proxmox cluster. Can run every existing LXC simultaneously with room to spare.
+3 nodes: latios (custom AMD 8700G, 64GB), latias (custom AMD 8700G, 64GB), rayquaza (formerly snorlax, i3-13100, 64GB). No QDevice needed — 3 nodes provides native quorum with single-node failure tolerance.
+
+One Dell 3050 Micro kept powered off as a cold DR spare. Mew decommissioned and sold after migration.
+
+### Mew — Swing Node (Temporary)
+
+Dual E5-2667 v2 (16C/32T), 256GB RAM, 1.44TB disk. Already in the Proxmox cluster. Can run every existing LXC simultaneously with room to spare. Used during migration only — decommissioned and sold at the end.
 
 ### Existing Workloads
 
 **LXCs** (spread across charmander, bulbasaur, squirtle, pikachu, mew — mostly Ceph-backed):
-homebridge, adguard, docker (runs Gramps + servarr stack), uptimekuma, ntfy, influxdb, beszel, outline, pocketid, lldap, postgresql, oauth2-proxy, mariadb, redis, grafana, traefik, tautulli, n8n, ollama, openwebui, overseer, wizarr, booklore, lazylibrarian, pelican-panel, pelican-wings, homey-shs
+homebridge, adguard, docker (runs Gramps + servarr stack), uptimekuma, ntfy, influxdb, beszel, pocketid, lldap, postgresql, oauth2-proxy, mariadb, redis, grafana, traefik, tautulli, ollama, openwebui, overseer, wizarr, lazylibrarian, pelican-panel, pelican-wings, homey-shs
 
 **VMs**: hass, articuno, zapdos, moltres, lugia, ho-oh (old K3s cluster — empty except Portainer agent)
 
 **Docker containers** (in the docker LXC): Gramps (web, celery, redis), servarr (bazarr, lidarr, lidarr-kids, radarr, readarr, sonarr, sonarr-anime)
 
-**TrueNAS apps** (on snorlax/munchlax): Plex, Tdarr, SABnzbd, Stash, LazyLibrarian, Romm
+**TrueNAS apps** (on snorlax VM / rayquaza host): Plex, Tdarr, SABnzbd, Stash, LazyLibrarian, Romm
 
 ### Databases
 
-**PostgreSQL LXC** — Active databases: grafana, k3s, n8n, pelican, pocket_id, romm, plus old dev experiments.
+**PostgreSQL LXC** — Active databases: grafana, k3s, pelican, pocket_id, romm, plus old dev experiments.
 
 **MariaDB LXC** — Unused, never configured post-installation. Can be destroyed.
 
@@ -66,61 +72,67 @@ Services where downtime is immediately noticed by the household:
 ## Target State
 
 As defined in the redesign spec (with naming and service updates from this migration spec — this document is authoritative where it differs):
+- 3-node Proxmox cluster: latios, latias, rayquaza (no QDevice needed)
 - 5-node K3s cluster (3 servers + 2 agents) on VLAN 10, managed by OpenTofu + Ansible
 - Flux CD GitOps deploying all K8s workloads
 - VLAN segmentation (mgmt, K8s, trusted, IoT, storage, guest)
-- PostgreSQL LXC (**metagross**) on Ceph (HA)
+- PostgreSQL LXC (**metagross**) on rayquaza, Ceph (HA)
 - Proxmox Backup Server LXC (**deoxys**) on Ceph (HA)
-- TrueNAS virtualized as munchlax on snorlax (Proxmox)
-- Homey, Homebridge, Pelican Wings as LXCs on pikachu
-- Pelican game server VM (**rayquaza**) on pikachu
+- TrueNAS virtualized as **snorlax** on rayquaza (Proxmox)
+- Homey LXC on latios, Homebridge LXC on latias
+- Pelican game server VM (**pelipper**) on latias
 - democratic-csi for K8s persistent storage via TrueNAS NFS
+- Cold spare Dell 3050 powered off for DR
 
 ### Naming Decisions
 
 This migration spec **supersedes** the redesign spec on the following naming changes:
 
-| Component | Redesign Spec Name | Migration Spec Name (authoritative) |
-|-----------|-------------------|--------------------------------------|
-| K3s server 1 | regirock | **articuno** |
-| K3s server 2 | regice | **zapdos** |
-| K3s server 3 | registeel | **moltres** |
-| K3s agent 1 | regieleki | **lugia** |
-| K3s agent 2 | regidrago | **ho-oh** |
-| PostgreSQL LXC | TBD | **metagross** |
-| PBS LXC | TBD | **deoxys** |
-| Pelican VM | TBD | **rayquaza** |
+| Component | Name | Host |
+|-----------|------|------|
+| K3s server 1 | **articuno** | latios |
+| K3s server 2 | **zapdos** | latias |
+| K3s server 3 | **moltres** | rayquaza |
+| K3s agent 1 | **lugia** | latios |
+| K3s agent 2 | **ho-oh** | latias |
+| TrueNAS VM | **snorlax** | rayquaza |
+| Pelican VM | **pelipper** | latias |
+| PostgreSQL LXC | **metagross** | rayquaza |
+| PBS LXC | **deoxys** | any (Ceph HA) |
 
 The redesign spec, Phase 1 plan, Phase 2 plan, OpenTofu configs, and Ansible inventory all need updating to use these names. This is a prerequisite step before implementation planning.
 
 ### Service Decisions
 
 This migration spec also supersedes the redesign spec on:
-- **n8n**: Retained (redesign spec listed it as retired). Moves to K3s, PostgreSQL database migrated.
-- **Pelican Wings**: Stays as existing LXC on pikachu (redesign spec described a Pelican game server VM but didn't mention Wings). Wings is the daemon that runs game instances; Panel is the management UI in K3s. Rayquaza VM hosts additional game server capacity alongside the Wings LXC.
+- **n8n**: Removed (replaced by mantle). Database no longer needs migration.
+- **Scrypted**: Removed.
+- **Outline, Linkwarden, Actual Budget, Booklore, Glances, InfluxDB, Portainer**: Removed.
+- **Paperless-ngx + Paperless-ai**: Added to Phase 3 service deployments.
+- **Pelican Wings**: Stays as existing LXC. Wings is the daemon that runs game instances; Panel is the management UI in K3s. Pelipper VM (on latias) hosts additional game server capacity alongside the Wings LXC.
 
 ### K3s Node Mapping
 
-| Node | Role | Proxmox Host | IP (VLAN 10) |
-|------|------|-------------|--------------|
-| (VIP) | K3s API | — | `10.0.10.10` |
-| articuno | K3s server | charmander | `10.0.10.11` |
-| zapdos | K3s server | squirtle | `10.0.10.12` |
-| moltres | K3s server | bulbasaur | `10.0.10.13` |
-| lugia | K3s agent | pikachu | `10.0.10.14` |
-| ho-oh | K3s agent | snorlax | `10.0.10.15` |
+| Node | Role | Proxmox Host | RAM | IP (VLAN 10) |
+|------|------|-------------|-----|--------------|
+| (VIP) | K3s API | — | — | `10.0.10.10` |
+| articuno | K3s server | latios | 10GB | `10.0.10.11` |
+| zapdos | K3s server | latias | 10GB | `10.0.10.12` |
+| moltres | K3s server | rayquaza | 10GB | `10.0.10.13` |
+| lugia | K3s agent | latios | 40GB | `10.0.10.14` |
+| ho-oh | K3s agent | latias | 20GB | `10.0.10.15` |
 
 ---
 
 ## Migration Stages
 
-### Stage 0: Consolidate + Hardware (parallel tracks)
+### Stage 0: Build New Hardware + Consolidate (parallel tracks)
 
 Two independent tracks that can run in parallel or in either order.
 
 #### Track A: Consolidate onto Mew
 
-**Goal:** Move all LXCs/VMs off charmander, squirtle, bulbasaur, and pikachu so those nodes are clean for K3s VM provisioning.
+**Goal:** Move all LXCs/VMs off charmander, squirtle, bulbasaur, and pikachu so those Dell nodes can be decommissioned.
 
 **Steps:**
 1. Identify storage backend per LXC — Ceph-backed ones live-migrate (zero downtime), local-storage ones backup/restore (brief downtime).
@@ -129,35 +141,43 @@ Two independent tracks that can run in parallel or in either order.
 4. Verify all services running on Mew — spot-check AdGuard (DNS), Traefik (ingress), Homey/Homebridge (smart home).
 5. Destroy old K3s VMs (articuno, zapdos, moltres, lugia, ho-oh) and hass VM — nothing running on them. Note: the bird names are intentionally reused for the new K3s VMs in Stage 2.
 6. Destroy MariaDB LXC — confirmed unused.
-7. Verify charmander, squirtle, bulbasaur, pikachu have zero VMs/LXCs.
+7. Remove charmander, squirtle, bulbasaur, pikachu from Proxmox cluster. Keep one Dell 3050 as cold DR spare, decommission the rest.
 
 **Exceptions:**
-- Homey and Homebridge LXCs can stay on pikachu (host networking requirement, they never move to K3s) or temporarily move to Mew if pikachu needs to be fully clean.
-- Docker LXC (servarr + Gramps) stays on its current node (charmander or squirtle) — it has an NFS mount to TrueNAS media that can't be replicated on Mew. This means one K3s server VM deploys later (after servarr migrates to K3s in Stage 4 Wave 4). The cluster starts as 2 servers + 2 agents initially, with the 5th node added after the Docker LXC is destroyed.
-- Booklore and LazyLibrarian LXCs also depend on NFS mounts — shut them down during Stage 0 (LazyLibrarian is being retired, Booklore migrates in Stage 4 Wave 6).
+- Homey and Homebridge LXCs temporarily move to Mew during consolidation, then to latios/latias respectively in Stage 2.
+- Docker LXC (servarr + Gramps) stays on its current node — it has an NFS mount to TrueNAS media that can't be replicated on Mew. This means one K3s server VM deploys later (after servarr migrates to K3s in Stage 4). The cluster starts as 2 servers + 2 agents initially, with the 5th node added after the Docker LXC is destroyed.
+- LazyLibrarian LXC shut down during Stage 0 (being retired).
 
 **Data preservation:** LXCs move intact with all data — this is a Proxmox migration, not a service migration.
 
-#### Track B: Snorlax Conversion
+#### Track B: Build latios + latias, Convert snorlax to rayquaza
 
-**Goal:** Convert snorlax from bare-metal TrueNAS to Proxmox host with TrueNAS VM (munchlax).
+**Goal:** Build two custom AMD 8700G nodes (latios, latias), rename snorlax to rayquaza, and convert TrueNAS to a VM (snorlax).
 
-**Steps:**
+**Steps — New Nodes (latios, latias):**
+1. Assemble hardware: Ryzen 7 8700G, MSI Pro B650M-P, 64GB DDR5-5600, Samsung 970 EVO 500GB, EVGA 450BT, Rosewill RSV-Z2700U 2U, Dynatron AM5 cooler.
+2. Install Proxmox on each node's NVMe boot drive.
+3. Join latios and latias to Proxmox cluster.
+4. Install SATA SSDs for Ceph OSDs on each node.
+5. Connect to Flex XG switch at 2.5GbE.
+
+**Steps — Snorlax Conversion to rayquaza:**
 1. Full backup of TrueNAS config — export config file, document pool layout, snapshot all datasets.
 2. Verify ZFS pools are exportable — pools are on HBA-connected drives, independent of the boot disk.
-3. Install Proxmox on snorlax's boot SSD — wipe only the boot drive, NOT the HBA drives.
-4. Join snorlax to Proxmox cluster.
-5. Configure HBA passthrough to munchlax VM (all drives visible to TrueNAS).
-6. Configure iGPU passthrough for Plex/Tdarr QuickSync transcoding.
-7. Pass through NVMe metadata drives (2x 1TB) for ZFS metadata vdev.
-8. Create munchlax VM — ~32GB RAM, Ceph-backed boot disk.
-9. Install TrueNAS in munchlax, import ZFS pools from passed-through HBA drives.
-10. Restore TrueNAS config or recreate shares/datasets.
-11. Verify Plex, Tdarr, SABnzbd, and all TrueNAS apps working.
+3. Install Proxmox on snorlax's boot SSD — wipe only the boot drive, NOT the HBA drives. Rename host to rayquaza.
+4. Join rayquaza to Proxmox cluster. Connect at 10GbE to Flex XG switch.
+5. Install SATA SSD for Ceph OSD on rayquaza.
+6. Configure HBA passthrough to snorlax VM (all drives visible to TrueNAS).
+7. Configure iGPU passthrough for Plex/Tdarr QuickSync transcoding.
+8. Pass through NVMe metadata drives (2x 1TB) for ZFS metadata vdev.
+9. Create snorlax VM — ~48GB RAM, Ceph-backed boot disk.
+10. Install TrueNAS in snorlax VM, import ZFS pools from passed-through HBA drives.
+11. Restore TrueNAS config or recreate shares/datasets.
+12. Verify Plex, Tdarr, SABnzbd, and all TrueNAS apps working.
 
-**Risk:** Plex downtime is unavoidable during snorlax conversion (likely a few hours). Schedule when nobody is streaming.
+**Risk:** Plex downtime is unavoidable during snorlax-to-rayquaza conversion (likely a few hours). Schedule when nobody is streaming.
 
-**Gate:** All TrueNAS apps functional, HBA/iGPU/NVMe passthrough confirmed, munchlax stable.
+**Gate:** All three Proxmox nodes (latios, latias, rayquaza) in cluster with Ceph OSDs. TrueNAS apps functional on snorlax VM, HBA/iGPU/NVMe passthrough confirmed.
 
 ---
 
@@ -222,14 +242,13 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 
 **Steps (all GitOps via Flux):**
 1. Helm repositories — add chart sources for all infrastructure components.
-2. Storage — democratic-csi (TrueNAS NFS via `truenas-nfs` storage class) + local-path-provisioner (`local-path` storage class). Requires firewall rule: VLAN 10 → munchlax TrueNAS API.
+2. Storage — democratic-csi (TrueNAS NFS via `truenas-nfs` storage class) + local-path-provisioner (`local-path` storage class). Requires firewall rule: VLAN 10 → snorlax TrueNAS API.
 3. Ingress — MetalLB (LoadBalancer IPs from VLAN 10) + Traefik v3.
 4. TLS + DNS — cert-manager (Let's Encrypt, Cloudflare DNS-01) + ExternalDNS (Cloudflare).
 5. PostgreSQL LXC (metagross) — OpenTofu creates LXC (Ceph-backed, Proxmox HA). Ansible installs and configures PostgreSQL.
 6. Migrate databases from old PostgreSQL LXC on Mew:
    - `pocket_id` — needed for auth chain
    - `pelican` — needed for Pelican Panel
-   - `n8n` — preserving workflows
    - `romm` — app runs on TrueNAS but database migrates to metagross for centralized management
    - Not migrated: `grafana` (fresh deploy via kube-prometheus-stack), `k3s` (old cluster DB), dev experiments
    - Method: `pg_dump` on old LXC → `pg_restore` on metagross
@@ -263,18 +282,16 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 | 3 | Auth chain verification | Already deployed in Stage 3 (LLDAP, Pocket ID, OAuth2-Proxy). Verify SSO end-to-end. |
 | 4 | Servarr stack | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr. From Docker LXC. Need democratic-csi NFS to TrueNAS media datasets. Migrate Docker volume configs. |
 | 5 | Media adjacent | Seer (replaces Overseerr), Wizarr, Tautulli. Low data, mostly config. |
-| 6 | Productivity | Outline, Booklore, Paperless-ngx + Paperless-ai, Gramps. Outline has file attachments to move. Gramps has family tree data in Docker volume. |
-| 7 | AI / Automation | Ollama + OpenWebUI (models on TrueNAS NFS, prefer scheduling on ho-oh/snorlax for memory headroom), n8n (database already migrated in Stage 3). |
-| 8 | Monitoring | Grafana (fresh via kube-prometheus-stack), Beszel, Uptime Kuma. Replaces InfluxDB with Prometheus — no data migration. |
-| 9 | Gaming | Pelican Panel (K3s, database already migrated). Points at existing Pelican Wings LXC on pikachu. |
-| 10 | Camera | Scrypted — new deployment, replaces Homebridge camera duties. |
-| 11 | Misc infra | Tailscale subnet router, DbGate, Netboot.xyz LXC. |
+| 6 | Productivity | Paperless-ngx + Paperless-ai, Gramps. Gramps has family tree data in Docker volume. |
+| 7 | AI | Ollama + OpenWebUI (models on TrueNAS NFS, prefer scheduling on lugia/latios for memory headroom). |
+| 8 | Monitoring + Gaming | Grafana (fresh via kube-prometheus-stack), Beszel, Uptime Kuma. Replaces InfluxDB with Prometheus — no data migration. Pelican Panel (K3s, database already migrated). Points at existing Pelican Wings LXC. |
+| 9 | Misc infra | Tailscale subnet router, DbGate, Netboot.xyz LXC. |
 
 **Services that stay as LXCs (do NOT migrate to K3s):**
-- Homey → LXC on pikachu (host networking)
-- Homebridge → LXC on pikachu (host networking + USB)
-- Pelican Wings → LXC on pikachu (existing, stays)
-- PostgreSQL → new LXC (created in Stage 3)
+- Homey → LXC on latios (host networking, 1GB)
+- Homebridge → LXC on latias (host networking + USB, 1GB)
+- Pelican Wings → LXC (existing, stays)
+- PostgreSQL (metagross) → LXC on rayquaza (created in Stage 3, 2GB)
 - Netboot.xyz → LXC on any Proxmox host
 
 **Services retired:**
@@ -282,17 +299,23 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 - InfluxDB LXC — replaced by Prometheus
 - Overseerr LXC — replaced by Seer
 - ntfy LXC — no longer needed
-- LazyLibrarian LXC — already runs as a TrueNAS app on munchlax
+- LazyLibrarian LXC — already runs as a TrueNAS app on snorlax
 - hass VM — replaced by Homey
 - Traefik LXC — replaced by Traefik in K3s (Stage 3)
 - Old PostgreSQL LXC — destroyed after databases migrated to metagross
 - Docker LXC — destroyed after servarr + Gramps migrated
+- n8n — replaced by mantle
+- Scrypted — removed
+- Outline — removed
+- Linkwarden — removed
+- Actual Budget — removed
+- Booklore — removed
+- Glances — removed
+- Portainer — replaced by Flux + Grafana
 
 **Data preservation details:**
 - **Servarr apps** — Export Docker volumes (config dirs with databases + settings). Import into K8s PVCs.
 - **Gramps** — Export Docker volume (family tree data). Import into K8s PVC.
-- **Outline** — Requires PostgreSQL (may have local Postgres in LXC, not in the shared PostgreSQL LXC). During Wave 6: dump database, create `outline` database on metagross, restore, update connection string. Also needs Redis (deployed in Stage 3). File attachments move to NFS PVC.
-- **n8n** — PostgreSQL database migrated in Stage 3. Workflow data is in the DB.
 - **Pocket ID** — PostgreSQL database migrated in Stage 3.
 - **Pelican Panel** — PostgreSQL database migrated in Stage 3.
 - **Uptime Kuma** — Export monitors config, reimport.
@@ -313,7 +336,7 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 3. Create guest WiFi on VLAN 50 — new McNet Guest SSID, internet-only.
 4. Import 57 DHCP reservations into OpenTofu (`terraform/unifi/`) — now on their proper VLANs.
 5. Decommission flat /22 — once all devices are on VLANs, remove the old network. Management /24 (VLAN 1) remains.
-6. Clean up Mew — all LXCs destroyed. Repurpose or decommission.
+6. Decommission Mew — all LXCs destroyed. Remove from cluster, sell.
 7. PBS setup — create Proxmox Backup Server LXC (deoxys, Ceph-backed), configure backup jobs per spec (nightly incremental, weekly verify, retention policy).
 8. Documentation — write break-glass guide, in-case-of-death plan, common tasks runbook.
 
@@ -340,8 +363,8 @@ This migration spec is **authoritative** for naming, service decisions, and migr
 
 | Document | Updates Needed |
 |----------|---------------|
-| Redesign spec (`docs/superpowers/specs/2026-03-11-homelab-redesign-design.md`) | Bird names for K3s nodes, metagross/deoxys/rayquaza hostnames, n8n retained (not retired), Pelican Wings stays as LXC, repo structure reflects bird names |
-| Phase 1 plan (`docs/superpowers/plans/2026-03-11-phase1-foundation.md`) | Bird hostnames replacing regi names, VLAN 10 IPs, kube-vip for API VIP |
-| Phase 2 plan (`docs/superpowers/plans/2026-03-11-phase2-core-platform.md`) | Bird hostnames, metagross as PostgreSQL LXC hostname |
-| OpenTofu configs (`terraform/proxmox/`) | Rename .tf files and resource names from regi to bird names |
-| Ansible inventory (`ansible/inventory/hosts.yml`) | Bird hostnames and VLAN 10 IPs |
+| Redesign spec (`docs/superpowers/specs/2026-03-11-homelab-redesign-design.md`) | Updated: 3-node cluster (latios/latias/rayquaza), bird names, snorlax/pelipper/metagross/deoxys hostnames, service removals, PriorityClasses |
+| Phase 1 plan (`docs/superpowers/plans/2026-03-11-phase1-foundation.md`) | Bird hostnames replacing regi names, VLAN 10 IPs, kube-vip for API VIP, new host assignments |
+| Phase 2 plan (`docs/superpowers/plans/2026-03-11-phase2-core-platform.md`) | Bird hostnames, metagross as PostgreSQL LXC hostname, snorlax as TrueNAS VM |
+| OpenTofu configs (`terraform/proxmox/`) | Rename .tf files and resource names from regi to bird names, update host targets |
+| Ansible inventory (`ansible/inventory/hosts.yml`) | Bird hostnames, VLAN 10 IPs, new Proxmox host names (latios/latias/rayquaza) |

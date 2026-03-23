@@ -4,7 +4,7 @@
 
 **Goal:** Stand up the foundational infrastructure — repo structure, OpenTofu-managed Proxmox VMs, Ansible-configured K3s cluster, Flux CD GitOps bootstrap, and SOPS secret encryption — all running alongside the existing homelab with zero disruption.
 
-**Architecture:** OpenTofu creates VMs on the existing Proxmox cluster using the bpg/proxmox provider. Ansible configures the VMs and bootstraps a 5-node K3s cluster (3 servers + 2 agents). Flux CD is bootstrapped to watch a GitHub repo for GitOps. SOPS with age handles secret encryption in the repo.
+**Architecture:** OpenTofu creates VMs on the 3-node Proxmox cluster (latios, latias, rayquaza) using the bpg/proxmox provider. Ansible configures the VMs and bootstraps a 5-node K3s cluster (3 servers + 2 agents) across 3 hosts. Flux CD is bootstrapped to watch a GitHub repo for GitOps. SOPS with age handles secret encryption in the repo.
 
 **Tech Stack:** OpenTofu 1.9+, Ansible 2.17+, K3s v1.31+, Flux CD v2, SOPS, age, Ubuntu 24.04 (cloud-init), Taskfile
 
@@ -297,7 +297,7 @@ git commit -m "infra: configure OpenTofu with bpg/proxmox provider"
 # Creates a cloud-init Ubuntu 24.04 VM template on a Proxmox node.
 # Run once per Proxmox node that will host K3s VMs.
 #
-# Usage: ansible-playbook playbooks/create-vm-template.yml -e "target_node=charmander"
+# Usage: ansible-playbook playbooks/create-vm-template.yml -e "target_node=latios"
 #
 # Prerequisites: SSH access to the Proxmox node as root.
 
@@ -375,20 +375,14 @@ all:
   children:
     proxmox_hosts:
       hosts:
-        charmander:
-          ansible_host: 10.0.0.70  # Update with actual Proxmox host IPs
+        latios:
+          ansible_host: 10.0.0.70  # pve1 — Update with actual Proxmox host IPs
           ansible_user: root
-        squirtle:
-          ansible_host: 10.0.0.71
+        latias:
+          ansible_host: 10.0.0.71  # pve2
           ansible_user: root
-        bulbasaur:
-          ansible_host: 10.0.0.72
-          ansible_user: root
-        pikachu:
-          ansible_host: 10.0.0.73
-          ansible_user: root
-        snorlax:
-          ansible_host: 10.0.0.74
+        rayquaza:
+          ansible_host: 10.0.0.72  # pve3
           ansible_user: root
 ```
 
@@ -411,11 +405,9 @@ become_method = sudo
 
 ```bash
 cd ansible
-ansible-playbook playbooks/create-vm-template.yml -e "target_node=charmander"
-ansible-playbook playbooks/create-vm-template.yml -e "target_node=squirtle"
-ansible-playbook playbooks/create-vm-template.yml -e "target_node=bulbasaur"
-ansible-playbook playbooks/create-vm-template.yml -e "target_node=pikachu"
-ansible-playbook playbooks/create-vm-template.yml -e "target_node=snorlax"
+ansible-playbook playbooks/create-vm-template.yml -e "target_node=latios"
+ansible-playbook playbooks/create-vm-template.yml -e "target_node=latias"
+ansible-playbook playbooks/create-vm-template.yml -e "target_node=rayquaza"
 ```
 
 Expected: Template VM ID 9000 exists on each Proxmox node.
@@ -423,7 +415,7 @@ Expected: Template VM ID 9000 exists on each Proxmox node.
 - [ ] **Step 5: Verify template exists**
 
 ```bash
-ssh root@charmander "qm list | grep 9000"
+ssh root@latios "qm list | grep 9000"
 ```
 
 Expected output: `9000  ubuntu-2404-cloud-init  ...  template`
@@ -550,12 +542,12 @@ git commit -m "ansible: add cloud-init VM template playbook and Proxmox inventor
 task ansible:proxmox
 ```
 
-Expected: SSH hardened, fail2ban running, unattended-upgrades enabled on all 5 Proxmox hosts.
+Expected: SSH hardened, fail2ban running, unattended-upgrades enabled on all 3 Proxmox hosts.
 
 - [ ] **Step 3: Verify**
 
 ```bash
-ssh root@charmander "systemctl status fail2ban | head -5 && grep PasswordAuthentication /etc/ssh/sshd_config"
+ssh root@latios "systemctl status fail2ban | head -5 && grep PasswordAuthentication /etc/ssh/sshd_config"
 ```
 
 Expected: fail2ban active, `PasswordAuthentication no`.
@@ -578,7 +570,7 @@ git commit -m "ansible: add Proxmox host security hardening playbook"
 - Create: `terraform/proxmox/modules/k3s-node/variables.tf`
 - Create: `terraform/proxmox/modules/k3s-node/outputs.tf`
 
-**Context:** Create a reusable module for K3s nodes. All 5 K3s VMs share the same base config (Ubuntu cloud-init, SSH key, qemu-guest-agent), differing only in name, target node, IP, and resource allocation.
+**Context:** Create a reusable module for K3s nodes. All 5 K3s VMs share the same base config (Ubuntu cloud-init, SSH key, qemu-guest-agent), differing only in name, target node, IP, and resource allocation. VMs are distributed across 3 hosts: latios (pve1), latias (pve2), rayquaza (pve3).
 
 **Note on networking:** The spec defines VLAN 10 (10.0.10.0/24) for K8s traffic, but the spec also states VLAN segmentation "can be migrated incrementally — not a day-one blocker." For Phase 1, K3s VMs are placed on the management VLAN (10.0.0.0/24) alongside Proxmox hosts for simplicity. Phase 4 migrates them to VLAN 10 when Unifi networking is configured via OpenTofu.
 
@@ -586,12 +578,12 @@ git commit -m "ansible: add Proxmox host security hardening playbook"
 
 ```hcl
 variable "vm_name" {
-  description = "VM hostname (e.g., regirock)"
+  description = "VM hostname (e.g., articuno)"
   type        = string
 }
 
 variable "target_node" {
-  description = "Proxmox node to place this VM on (e.g., charmander)"
+  description = "Proxmox node to place this VM on (e.g., latios)"
   type        = string
 }
 
@@ -777,24 +769,24 @@ git commit -m "infra: add reusable k3s-node OpenTofu module"
 
 ---
 
-### Task 5: Define K3s server VMs (regirock, regice, registeel)
+### Task 5: Define K3s server VMs (articuno, zapdos, moltres)
 
 **Files:**
-- Create: `terraform/proxmox/nodes/regirock.tf`
-- Create: `terraform/proxmox/nodes/regice.tf`
-- Create: `terraform/proxmox/nodes/registeel.tf`
+- Create: `terraform/proxmox/nodes/articuno.tf`
+- Create: `terraform/proxmox/nodes/zapdos.tf`
+- Create: `terraform/proxmox/nodes/moltres.tf`
 
-- [ ] **Step 1: Create `terraform/proxmox/nodes/regirock.tf`**
+- [ ] **Step 1: Create `terraform/proxmox/nodes/articuno.tf`**
 
 ```hcl
-module "regirock" {
+module "articuno" {
   source = "../modules/k3s-node"
 
-  vm_name        = "regirock"
-  target_node    = "charmander"
+  vm_name        = "articuno"
+  target_node    = "latios"  # pve1
   vm_id          = 110
   cores          = 4
-  memory         = 24576  # 24GB — leaves ~8GB for Proxmox + Ceph on 32GB host
+  memory         = 10240  # 10GB — server node on latios (64GB host)
   disk_size      = 50
   storage_pool   = var.vm_default_storage
   ip_address     = "10.0.0.80/24"
@@ -805,17 +797,17 @@ module "regirock" {
 }
 ```
 
-- [ ] **Step 2: Create `terraform/proxmox/nodes/regice.tf`**
+- [ ] **Step 2: Create `terraform/proxmox/nodes/zapdos.tf`**
 
 ```hcl
-module "regice" {
+module "zapdos" {
   source = "../modules/k3s-node"
 
-  vm_name        = "regice"
-  target_node    = "squirtle"
+  vm_name        = "zapdos"
+  target_node    = "latias"  # pve2
   vm_id          = 111
   cores          = 4
-  memory         = 24576
+  memory         = 10240  # 10GB — server node on latias (64GB host)
   disk_size      = 50
   storage_pool   = var.vm_default_storage
   ip_address     = "10.0.0.81/24"
@@ -826,17 +818,17 @@ module "regice" {
 }
 ```
 
-- [ ] **Step 3: Create `terraform/proxmox/nodes/registeel.tf`**
+- [ ] **Step 3: Create `terraform/proxmox/nodes/moltres.tf`**
 
 ```hcl
-module "registeel" {
+module "moltres" {
   source = "../modules/k3s-node"
 
-  vm_name        = "registeel"
-  target_node    = "bulbasaur"
+  vm_name        = "moltres"
+  target_node    = "rayquaza"  # pve3
   vm_id          = 112
   cores          = 4
-  memory         = 24576
+  memory         = 10240  # 10GB — server node on rayquaza (64GB host)
   disk_size      = 50
   storage_pool   = var.vm_default_storage
   ip_address     = "10.0.0.82/24"
@@ -853,17 +845,17 @@ module "registeel" {
 output "k3s_server_ips" {
   description = "K3s control plane node IPs"
   value = {
-    regirock  = module.regirock.ip_address
-    regice    = module.regice.ip_address
-    registeel = module.registeel.ip_address
+    articuno = module.articuno.ip_address
+    zapdos   = module.zapdos.ip_address
+    moltres  = module.moltres.ip_address
   }
 }
 
 output "k3s_agent_ips" {
   description = "K3s worker node IPs"
   value = {
-    regieleki = module.regieleki.ip_address
-    regidrago = module.regidrago.ip_address
+    lugia = module.lugia.ip_address
+    ho_oh = module.ho_oh.ip_address
   }
 }
 ```
@@ -871,31 +863,31 @@ output "k3s_agent_ips" {
 - [ ] **Step 5: Commit**
 
 ```bash
-git add terraform/proxmox/nodes/regirock.tf terraform/proxmox/nodes/regice.tf terraform/proxmox/nodes/registeel.tf terraform/proxmox/outputs.tf
-git commit -m "infra: define K3s server VMs (regirock, regice, registeel)"
+git add terraform/proxmox/nodes/articuno.tf terraform/proxmox/nodes/zapdos.tf terraform/proxmox/nodes/moltres.tf terraform/proxmox/outputs.tf
+git commit -m "infra: define K3s server VMs (articuno, zapdos, moltres)"
 ```
 
 ---
 
-### Task 6: Define K3s agent VMs (regieleki, regidrago)
+### Task 6: Define K3s agent VMs (lugia, ho-oh)
 
 **Files:**
-- Create: `terraform/proxmox/nodes/regieleki.tf`
-- Create: `terraform/proxmox/nodes/regidrago.tf`
+- Create: `terraform/proxmox/nodes/lugia.tf`
+- Create: `terraform/proxmox/nodes/ho-oh.tf`
 
-- [ ] **Step 1: Create `terraform/proxmox/nodes/regieleki.tf`**
+- [ ] **Step 1: Create `terraform/proxmox/nodes/lugia.tf`**
 
 ```hcl
-module "regieleki" {
+module "lugia" {
   source = "../modules/k3s-node"
 
-  vm_name        = "regieleki"
-  target_node    = "pikachu"
+  vm_name        = "lugia"
+  target_node    = "latios"  # pve1 — co-located with articuno (server)
   vm_id          = 113
-  cores          = 2     # Constrained: pikachu shares with LXCs + Pelican VM. May need pod scheduling preferences to avoid overloading.
-  memory         = 8192  # 8GB — pikachu needs room for LXCs + Pelican VM
+  cores          = 4
+  memory         = 40960  # 40GB — primary workload agent on latios (64GB host)
   disk_size      = 50
-  storage_pool   = "local-lvm"  # pikachu has no Ceph, use local storage
+  storage_pool   = var.vm_default_storage
   ip_address     = "10.0.0.83/24"
   gateway        = var.vm_default_gateway
   dns_servers    = var.vm_dns_servers
@@ -904,19 +896,19 @@ module "regieleki" {
 }
 ```
 
-- [ ] **Step 2: Create `terraform/proxmox/nodes/regidrago.tf`**
+- [ ] **Step 2: Create `terraform/proxmox/nodes/ho-oh.tf`**
 
 ```hcl
-module "regidrago" {
+module "ho_oh" {
   source = "../modules/k3s-node"
 
-  vm_name        = "regidrago"
-  target_node    = "snorlax"
+  vm_name        = "ho-oh"
+  target_node    = "latias"  # pve2 — co-located with zapdos (server) and pelipper (Pelican)
   vm_id          = 114
   cores          = 4
-  memory         = 16384  # 16GB — snorlax has 64GB, ~32GB to TrueNAS VM, rest here + overhead
+  memory         = 20480  # 20GB — latias (64GB) also hosts zapdos (10GB) + pelipper (20GB)
   disk_size      = 50
-  storage_pool   = "local-lvm"  # Use snorlax local storage; Ceph is on the Dell nodes
+  storage_pool   = var.vm_default_storage
   ip_address     = "10.0.0.84/24"
   gateway        = var.vm_default_gateway
   dns_servers    = var.vm_dns_servers
@@ -931,13 +923,13 @@ module "regidrago" {
 task infra:plan
 ```
 
-Expected: Plan shows 5 VMs to create (regirock, regice, registeel, regieleki, regidrago). No errors.
+Expected: Plan shows 5 VMs to create (articuno, zapdos, moltres, lugia, ho-oh). No errors.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add terraform/proxmox/nodes/regieleki.tf terraform/proxmox/nodes/regidrago.tf
-git commit -m "infra: define K3s agent VMs (regieleki, regidrago)"
+git add terraform/proxmox/nodes/lugia.tf terraform/proxmox/nodes/ho-oh.tf
+git commit -m "infra: define K3s agent VMs (lugia, ho-oh)"
 ```
 
 ---
@@ -955,18 +947,18 @@ Expected: 5 VMs created in Proxmox. Each VM boots, gets its cloud-init IP, and i
 - [ ] **Step 2: Verify each VM is accessible**
 
 ```bash
-ssh mcnees@10.0.0.80 "hostname"  # regirock
-ssh mcnees@10.0.0.81 "hostname"  # regice
-ssh mcnees@10.0.0.82 "hostname"  # registeel
-ssh mcnees@10.0.0.83 "hostname"  # regieleki
-ssh mcnees@10.0.0.84 "hostname"  # regidrago
+ssh mcnees@10.0.0.80 "hostname"  # articuno (server, latios)
+ssh mcnees@10.0.0.81 "hostname"  # zapdos (server, latias)
+ssh mcnees@10.0.0.82 "hostname"  # moltres (server, rayquaza)
+ssh mcnees@10.0.0.83 "hostname"  # lugia (agent, latios)
+ssh mcnees@10.0.0.84 "hostname"  # ho-oh (agent, latias)
 ```
 
 Expected: Each returns its hostname.
 
 - [ ] **Step 3: Verify in Proxmox UI**
 
-Open Proxmox web UI. Confirm all 5 VMs are running on their respective nodes with correct resource allocations.
+Open Proxmox web UI. Confirm all 5 VMs are running on their respective nodes (latios, latias, rayquaza) with correct resource allocations.
 
 - [ ] **Step 4: Commit state (if using local state)**
 
@@ -1035,20 +1027,14 @@ all:
   children:
     proxmox_hosts:
       hosts:
-        charmander:
-          ansible_host: 10.0.0.70  # Update with actual Proxmox host IPs
+        latios:
+          ansible_host: 10.0.0.70  # pve1 — Update with actual Proxmox host IPs
           ansible_user: root
-        squirtle:
-          ansible_host: 10.0.0.71
+        latias:
+          ansible_host: 10.0.0.71  # pve2
           ansible_user: root
-        bulbasaur:
-          ansible_host: 10.0.0.72
-          ansible_user: root
-        pikachu:
-          ansible_host: 10.0.0.73
-          ansible_user: root
-        snorlax:
-          ansible_host: 10.0.0.74
+        rayquaza:
+          ansible_host: 10.0.0.72  # pve3
           ansible_user: root
 
     # k3s-ansible collection expects 'server' and 'agent' group names
@@ -1056,18 +1042,18 @@ all:
       children:
         server:
           hosts:
-            regirock:
-              ansible_host: 10.0.0.80
-            regice:
-              ansible_host: 10.0.0.81
-            registeel:
-              ansible_host: 10.0.0.82
+            articuno:
+              ansible_host: 10.0.0.80  # on latios/pve1
+            zapdos:
+              ansible_host: 10.0.0.81  # on latias/pve2
+            moltres:
+              ansible_host: 10.0.0.82  # on rayquaza/pve3
         agent:
           hosts:
-            regieleki:
-              ansible_host: 10.0.0.83
-            regidrago:
-              ansible_host: 10.0.0.84
+            lugia:
+              ansible_host: 10.0.0.83  # on latios/pve1
+            ho-oh:
+              ansible_host: 10.0.0.84  # on latias/pve2
       vars:
         ansible_user: mcnees
         ansible_become: true
@@ -1184,7 +1170,7 @@ git commit -m "ansible: adopt k3s-ansible collection with inventory and config"
 task ansible:k3s-prepare
 ```
 
-Expected: All 5 nodes prepared. The `prereq` role handles swap, kernel modules, sysctl, and br_netfilter automatically.
+Expected: All 5 K3s nodes prepared. The `prereq` role handles swap, kernel modules, sysctl, and br_netfilter automatically.
 
 - [ ] **Step 3: Verify a node**
 
@@ -1319,7 +1305,7 @@ Copy the output and update `ansible/inventory/group_vars/k3s_cluster.yml` — re
 task ansible:k3s-install
 ```
 
-Expected: K3s cluster bootstrapped via collection roles. All 5 nodes joined. Kubeconfig saved to `ansible/kubeconfig.yaml`.
+Expected: K3s cluster bootstrapped via collection roles. All 5 K3s nodes joined (3 servers + 2 agents across 3 hosts). Kubeconfig saved to `ansible/kubeconfig.yaml`.
 
 - [ ] **Step 6: Set up local kubeconfig**
 
@@ -1349,11 +1335,11 @@ kubectl get nodes -o wide
 Expected output:
 ```
 NAME        STATUS   ROLES                       AGE   VERSION
-regirock    Ready    control-plane,etcd,master   Xm    v1.31.6+k3s1
-regice      Ready    control-plane,etcd,master   Xm    v1.31.6+k3s1
-registeel   Ready    control-plane,etcd,master   Xm    v1.31.6+k3s1
-regieleki   Ready    <none>                      Xm    v1.31.6+k3s1
-regidrago   Ready    <none>                      Xm    v1.31.6+k3s1
+articuno    Ready    control-plane,etcd,master   Xm    v1.31.6+k3s1
+zapdos      Ready    control-plane,etcd,master   Xm    v1.31.6+k3s1
+moltres     Ready    control-plane,etcd,master   Xm    v1.31.6+k3s1
+lugia       Ready    <none>                      Xm    v1.31.6+k3s1
+ho-oh       Ready    <none>                      Xm    v1.31.6+k3s1
 ```
 
 - [ ] **Step 8: Verify disabled defaults**
@@ -1778,7 +1764,7 @@ flux get all
 ```
 
 Expected:
-- 5 nodes Ready
+- 5 K3s nodes Ready (articuno, zapdos, moltres, lugia, ho-oh)
 - Flux system pods running
 - All Flux resources synced
 
@@ -1790,10 +1776,10 @@ At the end of Phase 1, you should have:
 
 - [ ] Git repo on GitHub with full directory structure
 - [ ] Taskfile with documented commands
-- [ ] OpenTofu managing 5 K3s VMs via bpg/proxmox provider
-- [ ] Cloud-init Ubuntu template on all Proxmox nodes
+- [ ] OpenTofu managing 5 K3s VMs (articuno, zapdos, moltres, lugia, ho-oh) via bpg/proxmox provider
+- [ ] Cloud-init Ubuntu template on all 3 Proxmox nodes (latios, latias, rayquaza)
 - [ ] Ansible inventory covering Proxmox hosts and K3s nodes
-- [ ] K3s cluster: 3 servers (HA etcd) + 2 agents, all nodes Ready
+- [ ] K3s cluster: 3 servers (HA etcd) + 2 agents across 3 hosts, all nodes Ready
 - [ ] Traefik, ServiceLB, and local-storage disabled (replaced in Phase 2)
 - [ ] SOPS + age configured for secret encryption
 - [ ] Flux CD bootstrapped, watching GitHub, syncing `kubernetes/` directory

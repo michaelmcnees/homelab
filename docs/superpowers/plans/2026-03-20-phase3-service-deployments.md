@@ -204,16 +204,13 @@ Create ExternalService IngressRoutes for ALL existing services, then hard-cut DN
 - Create: `kubernetes/apps/external-services/homey.yaml`
 - Create: `kubernetes/apps/external-services/pelican-wings.yaml`
 - Create: `kubernetes/apps/external-services/truenas.yaml`
-- Create: `kubernetes/apps/external-services/proxmox-charmander.yaml`
-- Create: `kubernetes/apps/external-services/proxmox-squirtle.yaml`
-- Create: `kubernetes/apps/external-services/proxmox-bulbasaur.yaml`
-- Create: `kubernetes/apps/external-services/proxmox-pikachu.yaml`
-- Create: `kubernetes/apps/external-services/proxmox-mew.yaml`
-- Create: `kubernetes/apps/external-services/proxmox-snorlax.yaml`
+- Create: `kubernetes/apps/external-services/proxmox-latios.yaml`
+- Create: `kubernetes/apps/external-services/proxmox-latias.yaml`
+- Create: `kubernetes/apps/external-services/proxmox-rayquaza.yaml`
 - Create: `kubernetes/apps/external-services/kustomization.yaml`
 - Modify: `kubernetes/apps/kustomization.yaml`
 
-**Context:** These are permanent ExternalService routes — they will never be replaced by in-cluster services. Plex, Tdarr, and SABnzbd stay on TrueNAS (munchlax). Homebridge, Homey, and Pelican Wings stay as LXCs on pikachu. Proxmox node UIs and TrueNAS UI get routes for convenience. Stash is NOT here — it migrates to K8s in Wave 7 and is in the temporary routes.
+**Context:** These are permanent ExternalService routes — they will never be replaced by in-cluster services. Plex, Tdarr, and SABnzbd stay on TrueNAS (snorlax). Homebridge stays as an LXC on latias, Homey stays as an LXC on latios, and Pelican Wings (pelipper) stays as a VM on latias. Proxmox node UIs and TrueNAS UI get routes for convenience. Stash is NOT here — it migrates to K8s in Wave 7 and is in the temporary routes.
 
 - [ ] **Step 1: Create the external-services directory**
 
@@ -223,7 +220,7 @@ mkdir -p kubernetes/apps/external-services
 
 - [ ] **Step 2: Create `kubernetes/apps/external-services/plex.yaml`**
 
-Plex on munchlax (TrueNAS). ExternalService + IngressRoute. Plex has its own auth, no OAuth2-Proxy.
+Plex on snorlax (TrueNAS). ExternalService + IngressRoute. Plex has its own auth, no OAuth2-Proxy.
 
 ```yaml
 apiVersion: v1
@@ -243,7 +240,7 @@ metadata:
   namespace: apps
 subsets:
   - addresses:
-      - ip: 10.0.0.90  # munchlax IP — update if changed
+      - ip: 10.0.0.90  # snorlax IP — update if changed
     ports:
       - port: 32400
 ---
@@ -281,27 +278,24 @@ spec:
 - [ ] **Step 3: Create remaining TrueNAS app ExternalService files**
 
 Follow the same pattern for:
-- `tdarr.yaml` — munchlax IP, port 8265, host `tdarr.home.mcnees.me`, OAuth2-Proxy middleware (no native auth)
-- `sabnzbd.yaml` — munchlax IP, port 8080, host `sabnzbd.home.mcnees.me`, OAuth2-Proxy middleware (no native auth)
+- `tdarr.yaml` — snorlax IP, port 8265, host `tdarr.home.mcnees.me`, OAuth2-Proxy middleware (no native auth)
+- `sabnzbd.yaml` — snorlax IP, port 8080, host `sabnzbd.home.mcnees.me`, OAuth2-Proxy middleware (no native auth)
 Each file follows the plex.yaml pattern but adds the OAuth2-Proxy ForwardAuth middleware reference.
 
 - [ ] **Step 4: Create LXC ExternalService files**
 
 Follow the same pattern for:
-- `homebridge.yaml` — pikachu LXC IP, port 8581, host `homebridge.home.mcnees.me`
-- `homey.yaml` — pikachu LXC IP, port 443, host `homey.home.mcnees.me`
-- `pelican-wings.yaml` — pikachu LXC IP, port 443, host `wings.home.mcnees.me`
+- `homebridge.yaml` — latias LXC IP, port 8581, host `homebridge.home.mcnees.me`
+- `homey.yaml` — latios LXC IP, port 443, host `homey.home.mcnees.me`
+- `pelican-wings.yaml` — pelipper VM IP (latias), port 443, host `wings.home.mcnees.me`
 
 - [ ] **Step 5: Create Proxmox node and TrueNAS UI ExternalService files**
 
 Follow the same pattern for:
-- `proxmox-charmander.yaml` — IP 10.0.0.70, port 8006 (HTTPS), host `charmander.home.mcnees.me`
-- `proxmox-squirtle.yaml` — IP 10.0.0.71, port 8006, host `squirtle.home.mcnees.me`
-- `proxmox-bulbasaur.yaml` — IP 10.0.0.72, port 8006, host `bulbasaur.home.mcnees.me`
-- `proxmox-pikachu.yaml` — IP 10.0.0.73, port 8006, host `pikachu.home.mcnees.me`
-- `proxmox-mew.yaml` — IP 10.0.0.74, port 8006, host `mew.home.mcnees.me`
-- `proxmox-snorlax.yaml` — IP 10.0.0.75, port 8006, host `snorlax.home.mcnees.me`
-- `truenas.yaml` — munchlax IP, port 443, host `truenas.home.mcnees.me`
+- `proxmox-latios.yaml` — latios IP, port 8006 (HTTPS), host `latios.home.mcnees.me`
+- `proxmox-latias.yaml` — latias IP, port 8006, host `latias.home.mcnees.me`
+- `proxmox-rayquaza.yaml` — rayquaza IP, port 8006, host `rayquaza.home.mcnees.me`
+- `truenas.yaml` — snorlax IP, port 443, host `truenas.home.mcnees.me`
 
 Note: Proxmox uses self-signed HTTPS on port 8006. The IngressRoute needs `serversTransport` with `insecureSkipVerify: true` for the backend connection.
 
@@ -318,12 +312,9 @@ resources:
   - homey.yaml
   - pelican-wings.yaml
   - truenas.yaml
-  - proxmox-charmander.yaml
-  - proxmox-squirtle.yaml
-  - proxmox-bulbasaur.yaml
-  - proxmox-pikachu.yaml
-  - proxmox-mew.yaml
-  - proxmox-snorlax.yaml
+  - proxmox-latios.yaml
+  - proxmox-latias.yaml
+  - proxmox-rayquaza.yaml
 ```
 
 - [ ] **Step 7: Update `kubernetes/apps/kustomization.yaml`**
@@ -368,9 +359,9 @@ Services needing temporary routes (update IPs from Mew LXC assignments):
 - `beszel.yaml` — Beszel LXC, port 8090, host `beszel.home.mcnees.me`, OAuth2-Proxy
 - `grafana.yaml` — Grafana LXC, port 3000, host `grafana.home.mcnees.me` (has own auth / will use Pocket ID)
 - `pelican-panel.yaml` — Pelican Panel LXC, port 443, host `panel.home.mcnees.me` (has own auth)
-- `romm.yaml` — TrueNAS app (until Wave 8 migration), munchlax IP, port 8080, host `romm.home.mcnees.me` (has own auth)
+- `romm.yaml` — TrueNAS app (until Wave 8 migration), snorlax IP, port 8080, host `romm.home.mcnees.me` (has own auth)
 - `lazylibrarian.yaml` — LazyLibrarian LXC, port 5299, host `books.home.mcnees.me`, OAuth2-Proxy
-- `stash.yaml` — TrueNAS app on munchlax, port 9999, host `stash.home.mcnees.me`, OAuth2-Proxy
+- `stash.yaml` — TrueNAS app on snorlax, port 9999, host `stash.home.mcnees.me`, OAuth2-Proxy
 
 Create a `kustomization.yaml` in the temporary directory listing all files.
 
@@ -773,7 +764,7 @@ Keep the old AdGuard LXC running but not serving DNS. If issues arise, revert th
 
 ## Wave 3: Servarr Stack
 
-Migrate the servarr Docker containers from the Docker LXC on charmander to K8s, converting SQLite databases to PostgreSQL on metagross.
+Migrate the servarr Docker containers from the Docker LXC to K8s, converting SQLite databases to PostgreSQL on metagross.
 
 ### Task 6: Create databases on metagross for servarr apps
 
@@ -1103,8 +1094,8 @@ scp -r root@<docker-lxc-ip>:/opt/docker/sonarr/config/ /tmp/sonarr-config/
 
 # Copy directly to the NFS PVC mount on TrueNAS
 # Find the PVC's NFS path (democratic-csi creates datasets under flash/k8s/)
-scp /tmp/sonarr-config/sonarr.db root@<munchlax-ip>:/mnt/flash/k8s/nfs/<pvc-dataset>/sonarr.db
-scp /tmp/sonarr-config/config.xml root@<munchlax-ip>:/mnt/flash/k8s/nfs/<pvc-dataset>/config.xml
+scp /tmp/sonarr-config/sonarr.db root@<snorlax-ip>:/mnt/flash/k8s/nfs/<pvc-dataset>/sonarr.db
+scp /tmp/sonarr-config/config.xml root@<snorlax-ip>:/mnt/flash/k8s/nfs/<pvc-dataset>/config.xml
 ```
 
 Repeat for sonarr-anime, radarr, prowlarr, bazarr.
@@ -1685,7 +1676,7 @@ git commit -m "feat: deploy Loki and Promtail for centralized log aggregation"
 - Create: `kubernetes/observability/beszel/kustomization.yaml`
 - Modify: `kubernetes/observability/kustomization.yaml`
 
-**Context:** Beszel is a lightweight host monitoring tool. The server runs in K8s, agents run on each Proxmox host and inside munchlax. Agents are installed manually on hosts (not managed by Flux).
+**Context:** Beszel is a lightweight host monitoring tool. The server runs in K8s, agents run on each Proxmox host and inside snorlax (TrueNAS VM). Agents are installed manually on hosts (not managed by Flux).
 
 - [ ] **Step 1: Create Beszel deployment**
 
@@ -1751,7 +1742,7 @@ git commit -m "feat: deploy Beszel server for host monitoring"
 
 - [ ] **Step 4: Install Beszel agents on Proxmox hosts**
 
-SSH into each Proxmox host and munchlax, install the Beszel agent pointing at the K8s Beszel server URL. This is a manual step per host.
+SSH into each Proxmox host and snorlax (TrueNAS VM), install the Beszel agent pointing at the K8s Beszel server URL. This is a manual step per host.
 
 ### Task 15: Deploy Uptime Kuma
 
@@ -1850,7 +1841,7 @@ Deploy Ollama, Open WebUI, Homepage, Paperless-ngx, and Paperless-ai — all fre
 - Create: `kubernetes/apps/ollama/kustomization.yaml`
 - Modify: `kubernetes/apps/kustomization.yaml`
 
-**Context:** Ollama serves LLM models. No ingress needed — Open WebUI talks to it via cluster DNS. Models stored on NFS PVC. Schedule on ho-oh (snorlax) for memory headroom if possible.
+**Context:** Ollama serves LLM models. No ingress needed — Open WebUI talks to it via cluster DNS. Models stored on NFS PVC. Schedule on lugia (latios agent, 40GB RAM) for memory headroom if possible.
 
 - [ ] **Step 1: Create Ollama deployment**
 
@@ -1881,7 +1872,7 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: In
                     values:
-                      - ho-oh  # snorlax agent — most memory headroom
+                      - lugia  # latios agent — most memory headroom (40GB)
       containers:
         - name: ollama
           image: ollama/ollama:0.5
@@ -2411,7 +2402,7 @@ git commit -m "feat: deploy Tautulli with data migration from old LXC"
 
 ```bash
 # Dump from TrueNAS RomM's PostgreSQL container
-ssh root@<munchlax-ip> "docker exec romm-db pg_dump -U romm romm --format=custom" > /tmp/romm.dump
+ssh root@<snorlax-ip> "docker exec romm-db pg_dump -U romm romm --format=custom" > /tmp/romm.dump
 
 # Restore to metagross
 scp /tmp/romm.dump root@<metagross-ip>:/tmp/
@@ -2623,7 +2614,7 @@ Migrate Pelican Panel to K8s with PostgreSQL data migration.
 - Create: `kubernetes/apps/pelican-panel/kustomization.yaml`
 - Modify: `kubernetes/apps/kustomization.yaml`
 
-**Context:** Pelican Panel (management UI) moves to K8s. Pelican Wings (game server daemon) stays as an LXC on pikachu. Panel connects to metagross for its database and to Wings over the network.
+**Context:** Pelican Panel (management UI) moves to K8s. Pelican Wings (game server daemon) stays as a VM (pelipper) on latias. Panel connects to metagross for its database and to Wings over the network.
 
 - [ ] **Step 1: Migrate Pelican database to metagross**
 
@@ -3061,11 +3052,9 @@ The old PostgreSQL LXC on Mew should have no remaining consumers. Verify, then d
 
 Should have been idle since Wave 1. Destroy.
 
-- [ ] **Step 6: Destroy Docker LXC on charmander**
+- [ ] **Step 6: Verify no remaining legacy Docker containers**
 
-Should have been idle since Wave 3 (Gramps was removed from plan). Destroy the Docker LXC and its volumes.
-
-This frees charmander for its full K3s VM deployment if it was running a reduced configuration.
+Any legacy Docker containers from the old Dell nodes should have been migrated or decommissioned during migration. Verify nothing remains.
 
 - [ ] **Step 7: Document completion**
 

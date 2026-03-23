@@ -14,9 +14,86 @@
 
 ---
 
-## Chunk 1: Storage & Helm Repositories
+## Chunk 1: Storage, PriorityClasses & Helm Repositories
 
-This chunk deploys the two storage backends (democratic-csi for TrueNAS NFS, local-path-provisioner for node-local) and sets up shared Helm repositories that later chunks reference.
+This chunk deploys PriorityClasses for workload scheduling, the two storage backends (democratic-csi for TrueNAS NFS, local-path-provisioner for node-local), and sets up shared Helm repositories that later chunks reference.
+
+### Task 0: Deploy PriorityClasses
+
+**Files:**
+- Create: `kubernetes/infrastructure/configs/priority-classes.yaml`
+- Modify: `kubernetes/infrastructure/configs/kustomization.yaml`
+
+**Context:** PriorityClasses define workload scheduling priority. They must exist before any workloads are deployed. Three tiers: `critical` for essential services (Traefik, AdGuard, auth, HDF), `standard` as the default for normal workloads, and `best-effort` for non-critical services that can be evicted under memory pressure (Ollama, Open WebUI).
+
+- [ ] **Step 1: Create `kubernetes/infrastructure/configs/priority-classes.yaml`**
+
+```yaml
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: critical
+value: 1000
+globalDefault: false
+description: "Business-critical services (Traefik, AdGuard, auth, HDF)"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: standard
+value: 500
+globalDefault: true
+description: "Standard application workloads"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: best-effort
+value: 100
+globalDefault: false
+description: "Non-critical services that can be evicted under pressure (Ollama, Open WebUI)"
+```
+
+- [ ] **Step 2: Update `kubernetes/infrastructure/configs/kustomization.yaml`**
+
+Add `priority-classes.yaml` to the resources list:
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - priority-classes.yaml
+  # Will be populated:
+  # - metallb-config.yaml
+  # - cluster-issuers.yaml
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add kubernetes/infrastructure/configs/priority-classes.yaml kubernetes/infrastructure/configs/kustomization.yaml
+git commit -m "feat: add PriorityClasses (critical, standard, best-effort)"
+```
+
+- [ ] **Step 4: Push and verify**
+
+```bash
+git push
+```
+
+Wait for Flux, then:
+
+```bash
+kubectl get priorityclass
+# Expected:
+# critical        1000   false   Business-critical services (Traefik, AdGuard, auth, HDF)
+# standard        500    true    Standard application workloads
+# best-effort     100    false   Non-critical services that can be evicted under pressure (Ollama, Open WebUI)
+# system-cluster-critical   2000000000   ...  (built-in)
+# system-node-critical      2000001000   ...  (built-in)
+```
+
+---
 
 ### Task 1: Add Helm repositories for Phase 2
 
@@ -157,7 +234,7 @@ metadata:
 stringData:
   # TrueNAS connection details — fill in real values before encrypting
   TRUENAS_API_KEY: "CHANGE_ME"
-  TRUENAS_HOST: "10.0.0.74"  # munchlax IP — update to actual TrueNAS VM IP
+  TRUENAS_HOST: "10.0.0.74"  # snorlax IP — update to actual TrueNAS VM IP
 ```
 
 Then encrypt it:
@@ -508,6 +585,7 @@ kubectl delete pvc test-local-pvc -n default
 
 ### Chunk 1 Checklist
 
+- [ ] PriorityClasses deployed: `critical` (1000), `standard` (500, globalDefault), `best-effort` (100)
 - [ ] HelmRepositories created for all Phase 2 services (democratic-csi, local-path-provisioner, metallb, traefik, jetstack, bitnami)
 - [ ] democratic-csi deployed, `truenas-nfs` StorageClass is default, test PVC binds and creates TrueNAS dataset
 - [ ] local-path-provisioner deployed, `local-path` StorageClass available (not default), test PVC works
@@ -1254,7 +1332,7 @@ This chunk provisions a PostgreSQL LXC on Proxmox via OpenTofu and configures it
 - Create: `terraform/proxmox/postgresql-lxc.tf`
 - Modify: `terraform/proxmox/outputs.tf`
 
-**Context:** The PostgreSQL LXC runs on any Proxmox node with Ceph HA, so it can be live-migrated and auto-restarted on host failure. It gets 2 vCPU, 4GB RAM, and a Ceph-backed disk. The spec says the Pokémon name is TBD — use a placeholder and update later.
+**Context:** The PostgreSQL LXC (metagross) runs on rayquaza alongside the snorlax TrueNAS VM, with Ceph HA so it can be live-migrated and auto-restarted on host failure. It gets 2 vCPU, 4GB RAM, and a Ceph-backed disk.
 
 - [ ] **Step 1: Create LXC module `terraform/proxmox/modules/lxc/variables.tf`**
 
@@ -1453,8 +1531,8 @@ variable "lxc_template" {
 module "postgresql_lxc" {
   source = "./modules/lxc"
 
-  lxc_hostname   = "psyduck"  # TBD — pick a Pokémon name, using psyduck as placeholder
-  target_node    = "charmander"  # Any node — Ceph HA will migrate if needed
+  lxc_hostname   = "metagross"
+  target_node    = "rayquaza"  # pve3 — Ceph HA will migrate if needed
   lxc_id         = 200
   cores          = 2
   memory         = 4096  # 4GB — spec says 2-4GB
@@ -1504,7 +1582,7 @@ task infra:apply
 
 ```bash
 ssh root@10.0.0.90 hostname
-# Expected: psyduck (or whatever Pokémon name was chosen)
+# Expected: metagross
 ```
 
 ---
@@ -1521,7 +1599,7 @@ Add a new group after the existing `k3s_cluster` group:
 ```yaml
     postgresql:
       hosts:
-        psyduck:  # Update if you chose a different Pokémon name
+        metagross:  # Update if you chose a different Pokémon name
           ansible_host: 10.0.0.90
           ansible_user: root
 ```
@@ -1576,14 +1654,16 @@ git commit -m "feat: add PostgreSQL LXC to Ansible inventory"
         owner: bazarr
       - name: paperless
         owner: paperless
-      - name: outline
-        owner: outline
       - name: gramps
         owner: gramps
       - name: pocket_id
         owner: pocket_id
       - name: pelican
         owner: pelican
+      - name: invoice_ninja
+        owner: invoice_ninja
+      - name: chatwoot
+        owner: chatwoot
 
   tasks:
     # --- Install PostgreSQL ---
@@ -1681,7 +1761,7 @@ git commit -m "feat: add PostgreSQL LXC to Ansible inventory"
     - name: Add NFS mount for backups
       mount:
         path: /mnt/backups/postgresql
-        src: "10.0.0.74:/mnt/data/backups/postgresql"  # TrueNAS munchlax IP — update if different
+        src: "10.0.0.74:/mnt/data/backups/postgresql"  # TrueNAS snorlax IP — update if different
         fstype: nfs
         opts: "nfsvers=4,noatime"
         state: mounted
@@ -1716,10 +1796,11 @@ pg_password_lidarr_kids: "CHANGE_ME"
 pg_password_prowlarr: "CHANGE_ME"
 pg_password_bazarr: "CHANGE_ME"
 pg_password_paperless: "CHANGE_ME"
-pg_password_outline: "CHANGE_ME"
 pg_password_gramps: "CHANGE_ME"
 pg_password_pocket_id: "CHANGE_ME"
 pg_password_pelican: "CHANGE_ME"
+pg_password_invoice_ninja: "CHANGE_ME"
+pg_password_chatwoot: "CHANGE_ME"
 ```
 
 - [ ] **Step 3: Add postgresql.yml to `.gitignore`**
@@ -1757,7 +1838,7 @@ psql -h 10.0.0.90 -U sonarr -d sonarr -c "SELECT 1;"
 
 # Verify all databases exist
 ssh root@10.0.0.90 "sudo -u postgres psql -c '\l'"
-# Expected: lists sonarr, sonarr_anime, radarr, lidarr, lidarr_kids, prowlarr, bazarr, paperless, outline, gramps, pocket_id, pelican
+# Expected: lists sonarr, sonarr_anime, radarr, lidarr, lidarr_kids, prowlarr, bazarr, paperless, gramps, pocket_id, pelican, invoice_ninja, chatwoot
 ```
 
 - [ ] **Step 7: Add Taskfile entries for Phase 2 IaC tasks**
@@ -1826,7 +1907,7 @@ git commit -m "feat: add Taskfile entries for TrueNAS, AdGuard, PBS, Cloudflare,
 - [ ] PostgreSQL LXC provisioned on Proxmox with Ceph HA (VMID 200, IP 10.0.0.90)
 - [ ] PostgreSQL LXC added to Ansible inventory
 - [ ] PostgreSQL 16 installed and configured (listening on all interfaces, scram-sha-256 auth)
-- [ ] All 12 app databases and users created
+- [ ] All 13 app databases and users created (removed outline; added invoice_ninja, chatwoot)
 - [ ] pg_dump nightly backup cron configured, writing to TrueNAS NFS
 - [ ] Connectivity verified from K8s network to PostgreSQL
 - [ ] Taskfile updated with remaining Phase 2 IaC tasks
@@ -2776,11 +2857,12 @@ git push
 
 When all chunks are complete, verify the full platform stack:
 
+- [ ] **PriorityClasses**: `critical`, `standard` (default), `best-effort` deployed
 - [ ] **Storage**: `truenas-nfs` (default) and `local-path` StorageClasses operational
 - [ ] **Ingress**: MetalLB assigning IPs, Traefik routing requests on internal (80/443) and external (81/444) entrypoints
 - [ ] **TLS**: cert-manager issuing Let's Encrypt certificates via Cloudflare DNS-01
 - [ ] **DNS**: ExternalDNS managing Cloudflare records for public services
-- [ ] **Database**: PostgreSQL LXC running, all 12 app databases created, connectable from K8s network
+- [ ] **Database**: PostgreSQL LXC (metagross) running, all 13 app databases created, connectable from K8s network
 - [ ] **Cache**: Redis in-cluster for session/cache workloads
 - [ ] **Auth**: LLDAP → Pocket ID → OAuth2-Proxy chain fully functional
 - [ ] **GitOps**: All infrastructure services managed by Flux, no manual `kubectl apply` needed

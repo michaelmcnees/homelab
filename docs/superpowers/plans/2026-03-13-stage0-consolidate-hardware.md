@@ -1,10 +1,10 @@
-# Stage 0: Consolidate + Hardware — Implementation Plan
+# Stage 0: Consolidate + Build New Nodes — Implementation Plan
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Consolidate all existing LXCs onto Mew (swing node) and convert snorlax from bare-metal TrueNAS to a Proxmox host with a TrueNAS VM (munchlax), freeing all other nodes for K3s VM provisioning.
+**Goal:** Consolidate existing LXCs onto Mew (swing node), convert snorlax to a Proxmox host named rayquaza with a TrueNAS VM (snorlax), and build two custom AMD 8700G nodes (latios, latias) — producing a 3-node Proxmox cluster ready for K3s VM provisioning. Dell Micros (charmander, squirtle, bulbasaur, pikachu) remain running legacy services (Docker, LazyLibrarian, Booklore) until Phase 3.
 
-**Architecture:** Two independent tracks run in parallel or either order. Track A uses Proxmox live migration (Ceph LXCs) and backup/restore (local-storage LXCs) to move everything to Mew. Track B wipes snorlax's boot drive, installs Proxmox, passes through the HBA/iGPU/NVMe to a TrueNAS VM, and imports existing ZFS pools.
+**Architecture:** Three independent tracks run in parallel or any order. Track A uses Proxmox live migration (Ceph LXCs) and backup/restore (local-storage LXCs) to move everything to Mew. Track B wipes snorlax's boot drive, installs Proxmox as rayquaza, passes through the HBA/iGPU/NVMe to a TrueNAS VM (snorlax), and imports existing ZFS pools. Track C builds two custom AMD nodes from scratch and provisions K3s VMs on them.
 
 **Tech Stack:** Proxmox VE, Ceph, ZFS, IOMMU/VFIO passthrough, TrueNAS SCALE
 
@@ -188,20 +188,19 @@ Confirmed unused. Destroy on whichever node it's running (should be on Mew after
 pct stop <CTID> && pct destroy <CTID>
 ```
 
-- [ ] **Step 3: Verify nodes are clean**
+- [ ] **Step 3: Verify Mew consolidation is complete**
 
 ```bash
-# Check each node has zero VMs/LXCs
-pvesh get /nodes/charmander/lxc --output-format json-pretty  # Should be empty
-pvesh get /nodes/charmander/qemu --output-format json-pretty  # Should be empty
-# Repeat for squirtle, bulbasaur, pikachu (pikachu may have homey/homebridge/pelican-wings)
+# Verify Mew has all migrated LXCs
+pvesh get /nodes/mew/lxc --output-format json-pretty
+
+# Dells may still have legacy services running — that's expected
+# pikachu may have homey-shs, homebridge, pelican-wings
 ```
 
 Expected:
-- charmander: empty
-- squirtle: empty
-- bulbasaur: empty
-- pikachu: only homey-shs, homebridge, pelican-wings (if they stayed)
+- charmander, squirtle, bulbasaur, pikachu: may still run legacy Docker services, LazyLibrarian, Booklore — this is fine until Phase 3
+- pikachu: homey-shs, homebridge, pelican-wings (if they stayed)
 - mew: all migrated LXCs running
 
 - [ ] **Step 4: Commit any documentation updates**
@@ -215,11 +214,11 @@ git commit -m "docs: track Stage 0 Track A consolidation onto Mew"
 
 ---
 
-## Chunk 2: Track B — Snorlax Conversion
+## Chunk 2: Track B — Rayquaza Conversion
 
-### Task 5: Prepare for snorlax conversion
+### Task 5: Prepare for snorlax → rayquaza conversion
 
-**Context:** Snorlax currently runs TrueNAS bare-metal. We need to convert it to Proxmox while preserving the ZFS pools on the HBA-connected drives. The boot SSD gets wiped; the HBA drives are untouched.
+**Context:** Snorlax currently runs TrueNAS bare-metal. We need to convert it to a Proxmox host (renamed rayquaza) while preserving the ZFS pools on the HBA-connected drives. The boot SSD gets wiped; the HBA drives are untouched. The TrueNAS VM running on rayquaza will be named snorlax (inheriting the old hostname).
 
 **Risk:** Plex and all TrueNAS apps will be offline during conversion. Schedule this when nobody is streaming.
 
@@ -271,7 +270,7 @@ After export, verify the pool status shows as exported.
 
 - [ ] **Step 4: Verify HBA drives are independent of boot**
 
-Confirm the boot SSD is on the motherboard SATA/NVMe, not on the HBA card. The HBA card and all drives attached to it will be passed through to the munchlax VM. The boot SSD stays with Proxmox.
+Confirm the boot SSD is on the motherboard SATA/NVMe, not on the HBA card. The HBA card and all drives attached to it will be passed through to the snorlax VM. The boot SSD stays with Proxmox.
 
 - [ ] **Step 5: Download Proxmox ISO**
 
@@ -284,21 +283,21 @@ Let the household know: Plex, Tdarr, SABnzbd, and any TrueNAS-dependent services
 
 ---
 
-### Task 6: Install Proxmox on snorlax
+### Task 6: Install Proxmox on rayquaza
 
 - [ ] **Step 1: Install Proxmox VE**
 
-Boot from USB, install Proxmox onto snorlax's boot SSD.
+Boot from USB, install Proxmox onto the boot SSD (formerly snorlax).
 
 During installation:
 - **Target disk**: Select the boot SSD only (NOT any HBA drives)
-- **Hostname**: `snorlax`
-- **IP**: Keep the existing management IP (should be `10.0.0.74` based on the inventory)
+- **Hostname**: `rayquaza`
+- **IP**: Keep the existing management IP (should be `10.0.0.74` based on the inventory, or assign a new one for rayquaza)
 - **Gateway/DNS**: Match existing network config
 
 - [ ] **Step 2: Post-install configuration**
 
-After first boot, access Proxmox web UI at `https://10.0.0.74:8006`.
+After first boot, access Proxmox web UI at `https://<rayquaza-ip>:8006`.
 
 ```bash
 # Remove enterprise repo, add no-subscription repo
@@ -307,26 +306,26 @@ echo "deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription" >
 apt update && apt full-upgrade -y
 ```
 
-- [ ] **Step 3: Join snorlax to the Proxmox cluster**
+- [ ] **Step 3: Join rayquaza to the Proxmox cluster**
 
-From an existing cluster node (e.g., charmander):
+From an existing cluster node (e.g., mew):
 
 ```bash
 # Get the join information
 pvecm status
 ```
 
-From snorlax:
+From rayquaza:
 
 ```bash
 pvecm add <existing-node-ip> --use_ssh
 ```
 
-Verify in Proxmox UI: Datacenter → Cluster → snorlax appears as a member.
+Verify in Proxmox UI: Datacenter → Cluster → rayquaza appears as a member.
 
 - [ ] **Step 4: Verify Ceph connectivity**
 
-Snorlax doesn't contribute an OSD (no spare SSD), but it should still be able to access Ceph storage as a client for VM boot disks:
+Rayquaza doesn't contribute an OSD (no spare SSD), but it should still be able to access Ceph storage as a client for VM boot disks:
 
 ```bash
 ceph status  # Should show cluster health
@@ -335,13 +334,13 @@ ceph osd pool ls  # Should list pools
 
 ---
 
-### Task 7: Configure IOMMU and device passthrough on snorlax
+### Task 7: Configure IOMMU and device passthrough on rayquaza
 
-**Context:** We need to pass through the HBA card (for ZFS drives), the iGPU (for QuickSync transcoding), and the NVMe metadata drives to the munchlax VM.
+**Context:** We need to pass through the HBA card (for ZFS drives), the iGPU (for QuickSync transcoding), and the NVMe metadata drives to the snorlax VM.
 
 - [ ] **Step 1: Enable IOMMU in BIOS**
 
-Reboot snorlax, enter BIOS:
+Reboot rayquaza, enter BIOS:
 - Enable **VT-d** (Intel Virtualization Technology for Directed I/O)
 - Enable **SR-IOV** if available
 - Save and exit
@@ -406,19 +405,19 @@ lspci -nn | grep -i "VGA\|Display"
 lspci -nn | grep -i "NVMe\|Non-Volatile"
 ```
 
-Record the PCI addresses (e.g., `0000:03:00.0`) and device IDs (e.g., `[8086:xxxx]`) for each device. You'll need these when creating the munchlax VM.
+Record the PCI addresses (e.g., `0000:03:00.0`) and device IDs (e.g., `[8086:xxxx]`) for each device. You'll need these when creating the snorlax VM.
 
 ---
 
-### Task 8: Create munchlax VM and install TrueNAS
+### Task 8: Create snorlax VM and install TrueNAS
 
-- [ ] **Step 1: Create the munchlax VM**
+- [ ] **Step 1: Create the snorlax VM**
 
 Via Proxmox web UI or CLI:
 
 ```bash
 qm create 200 \
-  --name munchlax \
+  --name snorlax \
   --memory 32768 \
   --cores 4 \
   --sockets 2 \
@@ -438,7 +437,7 @@ Adjust VMID (200) as needed. Key settings:
 - **CPU**: Host passthrough for best performance
 - **Machine**: q35 (required for PCIe passthrough)
 - **BIOS**: OVMF/UEFI (required for PCIe passthrough)
-- **Boot disk**: Ceph-backed (live-migratable in theory, though passthrough pins it to snorlax)
+- **Boot disk**: Ceph-backed (live-migratable in theory, though passthrough pins it to rayquaza)
 
 - [ ] **Step 2: Attach PCI devices for passthrough**
 
@@ -462,7 +461,7 @@ qm set 200 --hostpci3 <NVME2_PCI_ADDRESS>,pcie=1
 # Download TrueNAS SCALE ISO to Proxmox
 wget -P /var/lib/vz/template/iso/ <truenas-scale-iso-url>
 
-# Attach ISO to munchlax
+# Attach ISO to snorlax
 qm set 200 --cdrom local:iso/<truenas-iso-filename>
 ```
 
@@ -506,7 +505,7 @@ Or manually recreate:
 - Network configuration (IP, DNS, gateway)
 - NFS/SMB shares
 - Users and permissions
-- App configurations (Plex, Tdarr, SABnzbd, Stash, LazyLibrarian, Romm)
+- App configurations (Plex, Tdarr, SABnzbd, Stash, Romm)
 
 - [ ] **Step 7: Verify iGPU passthrough for QuickSync**
 
@@ -531,12 +530,11 @@ Plex should show hardware transcoding available in settings.
 | Tdarr | Open Tdarr web UI, confirm it sees the library and GPU |
 | SABnzbd | Open SABnzbd web UI, confirm connection to indexers |
 | Stash | Open Stash web UI, confirm library accessible |
-| LazyLibrarian | Open LazyLibrarian web UI |
 | Romm | Open Romm web UI |
-| NFS shares | From another machine: `showmount -e <munchlax-ip>` |
+| NFS shares | From another machine: `showmount -e <snorlax-ip>` |
 | SMB shares | Access from a client machine |
 
-- [ ] **Step 9: Configure munchlax for automatic start**
+- [ ] **Step 9: Configure snorlax for automatic start**
 
 In Proxmox:
 
@@ -544,62 +542,260 @@ In Proxmox:
 qm set 200 --onboot 1 --startup order=1
 ```
 
-This ensures munchlax starts automatically if snorlax reboots.
+This ensures snorlax starts automatically if rayquaza reboots.
 
 ---
 
-### Task 9: Create ho-oh VM placeholder on snorlax
+### Task 9: Create moltres VM placeholder on rayquaza
 
-**Context:** ho-oh (K3s agent) will run on snorlax alongside munchlax. We don't install K3s yet (that's Stage 2), but we can reserve resources and create the VM definition in OpenTofu.
+**Context:** moltres (K3s server) will run on rayquaza alongside snorlax. We don't install K3s yet (that's Stage 2), but we can reserve resources and create the VM definition in OpenTofu.
 
-- [ ] **Step 1: Verify resource budget on snorlax**
+- [ ] **Step 1: Verify resource budget on rayquaza**
 
-snorlax specs: Dual E5-2667 v2 (16C/32T total — check actual CPU), i3-13100 (4C/8T), 64GB RAM.
+rayquaza specs: i3-13100 (4C/8T), 64GB RAM (check actual).
 
 Resource allocation:
-- munchlax: ~32GB RAM
-- ho-oh (K3s agent): ~16GB RAM
+- snorlax (TrueNAS VM): ~32GB RAM
+- moltres (K3s server): ~10GB RAM
 - Proxmox host overhead: ~2-4GB
-- Remaining: ~12-14GB buffer
+- Remaining: ~18-20GB buffer
 
 ```bash
-# Verify on snorlax
+# Verify on rayquaza
 free -h
 nproc
 ```
 
 - [ ] **Step 2: Note for Stage 2**
 
-Do NOT create the ho-oh VM yet — it needs to be on VLAN 10 which doesn't exist until Stage 1. OpenTofu will create it in Stage 2 after networking is in place.
+Do NOT create the moltres VM yet — it needs to be on VLAN 10 which doesn't exist until Stage 1. OpenTofu will create it in Stage 2 after networking is in place.
 
-Record that snorlax is ready for ho-oh with ~16GB RAM available.
+Record that rayquaza is ready for moltres with ~10GB RAM allocated.
 
 ---
 
-### Task 10: Final verification and commit
+## Chunk 3: Track C — Build Custom Nodes (latios + latias)
+
+### Task 10: Physical assembly
+
+**Context:** Two custom AMD 8700G mini-PCs are being built from parts. These become the primary K3s compute nodes.
+
+- [ ] **Step 1: Assemble latios**
+
+Parts: AMD 8700G CPU, motherboard, RAM, PSU, cooler, NVMe boot drive, case.
+
+Assemble, verify POST, enter BIOS to confirm all hardware detected.
+
+- [ ] **Step 2: Assemble latias**
+
+Same as latios. Assemble, verify POST, enter BIOS.
+
+- [ ] **Step 3: Enable virtualization in BIOS (both nodes)**
+
+On each node, enter BIOS and enable:
+- **SVM** (AMD Secure Virtual Machine / AMD-V)
+- **IOMMU** (if available, for future PCIe passthrough)
+- Set boot order to USB first (for Proxmox install)
+
+---
+
+### Task 11: Install Proxmox on latios and latias
+
+- [ ] **Step 1: Install Proxmox VE on latios**
+
+Boot from USB, install Proxmox onto the NVMe boot drive.
+
+During installation:
+- **Target disk**: NVMe boot drive
+- **Hostname**: `latios`
+- **IP**: Assign a management IP on the existing management network
+- **Gateway/DNS**: Match existing network config
+
+- [ ] **Step 2: Install Proxmox VE on latias**
+
+Same process:
+- **Hostname**: `latias`
+- **IP**: Assign a management IP on the existing management network
+
+- [ ] **Step 3: Post-install configuration (both nodes)**
+
+```bash
+# Remove enterprise repo, add no-subscription repo
+sed -i 's/^deb/#deb/' /etc/apt/sources.list.d/pve-enterprise.list
+echo "deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription" > /etc/apt/sources.list.d/pve-no-subscription.list
+apt update && apt full-upgrade -y
+```
+
+- [ ] **Step 4: Join latios to the Proxmox cluster**
+
+From latios:
+
+```bash
+pvecm add <existing-node-ip> --use_ssh
+```
+
+Verify in Proxmox UI: Datacenter → Cluster → latios appears.
+
+- [ ] **Step 5: Join latias to the Proxmox cluster**
+
+From latias:
+
+```bash
+pvecm add <existing-node-ip> --use_ssh
+```
+
+Verify in Proxmox UI: Datacenter → Cluster → latias appears.
+
+---
+
+### Task 12: Configure networking and Ceph on new nodes
+
+- [ ] **Step 1: Configure VLAN-aware bridges on latios**
+
+```bash
+# Edit /etc/network/interfaces to create a VLAN-aware bridge
+# Example:
+auto vmbr0
+iface vmbr0 inet static
+    address <latios-mgmt-ip>/24
+    gateway <gateway-ip>
+    bridge-ports <physical-interface>
+    bridge-stp off
+    bridge-fd 0
+    bridge-vlan-aware yes
+    bridge-vids 2-4094
+```
+
+- [ ] **Step 2: Configure VLAN-aware bridges on latias**
+
+Same as latios, with latias's IP.
+
+- [ ] **Step 3: Add Ceph OSDs on latios**
+
+Install 1-2x 1TB SATA SSDs in latios and add as Ceph OSDs:
+
+```bash
+# Install the SSD(s) physically, then:
+ceph-volume lvm create --data /dev/<ssd-device>
+```
+
+Or via Proxmox UI: Datacenter → latios → Ceph → OSD → Create OSD.
+
+- [ ] **Step 4: Add Ceph OSDs on latias**
+
+Same process for latias.
+
+- [ ] **Step 5: Verify Ceph health**
+
+```bash
+ceph status
+ceph osd tree  # Should show new OSDs on latios and latias
+```
+
+---
+
+### Task 13: Create K3s VMs on new nodes
+
+**Context:** K3s VMs are created now as placeholders but K3s installation happens in Stage 2. VMs need to be on VLAN 10 (created in Stage 1), so these may be created in Stage 2 via OpenTofu instead. This task documents the planned allocation.
+
+- [ ] **Step 1: Plan VM allocation on latios**
+
+| VM | Role | RAM | Notes |
+|----|------|-----|-------|
+| articuno | K3s server | 10GB | Control plane |
+| lugia | K3s agent | 40GB | Primary workload runner |
+
+- [ ] **Step 2: Plan VM allocation on latias**
+
+| VM | Role | RAM | Notes |
+|----|------|-----|-------|
+| zapdos | K3s server | 10GB | Control plane |
+| ho-oh | K3s agent | 20GB | Workload runner |
+| pelipper | Pelican | 20GB | Pelican panel |
+
+- [ ] **Step 3: Note for Stage 2**
+
+Do NOT create the K3s VMs yet — they need VLAN 10 networking from Stage 1. OpenTofu will create them in Stage 2.
+
+Record planned allocations so Stage 2 can reference them.
+
+---
+
+### Task 14: Migrate LXCs to new nodes
+
+- [ ] **Step 1: Migrate Homey LXC to latios**
+
+Homey requires host networking. Migrate from pikachu/mew to latios:
+
+```bash
+# If Ceph-backed:
+pct migrate <CTID> latios --online
+
+# If local-storage, use backup/restore method (Task 3)
+```
+
+Verify Homey app on phone — devices responding after migration.
+
+- [ ] **Step 2: Migrate Homebridge LXC to latias**
+
+Homebridge requires host networking + USB access. Ensure any required USB devices are connected to latias.
+
+```bash
+pct migrate <CTID> latias --online
+# Or backup/restore if local-storage
+```
+
+Verify Homebridge — all accessories responding.
+
+---
+
+## Chunk 4: Storage Tiering (0B+)
+
+**Context:** After the snorlax TrueNAS VM is running on rayquaza with passed-through NVMe drives, configure storage tiering for optimal performance.
+
+This includes:
+- Optane drives for ZFS metadata (special vdev) and ZIL/SLOG
+- NVMe drives for L2ARC read cache
+- SSD pool for flash-tier datasets
+
+Refer to `docs/superpowers/specs/2026-03-14-storage-tiering-design.md` for the full design.
+
+---
+
+## Chunk 5: Final Verification
+
+### Task 15: Final verification and commit
 
 - [ ] **Step 1: Verify end state**
 
 **Track A (Mew consolidation):**
 - [ ] All services accessible and functioning on Mew
-- [ ] charmander, squirtle, bulbasaur are clean (no VMs/LXCs)
-- [ ] pikachu has only: homey-shs, homebridge, pelican-wings
 - [ ] Old K3s VMs destroyed
 - [ ] MariaDB LXC destroyed
+- [ ] Dells (charmander, squirtle, bulbasaur, pikachu) still running legacy services — this is expected
 
-**Track B (Snorlax conversion):**
-- [ ] Proxmox installed on snorlax, joined to cluster
-- [ ] munchlax VM running with HBA, iGPU, NVMe passthrough
+**Track B (Rayquaza conversion):**
+- [ ] Proxmox installed on rayquaza (formerly snorlax), joined to cluster
+- [ ] snorlax VM running with HBA, iGPU, NVMe passthrough
 - [ ] ZFS pools imported, all datasets intact
 - [ ] Plex working with hardware transcoding
 - [ ] All TrueNAS apps functional
 - [ ] NFS/SMB shares accessible
 
+**Track C (Custom nodes):**
+- [ ] latios assembled, Proxmox installed, joined to cluster
+- [ ] latias assembled, Proxmox installed, joined to cluster
+- [ ] VLAN-aware bridges configured on both nodes
+- [ ] Ceph OSDs added on both nodes
+- [ ] Homey LXC running on latios
+- [ ] Homebridge LXC running on latias
+- [ ] K3s VM allocations documented for Stage 2
+
 - [ ] **Step 2: Commit any changes**
 
 ```bash
 git add -A
-git commit -m "docs: complete Stage 0 — consolidation onto Mew and snorlax conversion"
+git commit -m "docs: complete Stage 0 — Mew consolidation, rayquaza conversion, custom node builds"
 git push origin main
 ```
 
@@ -609,14 +805,17 @@ git push origin main
 
 At the end of Stage 0, you should have:
 
-- [ ] All existing LXCs running on Mew (except pikachu's host-networking LXCs)
-- [ ] charmander, squirtle, bulbasaur completely clean — ready for K3s VMs
-- [ ] pikachu has only homey-shs, homebridge, pelican-wings
+- [ ] All existing LXCs running on Mew (except those migrated to latios/latias)
+- [ ] Dells (charmander, squirtle, bulbasaur, pikachu) still running legacy Docker services, LazyLibrarian, Booklore — decommissioned in Phase 3
 - [ ] Old K3s VMs (articuno-ho-oh) and hass VM destroyed
 - [ ] MariaDB LXC destroyed
-- [ ] Snorlax running Proxmox, joined to cluster
-- [ ] Munchlax VM running TrueNAS with all pools imported and services working
+- [ ] Rayquaza (formerly snorlax) running Proxmox, joined to cluster
+- [ ] Snorlax VM running TrueNAS on rayquaza with all pools imported and services working
 - [ ] Plex/Tdarr hardware transcoding verified
+- [ ] Latios running Proxmox, joined to cluster, Ceph OSDs added, Homey LXC migrated
+- [ ] Latias running Proxmox, joined to cluster, Ceph OSDs added, Homebridge LXC migrated
+- [ ] 3-node cluster (latios, latias, rayquaza) ready for K3s VM provisioning
+- [ ] K3s VM allocations planned: articuno + lugia on latios, zapdos + ho-oh + pelipper on latias, moltres on rayquaza
 - [ ] All critical services (AdGuard, Traefik, Homey/Homebridge, Plex) working
 
 **Next:** Proceed to Stage 1 (Networking) to set up VLAN infrastructure via OpenTofu.

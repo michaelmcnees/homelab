@@ -10,7 +10,7 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 - **GitOps-driven workloads**: Push a manifest, Flux deploys it. No manual `kubectl apply`.
 - **Full observability**: Know about problems before anyone in the house complains.
 - **Proper remote access**: Tailscale subnet routing for secure access from anywhere.
-- **Selective public exposure**: Wizarr, Booklore, Pocket ID, and other chosen services safely exposed to the internet.
+- **Selective public exposure**: Wizarr, Pocket ID, and other chosen services safely exposed to the internet.
 - **Unifi as Code**: Manage network infrastructure (VLANs, SSIDs, firewall rules) declaratively via OpenTofu.
 - **Dev lab**: Isolated environment for career development, experimentation, and learning.
 - **Thorough documentation**: Break-glass guide, in-case-of-death plan, and operational runbooks.
@@ -25,62 +25,76 @@ Full redesign of the McNees homelab, moving from a mix of Proxmox LXCs and TrueN
 
 ## Section 1: Infrastructure Layer
 
-### Proxmox Cluster — 5 Nodes
+### Proxmox Cluster — 3 Nodes
 
 | Node | Hostname | Hardware | Role |
 |------|----------|----------|------|
-| pve1 | **charmander** | Dell 5050, i7-7700T, 32GB RAM, 250GB NVMe + 1TB SATA SSD | K3s server (control plane) + Ceph OSD |
-| pve2 | **squirtle** | Dell 5050, i7-7700T, 32GB RAM, 250GB NVMe + 1TB SATA SSD | K3s server (control plane) + Ceph OSD |
-| pve3 | **bulbasaur** | Dell 5050, i7-7700T, 32GB RAM, 250GB NVMe + 1TB SATA SSD | K3s server (control plane) + Ceph OSD |
-| pve4 | **pikachu** | Dell 5050, i7-7700T, 32GB RAM, 250GB NVMe | K3s agent (worker) + LXCs + Pelican VM |
-| pve5 | **snorlax** | Custom NAS, i3-13100, 64GB RAM, 200GB SSD + HBA card | TrueNAS VM (munchlax) + K3s agent (worker) |
+| pve1 | **latios** | Custom AMD (Ryzen 7 8700G, MSI Pro B650M-P, 64GB DDR5-5600, Samsung 970 EVO 500GB, EVGA 450BT, Rosewill RSV-Z2700U 2U, Dynatron AM5 cooler), 2.5GbE | K3s server + agent + Ceph OSD + Homey LXC |
+| pve2 | **latias** | Custom AMD (same spec as latios), 2.5GbE | K3s server + agent + Pelican VM + Ceph OSD + Homebridge LXC |
+| pve3 | **rayquaza** | Custom NAS (formerly snorlax), i3-13100, 64GB RAM, 200GB SSD + HBA card, 10GbE | TrueNAS VM (snorlax) + K3s server + Ceph OSD + metagross LXC |
 
-### K3s Cluster — 5 VMs (Regi naming theme)
+> **Networking**: All three nodes connect via the Flex XG switch — latios and latias at 2.5GbE, rayquaza at 10GbE.
 
-| K3s VM | Hostname | Runs on | Role |
-|--------|----------|---------|------|
-| k3s-server-1 | **regirock** | charmander | Control plane |
-| k3s-server-2 | **regice** | squirtle | Control plane |
-| k3s-server-3 | **registeel** | bulbasaur | Control plane |
-| k3s-agent-1 | **regieleki** | pikachu | Worker |
-| k3s-agent-2 | **regidrago** | snorlax | Worker |
+> **Cold spare**: One Dell 3050 Micro is kept powered off as a DR spare. Mew is decommissioned and sold after migration.
 
-> **Why VMs, not LXCs?** K3s nodes run as VMs intentionally. LXCs share the host kernel, so a misbehaving K8s workload (OOM, bad syscall, cgroup conflict) can take down the Proxmox host and everything else on it. K8s also pushes kernel boundaries hard — iptables, overlay filesystems, containerd, nested cgroups — which works in LXC but runs closer to the edge with each upgrade. VMs contain the blast radius: a kernel panic inside a K3s VM doesn't touch Proxmox. The RAM overhead (~2-3GB per VM for the guest kernel) is acceptable on 32GB+ nodes. LXCs are the right choice for single-purpose, trusted workloads like PostgreSQL, Homey, and Homebridge where you control exactly what runs.
+> **No QDevice needed**: With 3 Proxmox nodes, the cluster has native quorum and single-node failure tolerance.
+
+### K3s Cluster — 5 VMs (Bird naming theme)
+
+| K3s VM | Hostname | Runs on | Role | RAM |
+|--------|----------|---------|------|-----|
+| k3s-server-1 | **articuno** | latios | Control plane | 10GB |
+| k3s-server-2 | **zapdos** | latias | Control plane | 10GB |
+| k3s-server-3 | **moltres** | rayquaza | Control plane | 10GB |
+| k3s-agent-1 | **lugia** | latios | Worker | 40GB |
+| k3s-agent-2 | **ho-oh** | latias | Worker | 20GB |
+
+> **Why VMs, not LXCs?** K3s nodes run as VMs intentionally. LXCs share the host kernel, so a misbehaving K8s workload (OOM, bad syscall, cgroup conflict) can take down the Proxmox host and everything else on it. K8s also pushes kernel boundaries hard — iptables, overlay filesystems, containerd, nested cgroups — which works in LXC but runs closer to the edge with each upgrade. VMs contain the blast radius: a kernel panic inside a K3s VM doesn't touch Proxmox. The RAM overhead (~2-3GB per VM for the guest kernel) is acceptable on 64GB nodes. LXCs are the right choice for single-purpose, trusted workloads like PostgreSQL, Homey, and Homebridge where you control exactly what runs.
+
+### PriorityClasses
+
+K3s workloads use PriorityClasses to ensure scheduling precedence during resource contention:
+
+| PriorityClass | Value | Use Case |
+|---------------|-------|----------|
+| `critical` | 1000 | AdGuard, Traefik, auth chain, monitoring — services where downtime is immediately noticed |
+| `standard` | 500 | Most application workloads — servarr, Paperless, Gramps, etc. |
+| `best-effort` | 100 | Dev lab, batch jobs, non-essential services |
 
 ### TrueNAS VM
 
-- **Hostname**: munchlax
-- **Runs on**: snorlax (pve5)
+- **Hostname**: snorlax (formerly munchlax; the physical host was renamed from snorlax to rayquaza)
+- **Runs on**: rayquaza (pve3)
 - **Passthrough**: HBA card (all 8x 20TB Exos drives) + iGPU (QuickSync for Plex/Tdarr)
 - **NVMe metadata drives**: The 2x 1TB M.2 NVMe SSDs are on the motherboard (not HBA-connected). Passed to the TrueNAS VM separately (as virtual disks backed by local storage, or via PCIe/virtio passthrough) to continue serving as the mirrored metadata vdev.
-- **RAM allocation**: ~32GB to munchlax, ~16GB to regidrago (K3s agent), ~16GB remaining for Proxmox overhead
-- **Boot disk**: Ceph-backed (live-migratable, though passthrough pins it to snorlax in practice)
+- **RAM allocation**: ~48GB to snorlax (TrueNAS), ~10GB to moltres (K3s server), ~2GB to metagross LXC, remainder for Proxmox overhead
+- **Boot disk**: Ceph-backed (live-migratable, though passthrough pins it to rayquaza in practice)
 
 ### Pelican Game Server VM
 
-- **Hostname**: TBD (Pokémon name)
-- **Runs on**: pikachu
-- **Resources**: 16GB RAM minimum (more if available after LXC allocation). Dedicated VM for game server hosting.
+- **Hostname**: pelipper
+- **Runs on**: latias
+- **Resources**: 20GB RAM. Dedicated VM for game server hosting.
 - **Managed by**: Pelican Panel (running in K8s) connects to this node as a remote game server host.
-- **Resource budget**: Pikachu has 32GB total. Proxmox host overhead ~2GB + Homey/Homebridge LXCs ~2GB + K3s agent VM (regieleki) ~8GB = ~12GB reserved, leaving ~20GB for the Pelican VM.
+- **Resource budget**: Latias has 64GB total. Proxmox host overhead ~2GB + zapdos (K3s server) 10GB + ho-oh (K3s agent) 20GB + Homebridge LXC ~1GB = ~33GB reserved, leaving ~20GB for pelipper + headroom.
 
 ### Other VMs/LXCs (outside K8s)
 
 | Workload | Type | Host | Reason |
 |----------|------|------|--------|
-| PostgreSQL | LXC | any (Ceph HA) | Central database for all apps. Proxmox HA restarts on any node if host fails. See "Database Architecture" below. |
-| Homey (self-hosted) | LXC | pikachu | Host networking required |
-| Homebridge | LXC | pikachu | Host networking + USB access (camera duties moved to Scrypted in K8s) |
-| Proxmox Backup Server | LXC or VM | any (Ceph HA) | Deduplicated, incremental VM/LXC backups. Stores backup data on TrueNAS NFS share. |
+| PostgreSQL (metagross) | LXC | rayquaza (Ceph HA) | Central database for all apps. Proxmox HA restarts on any node if host fails. See "Database Architecture" below. |
+| Homey (self-hosted) | LXC | latios | Host networking required |
+| Homebridge | LXC | latias | Host networking + USB access |
+| Proxmox Backup Server (deoxys) | LXC or VM | any (Ceph HA) | Deduplicated, incremental VM/LXC backups. Stores backup data on TrueNAS NFS share. |
 | Netboot.xyz | LXC | any Proxmox host | PXE/TFTP needs management network access |
-| Pelican game server | VM | pikachu | 16GB+ RAM, runs game instances managed by Pelican Panel |
+| Pelican game server (pelipper) | VM | latias | 20GB RAM, runs game instances managed by Pelican Panel |
 
 ### Database Architecture — PostgreSQL LXC
 
 A single **PostgreSQL LXC** on Proxmox serves as the central database for all applications that support it. This eliminates SQLite-on-NFS issues, simplifies backups, and gives native disk performance on Ceph-backed storage.
 
-- **Hostname**: TBD (Pokémon name)
-- **Runs on**: Any Proxmox node (Ceph-backed disk = live-migratable, Proxmox HA enabled)
+- **Hostname**: metagross
+- **Runs on**: rayquaza (Ceph-backed disk = live-migratable, Proxmox HA enabled)
 - **Resources**: 2-4GB RAM, 2 vCPU (lightweight — homelab query volume is low)
 - **Storage**: Ceph-backed LXC disk (fast local I/O, replicated across nodes)
 - **Backups**: Proxmox nightly LXC backup + PostgreSQL `pg_dump` cron for logical backups to TrueNAS
@@ -93,13 +107,12 @@ A single **PostgreSQL LXC** on Proxmox serves as the central database for all ap
 | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Prowlarr | `*__POSTGRES__HOST`, `*__POSTGRES__PORT`, etc. env vars |
 | Bazarr | PostgreSQL env vars |
 | Paperless-ngx | `PAPERLESS_DBENGINE=postgresql`, `PAPERLESS_DBHOST`, etc. |
-| Outline | `DATABASE_URL` connection string (requires Postgres) |
 | Gramps Web | PostgreSQL connection string |
 | Pocket ID | `DB_CONNECTION_STRING` env var |
 | Pelican Panel | Database connection env vars |
 | LLDAP | Planned — env var config exists but documentation is sparse. Falls back to SQLite on `local-path` if Postgres doesn't work. |
 
-**Redis** runs as a K8s deployment (not in the LXC). It's a cache/session store, not a durable database — running it in-cluster next to the apps that use it (Outline, Paperless-ngx, etc.) minimizes latency. Uses `local-path` storage for optional persistence.
+**Redis** runs as a K8s deployment (not in the LXC). It's a cache/session store, not a durable database — running it in-cluster next to the apps that use it (Paperless-ngx, etc.) minimizes latency. Uses `local-path` storage for optional persistence.
 
 ### IaC Tooling for Infrastructure
 
@@ -115,11 +128,11 @@ A single **PostgreSQL LXC** on Proxmox serves as the central database for all ap
 
 ### Proxmox VM Storage — Ceph
 
-3x 1TB SATA SSDs on charmander/squirtle/bulbasaur form a Ceph pool with 3-way replication (~1TB usable). Used for:
+SATA SSDs across latios, latias, and rayquaza form a Ceph pool with 3-way replication. Used for:
 
 - K3s VM boot disks (HA, live-migratable)
-- Munchlax boot disk
-- Pelican VM boot disk
+- Snorlax (TrueNAS) boot disk
+- Pelipper (Pelican) VM boot disk
 - PostgreSQL LXC disk (HA, live-migratable — critical shared database)
 - Any other VM/LXC disks
 
@@ -132,7 +145,7 @@ A single **PostgreSQL LXC** on Proxmox serves as the central database for all ap
 | `truenas-nfs` | democratic-csi -> TrueNAS NFS | Most workloads (bulk data, media references, document storage). ReadWriteMany. |
 | `local-path` | Rancher local-path-provisioner | SQLite fallbacks (e.g., LLDAP), Redis persistence, anything with NFS/locking issues. Node-local Ceph-backed storage. |
 
-Why democratic-csi over Longhorn: The Dell nodes have limited local storage (250GB NVMe minus Proxmox). Longhorn would compete for that space. democratic-csi puts all persistent data on TrueNAS's massive ZFS pool — K3s nodes stay stateless compute. Simpler, more storage, fewer moving parts.
+Why democratic-csi over Longhorn: democratic-csi puts all persistent data on TrueNAS's massive ZFS pool — K3s nodes stay stateless compute. Simpler, more storage, fewer moving parts.
 
 ### Storage Class Selection Guide
 
@@ -146,7 +159,7 @@ With databases externalized to the PostgreSQL LXC, most K8s apps no longer manag
 | | App configs (no longer databases — just config files) |
 | | Everything else by default |
 
-**Why this is simpler now:** The *arr apps, Paperless-ngx, Gramps, Outline, Pocket ID, and Pelican Panel all use the PostgreSQL LXC for their databases. Their K8s PVCs only store config files and cache — safe on NFS.
+**Why this is simpler now:** The *arr apps, Paperless-ngx, Gramps, Pocket ID, and Pelican Panel all use the PostgreSQL LXC for their databases. Their K8s PVCs only store config files and cache — safe on NFS.
 
 **Escape hatch:** If NFS performance becomes an issue for a service, moving it to `local-path` is a PVC migration — not an architecture change.
 
@@ -196,7 +209,7 @@ data/
 
 A **PBS instance** (LXC or lightweight VM) provides deduplicated, incremental backups for all VMs and LXCs. Replaces the current vzdump-over-NFS approach.
 
-- **Hostname**: TBD (Pokémon name)
+- **Hostname**: deoxys
 - **Runs on**: Any Proxmox node (Ceph-backed disk = live-migratable)
 - **Resources**: 2GB RAM, 2 vCPU (PBS is lightweight)
 - **Backup storage**: NFS datastore pointing at TrueNAS (`data/backups/pbs/`)
@@ -325,7 +338,7 @@ Future consideration: evaluate Caddy as an alternative ingress controller once t
 - **Subnet router**: Runs as a K8s pod, advertises home subnets to the tailnet.
 - **Use case**: Access all internal services via `home.mcnees.me` names from anywhere.
 - **Tailscale SSH**: Bonus — SSH into Proxmox nodes from anywhere without port forwarding.
-- Publicly exposed services (Wizarr, Booklore, Pocket ID) go through external Traefik entrypoint via Cloudflare, not Tailscale.
+- Publicly exposed services (Wizarr, Pocket ID) go through external Traefik entrypoint via Cloudflare, not Tailscale.
 
 ---
 
@@ -355,17 +368,18 @@ homelab/
 │   │   ├── variables.tf
 │   │   ├── outputs.tf
 │   │   ├── nodes/
-│   │   │   ├── regirock.tf
-│   │   │   ├── regice.tf
-│   │   │   ├── registeel.tf
-│   │   │   ├── regieleki.tf
-│   │   │   ├── regidrago.tf
-│   │   │   ├── munchlax.tf
-│   │   │   ├── pelican-node.tf # Game server VM on pikachu
-│   │   │   ├── postgresql-lxc.tf # PostgreSQL database LXC (Ceph HA)
-│   │   │   ├── pbs.tf           # Proxmox Backup Server LXC/VM (Ceph HA)
-│   │   │   ├── pikachu-lxcs.tf # Homey + Homebridge LXCs
-│   │   │   └── netboot.tf     # Netboot.xyz LXC
+│   │   │   ├── articuno.tf       # K3s server on latios
+│   │   │   ├── zapdos.tf         # K3s server on latias
+│   │   │   ├── moltres.tf        # K3s server on rayquaza
+│   │   │   ├── lugia.tf          # K3s agent on latios
+│   │   │   ├── ho-oh.tf          # K3s agent on latias
+│   │   │   ├── snorlax.tf        # TrueNAS VM on rayquaza
+│   │   │   ├── pelipper.tf       # Pelican game server VM on latias
+│   │   │   ├── metagross.tf      # PostgreSQL database LXC (Ceph HA)
+│   │   │   ├── deoxys.tf         # Proxmox Backup Server LXC/VM (Ceph HA)
+│   │   │   ├── homey-lxc.tf      # Homey LXC on latios
+│   │   │   ├── homebridge-lxc.tf # Homebridge LXC on latias
+│   │   │   └── netboot.tf        # Netboot.xyz LXC
 │   │   └── terraform.tfstate   # Local state initially; migrate to remote state later
 │   │
 │   ├── unifi/                  # filipowm/unifi provider — networking
@@ -414,14 +428,12 @@ homelab/
 │   ├── apps/
 │   │   ├── adguard/
 │   │   ├── bazarr/
-│   │   ├── booklore/
 │   │   ├── gramps/
 │   │   ├── lidarr/
 │   │   ├── lidarr-kids/
 │   │   ├── lldap/
 │   │   ├── oauth2-proxy/
 │   │   ├── ollama/
-│   │   ├── outline/
 │   │   ├── paperless-ai/
 │   │   ├── paperless-ngx/
 │   │   ├── pelican-panel/
@@ -430,7 +442,6 @@ homelab/
 │   │   ├── radarr/
 │   │   ├── recyclarr/
 │   │   ├── dbgate/
-│   │   ├── scrypted/
 │   │   ├── seer/               # Replaces Overseerr
 │   │   ├── sonarr/
 │   │   ├── sonarr-anime/
@@ -552,7 +563,7 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 | `auth` | Pocket ID, LLDAP, OAuth2-Proxy |
 | `databases` | Redis (cache/session store) |
 | `media` | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr, Seer, Wizarr, Tautulli |
-| `apps` | Outline, Booklore, Gramps, Pelican Panel, Paperless-ngx, Paperless-ai, Ollama, Scrypted, DbGate |
+| `apps` | Gramps, Pelican Panel, Paperless-ngx, Paperless-ai, Ollama, DbGate |
 | `storage` | democratic-csi |
 | `networking` | AdGuard Home, Tailscale |
 | `dev-lab` | Development/experimentation workloads (see Section 8) |
@@ -584,14 +595,14 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 | **Loki** | Log aggregation | Pod logs, K3s system logs |
 | **Promtail** | Log shipper | Runs on every K3s node, ships logs to Loki |
 | **Alertmanager** | Alert routing & dedup | Prometheus alerts -> Pushover |
-| **Beszel** | Host-layer monitoring | Proxmox hosts + munchlax TrueNAS VM |
+| **Beszel** | Host-layer monitoring | Proxmox hosts + snorlax TrueNAS VM |
 | **Uptime Kuma** | HTTP health checks | Public-facing services, user-perspective availability |
 
 ### Deployment
 
 - **kube-prometheus-stack** Helm chart: bundles Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics with ~20 pre-built dashboards.
 - **loki-stack** Helm chart: Loki + Promtail deployed separately.
-- **Beszel**: Server component in K8s, agents on each Proxmox host and inside munchlax.
+- **Beszel**: Server component in K8s, agents on each Proxmox host and inside snorlax (TrueNAS).
 
 ### Replaces
 
@@ -646,7 +657,7 @@ Home Dashboard
 
 ## Section 6: Service Inventory & Placement
 
-### Stays on TrueNAS (munchlax) — Media/Storage-Heavy
+### Stays on TrueNAS (snorlax) — Media/Storage-Heavy
 
 | Service | Reason |
 |---------|--------|
@@ -657,13 +668,14 @@ Home Dashboard
 | LazyLibrarian | Direct dataset access |
 | Romm | Direct dataset access |
 
-### VMs/LXCs on Pikachu — Special Requirements
+### LXCs/VMs with Special Requirements
 
-| Service | Type | Reason |
-|---------|------|--------|
-| Homey (self-hosted) | LXC | Host networking required |
-| Homebridge | LXC | Host networking + USB access |
-| Pelican game server | VM (16GB+) | Game instance hosting, managed by Pelican Panel in K8s |
+| Service | Type | Host | Reason |
+|---------|------|------|--------|
+| Homey (self-hosted) | LXC (1GB) | latios | Host networking required |
+| Homebridge | LXC (1GB) | latias | Host networking + USB access |
+| Pelican game server (pelipper) | VM (20GB) | latias | Game instance hosting, managed by Pelican Panel in K8s |
+| PostgreSQL (metagross) | LXC (2GB) | rayquaza | Central database, Ceph HA |
 
 ### LXC on Proxmox Host — Network Boot
 
@@ -684,8 +696,6 @@ Home Dashboard
 - OAuth2-Proxy (Traefik auth middleware)
 
 **Productivity & Knowledge**
-- Outline
-- Booklore
 - Paperless-ngx (document management, OCR, search)
 - Paperless-ai (auto-tagging and classification companion for Paperless-ngx)
 
@@ -706,11 +716,8 @@ Home Dashboard
 - Bazarr
 
 **Infrastructure Services**
-- Redis (in-cluster cache/session store for Outline, Paperless-ngx, etc. — `databases` namespace)
+- Redis (in-cluster cache/session store for Paperless-ngx, etc. — `databases` namespace)
 - DbGate (multi-database admin UI — connects to PostgreSQL LXC, Redis, and any dev-lab databases)
-
-**Home & Cameras**
-- Scrypted (unified camera bridge — HKSV for Apple Home, RTSP rebroadcast for Homey)
 
 **Genealogy**
 - Gramps
@@ -739,28 +746,9 @@ Home Dashboard
 
 **Default model:** Llama 3.2 3B (Q4 quantized) — ~2-3GB RAM, strong at classification and summarization. Upgrade path to Llama 3.1 8B (Q4, ~5GB) if quality is insufficient.
 
-**Node scheduling:** Ollama should prefer regidrago (snorlax, 16GB worker) where there's the most memory headroom. Soft affinity — not a hard requirement.
+**Node scheduling:** Ollama should prefer lugia (latios, 40GB worker) where there's the most memory headroom. Soft affinity — not a hard requirement.
 
 **Anthropic API fallback:** Paperless-ai supports any OpenAI-compatible API. If local model quality is insufficient for certain document types, it can be pointed at the Anthropic API (via a compatible proxy) without architecture changes. Preference is local-first for privacy.
-
-### Camera Integration — Scrypted
-
-**Scrypted** replaces the separate camera integrations in Homebridge and Homey with a single unified bridge.
-
-**Before:** Unifi Protect → Homebridge plugin → Apple Home, AND Unifi Protect → Homey plugin → Homey (two separate connections, two integrations to maintain).
-
-**After:** Unifi Protect → Scrypted → HomeKit Secure Video (HKSV) for Apple Home, AND RTSP rebroadcast available for Homey.
-
-| Feature | Benefit |
-|---------|---------|
-| HomeKit Secure Video | Better quality and reliability than Homebridge camera plugin |
-| RTSP rebroadcast | Connects to each camera once, serves multiple consumers — reduces Protect controller load |
-| Local object detection | Person/vehicle/animal detection without cloud |
-| Prebuffering | HKSV clips capture moments *before* motion trigger |
-
-**Deployment:** Runs in K8s (`apps` namespace). Needs network access to Unifi Protect on the IoT/management VLAN but does not need host networking. Software transcoding is sufficient for a handful of cameras. Hardware transcoding via iGPU passthrough is an option if needed later.
-
-**Note:** Homebridge remains as an LXC for non-camera plugins that need host networking or USB access. Its camera responsibilities move to Scrypted. Homey may still use its native Unifi Protect integration for automation triggers — test during implementation whether Scrypted's RTSP rebroadcast can replace that too.
 
 ### Retired
 
@@ -770,7 +758,13 @@ Home Dashboard
 | Overseerr | Seer |
 | Home Assistant | Homey (self-hosted) |
 | InfluxDB | Prometheus |
-| n8n | Removed |
+| n8n | Replaced by mantle |
+| Scrypted | Removed |
+| Outline | Removed |
+| Linkwarden | Removed |
+| Actual Budget | Removed |
+| Booklore | Removed |
+| Glances | Removed |
 | Gitea | Removed (homelab repo on GitHub, no longer needed) |
 | MinIO | Removed from initial plan (add later if needed) |
 
@@ -798,7 +792,7 @@ User request -> Traefik -> OAuth2-Proxy (middleware)
 - LLDAP: user store for Michael, Hannah, and other service users.
 - Pocket ID: OpenID Connect authentication.
 - OAuth2-Proxy: Traefik middleware annotation — any service needing auth gets one annotation.
-- Public services (Wizarr, Booklore, Pocket ID) skip the auth middleware.
+- Public services (Wizarr, Pocket ID) skip the auth middleware.
 
 ### Network Security
 
@@ -859,7 +853,7 @@ Emergency recovery procedures for when things go wrong. Covers:
 
 - **Cluster won't boot**: How to access Proxmox directly, check Ceph health, restart VMs manually.
 - **Flux is broken**: How to bypass GitOps and `kubectl apply` directly to restore services.
-- **TrueNAS/munchlax is down**: How to access data, restore from ZFS snapshots, rebuild the VM.
+- **TrueNAS/snorlax is down**: How to access data, restore from ZFS snapshots, rebuild the VM.
 - **Network is down**: How to access Proxmox console without network, reset Unifi gear.
 - **Secrets are lost**: How to recover from password manager, re-bootstrap SOPS.
 - **Complete rebuild**: Step-by-step instructions to rebuild the entire lab from the repo + backups.
