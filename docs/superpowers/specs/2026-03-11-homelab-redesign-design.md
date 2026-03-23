@@ -58,7 +58,7 @@ K3s workloads use PriorityClasses to ensure scheduling precedence during resourc
 | PriorityClass | Value | Use Case |
 |---------------|-------|----------|
 | `critical` | 1000 | AdGuard, Traefik, auth chain, monitoring — services where downtime is immediately noticed |
-| `standard` | 500 | Most application workloads — servarr, Paperless, Gramps, etc. |
+| `standard` | 500 | Most application workloads — servarr, Paperless, Homepage, etc. |
 | `best-effort` | 100 | Dev lab, batch jobs, non-essential services |
 
 ### TrueNAS VM
@@ -76,7 +76,7 @@ K3s workloads use PriorityClasses to ensure scheduling precedence during resourc
 - **Runs on**: latias
 - **Resources**: 20GB RAM. Dedicated VM for game server hosting.
 - **Managed by**: Pelican Panel (running in K8s) connects to this node as a remote game server host.
-- **Resource budget**: Latias has 64GB total. Proxmox host overhead ~2GB + zapdos (K3s server) 10GB + ho-oh (K3s agent) 20GB + Homebridge LXC ~1GB = ~33GB reserved, leaving ~20GB for pelipper + headroom.
+- **Resource budget**: Latias has 64GB total. Proxmox overhead ~2GB + zapdos (K3s server) 10GB + ho-oh (K3s agent) 20GB + pelipper 20GB + Homebridge LXC ~1GB = ~53GB, leaving ~11GB headroom.
 
 ### Other VMs/LXCs (outside K8s)
 
@@ -85,8 +85,9 @@ K3s workloads use PriorityClasses to ensure scheduling precedence during resourc
 | PostgreSQL (metagross) | LXC | rayquaza (Ceph HA) | Central database for all apps. Proxmox HA restarts on any node if host fails. See "Database Architecture" below. |
 | Homey (self-hosted) | LXC | latios | Host networking required |
 | Homebridge | LXC | latias | Host networking + USB access |
-| Proxmox Backup Server (deoxys) | LXC or VM | any (Ceph HA) | Deduplicated, incremental VM/LXC backups. Stores backup data on TrueNAS NFS share. |
-| Netboot.xyz | LXC | any Proxmox host | PXE/TFTP needs management network access |
+| Home Assistant (hass) | VM | latios | Smart home automation — migrated from Mew. Proxmox HA enabled. |
+| Proxmox Backup Server (deoxys) | TrueNAS app | rayquaza (snorlax VM) | Runs inside TrueNAS. Backup data on local datasets — no NFS round trip. |
+| Netboot.xyz | K8s Deployment | apps namespace | TFTP/HTTP boot server, NFS-backed images |
 | Pelican game server (pelipper) | VM | latias | 20GB RAM, runs game instances managed by Pelican Panel |
 
 ### Database Architecture — PostgreSQL LXC
@@ -163,18 +164,9 @@ With databases externalized to the PostgreSQL LXC, most K8s apps no longer manag
 
 **Escape hatch:** If NFS performance becomes an issue for a service, moving it to `local-path` is a PVC migration — not an architecture change.
 
-### Future Enhancement: NVMe Pool + Optane Metadata
+### Storage Tiering — Optane, L2ARC, and SSD Pool
 
-When Intel Optane drives become affordable, add a pair as a mirrored metadata special vdev on the HDD pool (replacing the current 1TB NVMe metadata vdev). Then repurpose the 2x existing 1TB NVMe drives + 2x new 1TB NVMe drives into a 4x RAIDZ1 NVMe pool (~3TB usable).
-
-**Workloads to move to NVMe pool:**
-- `data/k8s/` — All democratic-csi PVCs get NVMe speeds (Paperless OCR, Ollama model loading, app configs)
-- `data/apps/` — TrueNAS app datasets (Plex metadata/database, Tdarr transcode cache, SABnzbd)
-- `data/backups/pbs/` — PBS dedup index is heavily random-read; NVMe dramatically speeds up restores and verify jobs
-
-**Stays on HDD pool:** `media/`, `homes/`, `isos/`, `backups/postgresql/`, `backups/timemachine/` — all sequential/throughput-oriented.
-
-This is a hardware purchase + pool migration, not an architecture change — democratic-csi and TrueNAS apps just point at a different pool.
+> This section has been superseded by `docs/superpowers/specs/2026-03-14-storage-tiering-design.md`. See that spec for the full tiered storage design: Optane metadata/SLOG, NVMe L2ARC, SSD `flash` pool, and StorageClass mappings.
 
 ### TrueNAS Dataset Layout
 
@@ -419,16 +411,17 @@ homelab/
 │   ├── flux-system/            # Flux bootstrap (auto-generated)
 │   ├── infrastructure/
 │   │   ├── controllers/        # Traefik, cert-manager, MetalLB, ExternalDNS
-│   │   ├── configs/            # ClusterIssuers, MetalLB pools
-│   │   └── observability/      # kube-prometheus-stack, Loki, Beszel, Uptime Kuma, Unifi exporter
-│   │       ├── beszel/
-│   │       ├── pushover-alerts/  # Alertmanager Pushover receiver config
-│   │       ├── unifi-exporter/
-│   │       └── uptime-kuma/
+│   │   └── configs/            # ClusterIssuers, MetalLB pools
+│   ├── observability/
+│   │   ├── kube-prometheus-stack/
+│   │   ├── loki/
+│   │   ├── beszel/
+│   │   ├── uptime-kuma/
+│   │   └── pushover-alerts/
 │   ├── apps/
 │   │   ├── adguard/
 │   │   ├── bazarr/
-│   │   ├── gramps/
+│   │   ├── homepage/
 │   │   ├── lidarr/
 │   │   ├── lidarr-kids/
 │   │   ├── lldap/
@@ -441,15 +434,21 @@ homelab/
 │   │   ├── prowlarr/
 │   │   ├── radarr/
 │   │   ├── recyclarr/
-│   │   ├── dbgate/
 │   │   ├── seer/               # Replaces Overseerr
 │   │   ├── sonarr/
 │   │   ├── sonarr-anime/
+│   │   ├── stash/
 │   │   ├── tailscale/
 │   │   ├── tautulli/
 │   │   └── wizarr/
 │   ├── databases/
 │   │   └── redis/
+│   ├── hdf/                   # HDF business services
+│   │   ├── invoice-ninja/
+│   │   ├── chatwoot/
+│   │   └── kustomization.yaml
+│   ├── storage/               # S3-compatible storage
+│   │   └── rustfs/
 │   ├── dev-lab/                # Experimental/career dev workloads (see Section 8)
 │   └── repositories/           # HelmRepository and OCIRepository sources
 │
@@ -559,12 +558,13 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 |-----------|----------|
 | `flux-system` | Flux controllers (auto-created) |
 | `infrastructure` | Traefik, cert-manager, MetalLB, ExternalDNS |
-| `observability` | Prometheus, Grafana, Loki, Alertmanager, Beszel, Uptime Kuma, Unifi exporter |
+| `observability` | Prometheus, Grafana, Loki, Alertmanager, Beszel, Uptime Kuma |
 | `auth` | Pocket ID, LLDAP, OAuth2-Proxy |
 | `databases` | Redis (cache/session store) |
 | `media` | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr, Seer, Wizarr, Tautulli |
-| `apps` | Gramps, Pelican Panel, Paperless-ngx, Paperless-ai, Ollama, DbGate |
-| `storage` | democratic-csi |
+| `apps` | Pelican Panel, Paperless-ngx, Paperless-ai, Ollama, Homepage, Stash, Netboot.xyz |
+| `hdf` | Invoice Ninja, Chatwoot (Hudsonville Digital Foundry client services) |
+| `storage` | democratic-csi, RustFS (S3-compatible object storage) |
 | `networking` | AdGuard Home, Tailscale |
 | `dev-lab` | Development/experimentation workloads (see Section 8) |
 
@@ -664,9 +664,6 @@ Home Dashboard
 | Plex | QuickSync transcoding + direct media access |
 | Tdarr | QuickSync transcoding + direct media access |
 | SABnzbd | Downloads land directly on datasets |
-| Stash | Direct media access |
-| LazyLibrarian | Direct dataset access |
-| Romm | Direct dataset access |
 
 ### LXCs/VMs with Special Requirements
 
@@ -676,12 +673,6 @@ Home Dashboard
 | Homebridge | LXC (1GB) | latias | Host networking + USB access |
 | Pelican game server (pelipper) | VM (20GB) | latias | Game instance hosting, managed by Pelican Panel in K8s |
 | PostgreSQL (metagross) | LXC (2GB) | rayquaza | Central database, Ceph HA |
-
-### LXC on Proxmox Host — Network Boot
-
-| Service | Reason |
-|---------|--------|
-| Netboot.xyz | PXE/TFTP needs management network access |
 
 ### Moves to K8s — Everything Else
 
@@ -698,6 +689,7 @@ Home Dashboard
 **Productivity & Knowledge**
 - Paperless-ngx (document management, OCR, search)
 - Paperless-ai (auto-tagging and classification companion for Paperless-ngx)
+- Homepage (dashboard)
 
 **AI/ML**
 - Ollama (local LLM inference — serves Paperless-ai and other local AI workloads)
@@ -717,10 +709,6 @@ Home Dashboard
 
 **Infrastructure Services**
 - Redis (in-cluster cache/session store for Paperless-ngx, etc. — `databases` namespace)
-- DbGate (multi-database admin UI — connects to PostgreSQL LXC, Redis, and any dev-lab databases)
-
-**Genealogy**
-- Gramps
 
 **Gaming**
 - Pelican Panel (manages game servers on the Pelican VM)
@@ -732,7 +720,6 @@ Home Dashboard
 - Alertmanager (-> Pushover)
 - Uptime Kuma
 - Beszel (server component)
-- Unifi exporter (Prometheus metrics from Unifi controller)
 
 ### Document Processing — Paperless-ngx + Local AI
 
@@ -756,7 +743,6 @@ Home Dashboard
 |---------|-------------|
 | Portainer | Flux + Grafana |
 | Overseerr | Seer |
-| Home Assistant | Homey (self-hosted) |
 | InfluxDB | Prometheus |
 | n8n | Replaced by mantle |
 | Scrypted | Removed |
@@ -766,7 +752,7 @@ Home Dashboard
 | Booklore | Removed |
 | Glances | Removed |
 | Gitea | Removed (homelab repo on GitHub, no longer needed) |
-| MinIO | Removed from initial plan (add later if needed) |
+| MinIO | Replaced by RustFS (Apache 2.0 license) |
 
 ---
 

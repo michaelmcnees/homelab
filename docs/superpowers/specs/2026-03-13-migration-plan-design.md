@@ -15,8 +15,7 @@ Migration plan for moving the McNees homelab from its current state (mix of Prox
 ### Non-Goals
 
 - Migrating the 57 existing DHCP reservations into OpenTofu during the initial migration (cleanup task in Stage 5).
-- Migrating TrueNAS apps (Plex, Tdarr, SABnzbd, etc.) — they stay on snorlax (TrueNAS VM on rayquaza).
-- Setting up Ceph on rayquaza beyond the existing OSD.
+- Migrating TrueNAS apps that stay (Plex, Tdarr, SABnzbd) — they remain on snorlax (TrueNAS VM on rayquaza). Stash and Romm move to K8s.
 
 ---
 
@@ -47,7 +46,7 @@ homebridge, adguard, docker (runs Gramps + servarr stack), uptimekuma, ntfy, inf
 
 **Docker containers** (in the docker LXC): Gramps (web, celery, redis), servarr (bazarr, lidarr, lidarr-kids, radarr, readarr, sonarr, sonarr-anime)
 
-**TrueNAS apps** (on snorlax VM / rayquaza host): Plex, Tdarr, SABnzbd, Stash, LazyLibrarian, Romm
+**TrueNAS apps** (on snorlax VM / rayquaza host): Plex, Tdarr, SABnzbd (permanent residents); Stash, Romm (migrating to K8s); LazyLibrarian (retiring, fresh K8s deploy)
 
 ### Databases
 
@@ -77,9 +76,9 @@ As defined in the redesign spec (with naming and service updates from this migra
 - Flux CD GitOps deploying all K8s workloads
 - VLAN segmentation (mgmt, K8s, trusted, IoT, storage, guest)
 - PostgreSQL LXC (**metagross**) on rayquaza, Ceph (HA)
-- Proxmox Backup Server LXC (**deoxys**) on Ceph (HA)
+- Proxmox Backup Server (**deoxys**) as TrueNAS app on snorlax (avoids NFS round trip for backup data)
 - TrueNAS virtualized as **snorlax** on rayquaza (Proxmox)
-- Homey LXC on latios, Homebridge LXC on latias
+- Homey LXC on latios, Homebridge LXC on latias, Home Assistant VM on latios
 - Pelican game server VM (**pelipper**) on latias
 - democratic-csi for K8s persistent storage via TrueNAS NFS
 - Cold spare Dell 3050 powered off for DR
@@ -98,7 +97,7 @@ This migration spec **supersedes** the redesign spec on the following naming cha
 | TrueNAS VM | **snorlax** | rayquaza |
 | Pelican VM | **pelipper** | latias |
 | PostgreSQL LXC | **metagross** | rayquaza |
-| PBS LXC | **deoxys** | any (Ceph HA) |
+| PBS (TrueNAS app) | **deoxys** | rayquaza (snorlax VM) |
 
 The redesign spec, Phase 1 plan, Phase 2 plan, OpenTofu configs, and Ansible inventory all need updating to use these names. This is a prerequisite step before implementation planning.
 
@@ -110,6 +109,7 @@ This migration spec also supersedes the redesign spec on:
 - **Outline, Linkwarden, Actual Budget, Booklore, Glances, InfluxDB, Portainer**: Removed.
 - **Paperless-ngx + Paperless-ai**: Added to Phase 3 service deployments.
 - **Pelican Wings**: Stays as existing LXC. Wings is the daemon that runs game instances; Panel is the management UI in K3s. Pelipper VM (on latias) hosts additional game server capacity alongside the Wings LXC.
+- **Home Assistant**: Migrates from Mew to latios as a VM (6GB RAM, 2 cores).
 
 ### K3s Node Mapping
 
@@ -145,7 +145,7 @@ Two independent tracks that can run in parallel or in either order.
 
 **Exceptions:**
 - Homey and Homebridge LXCs temporarily move to Mew during consolidation, then to latios/latias respectively in Stage 2.
-- Docker LXC (servarr + Gramps) stays on its current node — it has an NFS mount to TrueNAS media that can't be replicated on Mew. This means one K3s server VM deploys later (after servarr migrates to K3s in Stage 4). The cluster starts as 2 servers + 2 agents initially, with the 5th node added after the Docker LXC is destroyed.
+- Docker LXC stays running on an existing Dell during migration — it has NFS mounts to TrueNAS for media. Dells remain powered on for legacy services until Phase 3 migrates them.
 - LazyLibrarian LXC shut down during Stage 0 (being retired).
 
 **Data preservation:** LXCs move intact with all data — this is a Proxmox migration, not a service migration.
@@ -285,14 +285,14 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 | 6 | Productivity | Paperless-ngx + Paperless-ai, Gramps. Gramps has family tree data in Docker volume. |
 | 7 | AI | Ollama + OpenWebUI (models on TrueNAS NFS, prefer scheduling on lugia/latios for memory headroom). |
 | 8 | Monitoring + Gaming | Grafana (fresh via kube-prometheus-stack), Beszel, Uptime Kuma. Replaces InfluxDB with Prometheus — no data migration. Pelican Panel (K3s, database already migrated). Points at existing Pelican Wings LXC. |
-| 9 | Misc infra | Tailscale subnet router, DbGate, Netboot.xyz LXC. |
+| 9 | Misc infra | Tailscale subnet router, DbGate, Netboot.xyz, Stash, Romm, LazyLibrarian. |
 
 **Services that stay as LXCs (do NOT migrate to K3s):**
 - Homey → LXC on latios (host networking, 1GB)
 - Homebridge → LXC on latias (host networking + USB, 1GB)
 - Pelican Wings → LXC (existing, stays)
 - PostgreSQL (metagross) → LXC on rayquaza (created in Stage 3, 2GB)
-- Netboot.xyz → LXC on any Proxmox host
+- Home Assistant → VM on latios (6GB RAM, smart home)
 
 **Services retired:**
 - MariaDB LXC — unused (destroyed in Stage 0)
@@ -300,7 +300,6 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 - Overseerr LXC — replaced by Seer
 - ntfy LXC — no longer needed
 - LazyLibrarian LXC — already runs as a TrueNAS app on snorlax
-- hass VM — replaced by Homey
 - Traefik LXC — replaced by Traefik in K3s (Stage 3)
 - Old PostgreSQL LXC — destroyed after databases migrated to metagross
 - Docker LXC — destroyed after servarr + Gramps migrated
@@ -337,7 +336,7 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 4. Import 57 DHCP reservations into OpenTofu (`terraform/unifi/`) — now on their proper VLANs.
 5. Decommission flat /22 — once all devices are on VLANs, remove the old network. Management /24 (VLAN 1) remains.
 6. Decommission Mew — all LXCs destroyed. Remove from cluster, sell.
-7. PBS setup — create Proxmox Backup Server LXC (deoxys, Ceph-backed), configure backup jobs per spec (nightly incremental, weekly verify, retention policy).
+7. PBS setup — set up Proxmox Backup Server (deoxys) as TrueNAS app on snorlax — avoids NFS round trip for backup data. Configure backup jobs per spec (nightly incremental, weekly verify, retention policy).
 8. Documentation — write break-glass guide, in-case-of-death plan, common tasks runbook.
 
 **Gate:** All devices on correct VLANs, flat /22 decommissioned, PBS backing up all VMs/LXCs, documentation complete.
