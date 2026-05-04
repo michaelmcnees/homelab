@@ -5,4 +5,11 @@ resources:
 - gotk-components.yaml
 - gotk-sync.yaml
 - infrastructure.yaml
-- patches/sops-decryption.yaml
+patches:
+- path: patches/sops-decryption.yaml
+  target:
+    group: kustomize.toolkit.fluxcd.io
+    version: v1
+    kind: Kustomization
+    name: flux-system
+    namespace: flux-system
