@@ -49,7 +49,7 @@ spec:
             - name: LDAP_BASE
               value: dc=mcnees,dc=me
             - name: LDAP_USER_SEARCH_FILTER
-              value: (objectClass=person)
+              value: (&(objectClass=person)(mail=*))
             - name: LDAP_USER_GROUP_SEARCH_FILTER
               value: (objectClass=groupOfUniqueNames)
             - name: LDAP_SOFT_DELETE_USERS
