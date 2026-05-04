@@ -49,8 +49,6 @@ spec:
           default: true
         exposedPort: 443
         protocol: TCP
-        tls:
-          enabled: true
       web-external:
         port: 8081
         expose:
@@ -63,8 +61,6 @@ spec:
           default: true
         exposedPort: 444
         protocol: TCP
-        tls:
-          enabled: true
     providers:
       kubernetesCRD:
         enabled: true
