@@ -14,3 +14,8 @@ output "talos_worker_ips" {
     "ho-oh" = module.ho_oh.ip_address
   }
 }
+
+output "postgresql_lxc_ip" {
+  description = "PostgreSQL LXC IP address"
+  value       = module.metagross.ip_address
+}

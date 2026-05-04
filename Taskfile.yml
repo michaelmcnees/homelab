@@ -24,6 +24,11 @@ tasks:
     dir: ansible
     cmd: ansible latios -m get_url -a 'url=https://github.com/siderolabs/talos/releases/download/v1.12.6/metal-amd64.iso dest=/mnt/pve/nfs-isos/template/iso/talos-1.12.6-metal-amd64.iso mode=0644 timeout=1800'
 
+  infra:lxc-template:
+    desc: Download Debian 13 LXC template onto rayquaza local storage
+    dir: ansible
+    cmd: ansible rayquaza -m command -a 'pveam download local debian-13-standard_13.1-2_amd64.tar.zst'
+
   network:init:
     desc: Initialize OpenTofu for Unifi
     dir: terraform/unifi

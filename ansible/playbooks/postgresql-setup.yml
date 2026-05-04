@@ -1,0 +1,161 @@
+---
+- name: Configure PostgreSQL LXC
+  hosts: postgresql
+  become: true
+
+  vars:
+    postgresql_version: "16"
+    postgresql_port: 5432
+    postgresql_listen_addresses: "*"
+    postgresql_allowed_networks:
+      - "10.0.0.0/16"
+    postgresql_databases:
+      - name: lldap
+        owner: lldap
+      - name: pocket_id
+        owner: pocket_id
+      - name: paperless
+        owner: paperless
+      - name: gramps
+        owner: gramps
+      - name: pelican
+        owner: pelican
+      - name: invoice_ninja
+        owner: invoice_ninja
+      - name: chatwoot
+        owner: chatwoot
+      - name: n8n
+        owner: n8n
+      - name: romm
+        owner: romm
+      - name: sonarr
+        owner: sonarr
+      - name: sonarr_anime
+        owner: sonarr_anime
+      - name: radarr
+        owner: radarr
+      - name: lidarr
+        owner: lidarr
+      - name: lidarr_kids
+        owner: lidarr_kids
+      - name: prowlarr
+        owner: prowlarr
+      - name: bazarr
+        owner: bazarr
+
+  tasks:
+    - name: Install PostgreSQL prerequisites
+      ansible.builtin.apt:
+        name:
+          - acl
+          - ca-certificates
+          - gnupg
+          - lsb-release
+          - python3-psycopg2
+          - sudo
+        state: present
+        update_cache: true
+
+    - name: Add PostgreSQL APT repository key
+      ansible.builtin.get_url:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        dest: /usr/share/keyrings/postgresql-archive-keyring.asc
+        mode: "0644"
+
+    - name: Add PostgreSQL APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.asc] https://apt.postgresql.org/pub/repos/apt {{ ansible_facts.distribution_release }}-pgdg main"
+        filename: pgdg
+        state: present
+
+    - name: Install PostgreSQL
+      ansible.builtin.apt:
+        name:
+          - "postgresql-{{ postgresql_version }}"
+          - "postgresql-client-{{ postgresql_version }}"
+        state: present
+        update_cache: true
+
+    - name: Configure listen_addresses
+      ansible.builtin.lineinfile:
+        path: "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+        regexp: "^#?listen_addresses\\s*="
+        line: "listen_addresses = '{{ postgresql_listen_addresses }}'"
+      notify: Restart PostgreSQL
+
+    - name: Configure password encryption
+      ansible.builtin.lineinfile:
+        path: "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+        regexp: "^#?password_encryption\\s*="
+        line: "password_encryption = scram-sha-256"
+      notify: Restart PostgreSQL
+
+    - name: Allow homelab network access
+      ansible.builtin.blockinfile:
+        path: "/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf"
+        marker: "# {mark} ANSIBLE MANAGED homelab network access"
+        block: |
+          {% for network in postgresql_allowed_networks %}
+          host    all    all    {{ network }}    scram-sha-256
+          {% endfor %}
+      notify: Restart PostgreSQL
+
+    - name: Ensure PostgreSQL is started and enabled
+      ansible.builtin.systemd:
+        name: postgresql
+        state: started
+        enabled: true
+
+    - name: Flush PostgreSQL config changes before database creation
+      ansible.builtin.meta: flush_handlers
+
+    - name: Create PostgreSQL users
+      become_user: postgres
+      community.postgresql.postgresql_user:
+        name: "{{ item.owner }}"
+        password: "{{ lookup('vars', 'pg_password_' + item.owner) }}"
+        state: present
+      loop: "{{ postgresql_databases }}"
+      no_log: true
+
+    - name: Create PostgreSQL databases
+      become_user: postgres
+      community.postgresql.postgresql_db:
+        name: "{{ item.name }}"
+        owner: "{{ item.owner }}"
+        state: present
+      loop: "{{ postgresql_databases }}"
+
+    - name: Install logical backup script
+      ansible.builtin.copy:
+        dest: /usr/local/bin/pg-backup.sh
+        mode: "0755"
+        content: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          BACKUP_DIR="/var/backups/postgresql"
+          TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
+          mkdir -p "$BACKUP_DIR"
+
+          sudo -u postgres psql -t -c "SELECT datname FROM pg_database WHERE datistemplate = false AND datname != 'postgres';" | while read -r db; do
+            db="$(echo "$db" | xargs)"
+            test -n "$db" || continue
+            sudo -u postgres pg_dump "$db" | gzip > "$BACKUP_DIR/${db}_${TIMESTAMP}.sql.gz"
+          done
+
+          find "$BACKUP_DIR" -name "*.sql.gz" -mtime +14 -delete
+
+    - name: Schedule nightly pg_dump
+      ansible.builtin.cron:
+        name: PostgreSQL nightly logical backup
+        minute: "30"
+        hour: "2"
+        job: /usr/local/bin/pg-backup.sh
+        user: root
+
+  handlers:
+    - name: Restart PostgreSQL
+      ansible.builtin.systemd:
+        name: postgresql
+        state: restarted
