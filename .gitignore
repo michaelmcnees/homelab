@@ -1,15 +1,24 @@
 # Terraform
 *.tfstate
 *.tfstate.backup
+*.tfstate.*.backup
 .terraform/
-.terraform.lock.hcl
+tfplan
 *.tfvars
 !*.tfvars.example
 
 # Ansible
 *.retry
+ansible/.ansible/
+ansible/collections/ansible_collections/
 ansible/kubeconfig.yaml
 ansible/inventory/group_vars/k3s_cluster.yml
+
+# Talos
+talos/generated/
+talos/talosconfig
+talos/secrets.yaml
+talos/kubeconfig
 
 # SOPS
 *.age.key
@@ -24,3 +33,4 @@ reference/
 # IDE
 .vscode/
 .idea/
+.claude/worktrees/

@@ -1,6 +1,9 @@
-proxmox_endpoint   = "https://10.0.0.x:8006"
+proxmox_endpoint   = "https://10.0.3.196:8006"
 proxmox_username   = "root@pam"
 proxmox_password   = "changeme"
-vm_ssh_public_key  = "ssh-ed25519 AAAA... michael@workstation"
-vm_default_gateway = "10.0.0.1"
-vm_dns_servers     = "10.0.0.53"
+vm_default_storage = "ceph-nvme"
+kubernetes_vlan_tag = 10
+talos_version      = "v1.12.6"
+talos_iso_url      = "https://github.com/siderolabs/talos/releases/download/v1.12.6/metal-amd64.iso"
+talos_iso_datastore   = "nfs-isos"
+talos_iso_file_id     = "nfs-isos:iso/talos-1.12.6-metal-amd64.iso"

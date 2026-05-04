@@ -1,16 +1,16 @@
-output "k3s_server_ips" {
-  description = "K3s control plane node IPs"
+output "talos_control_plane_ips" {
+  description = "Talos control plane node IPs"
   value = {
-    regirock  = module.regirock.ip_address
-    regice    = module.regice.ip_address
-    registeel = module.registeel.ip_address
+    articuno = module.articuno.ip_address
+    zapdos   = module.zapdos.ip_address
+    moltres  = module.moltres.ip_address
   }
 }
 
-output "k3s_agent_ips" {
-  description = "K3s worker node IPs"
+output "talos_worker_ips" {
+  description = "Talos worker node IPs"
   value = {
-    regieleki = module.regieleki.ip_address
-    regidrago = module.regidrago.ip_address
+    lugia   = module.lugia.ip_address
+    "ho-oh" = module.ho_oh.ip_address
   }
 }

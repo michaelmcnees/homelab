@@ -1,8 +1,5 @@
 ---
 collections:
-  - name: k3s.orchestration
-    source: https://github.com/k3s-io/k3s-ansible.git
-    type: git
   - name: community.general
     version: ">=7.0.0"
   - name: ansible.posix
