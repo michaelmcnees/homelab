@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pelican-wings-external
+  namespace: apps
+spec:
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: pelican-wings-external
+  namespace: apps
+subsets:
+  - addresses:
+      - ip: 10.0.0.64
+    ports:
+      - name: http
+        port: 8080
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: pelican-wings
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`wings.home.mcnees.me`)
+      kind: Rule
+      services:
+        - name: pelican-wings-external
+          port: 8080
+  tls:
+    secretName: pelican-wings-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pelican-wings
+  namespace: apps
+spec:
+  secretName: pelican-wings-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - wings.home.mcnees.me

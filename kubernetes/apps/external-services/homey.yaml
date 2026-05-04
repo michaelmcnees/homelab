@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: homey-external
+  namespace: apps
+spec:
+  ports:
+    - name: http
+      port: 4859
+      targetPort: 4859
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: homey-external
+  namespace: apps
+subsets:
+  - addresses:
+      - ip: 10.0.2.8
+    ports:
+      - name: http
+        port: 4859
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: homey
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`homey.home.mcnees.me`)
+      kind: Rule
+      services:
+        - name: homey-external
+          port: 4859
+  tls:
+    secretName: homey-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: homey
+  namespace: apps
+spec:
+  secretName: homey-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - homey.home.mcnees.me
