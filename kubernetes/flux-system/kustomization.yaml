@@ -4,6 +4,7 @@ resources:
 - apps.yaml
 - gotk-components.yaml
 - gotk-sync.yaml
+- infrastructure-configs.yaml
 - infrastructure.yaml
 patches:
 - path: patches/sops-decryption.yaml
