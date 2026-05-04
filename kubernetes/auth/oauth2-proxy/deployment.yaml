@@ -40,6 +40,7 @@ spec:
             - --whitelist-domain=.home.mcnees.me
             - --upstream=static://202
             - --reverse-proxy=true
+            - --trusted-proxy-ip=10.244.0.0/16
             - --set-xauthrequest=true
             - --set-authorization-header=true
             - --pass-access-token=true
