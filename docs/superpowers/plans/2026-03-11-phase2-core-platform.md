@@ -2535,6 +2535,16 @@ Access Pocket ID at `https://id.mcnees.me` (or via port-forward: `kubectl port-f
    - Bind Password: (LLDAP admin password from secret)
 3. Create an OIDC client for OAuth2-Proxy (note the client ID and secret — needed in Task 15)
 
+**Bootstrap note:** During the fresh lab bootstrap, LLDAP creates the built-in
+`admin` user without an email address. Pocket ID's LDAP sync requires every
+synced user to have an email address, so set an email on that bootstrap admin
+before expecting `SyncLdap` to succeed. In the current PostgreSQL-backed LLDAP
+deployment this was done by updating only the non-sensitive `users.email` and
+`users.lowercase_email` fields for `user_id = 'admin'` to `admin@mcnees.me`,
+then restarting LLDAP and Pocket ID. After that, Pocket ID imported the
+`lldap_admin` group membership cleanly. Real users should be created in LLDAP
+with email addresses from the start.
+
 ---
 
 ### Task 15: Deploy OAuth2-Proxy (Traefik auth middleware)
