@@ -24,6 +24,9 @@ talos/kubeconfig
 # SOPS
 *.age.key
 
+# Local generated credentials
+.secrets/
+
 # Reference repos (cloned for reference, not part of project)
 reference/
 
