@@ -15,6 +15,7 @@ spec:
       labels:
         app.kubernetes.io/name: lldap
     spec:
+      enableServiceLinks: false
       priorityClassName: critical
       containers:
         - name: lldap
@@ -34,6 +35,8 @@ spec:
               value: admin
             - name: LLDAP_HTTP_URL
               value: https://lldap.home.mcnees.me
+            - name: LLDAP_KEY_FILE
+              value: ""
             - name: LLDAP_JWT_SECRET
               valueFrom:
                 secretKeyRef:
