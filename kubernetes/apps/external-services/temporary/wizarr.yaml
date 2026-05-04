@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: wizarr-external
+  namespace: apps
+spec:
+  ports:
+    - name: http
+      port: 5690
+      targetPort: 5690
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: wizarr-external
+  namespace: apps
+subsets:
+  - addresses:
+      - ip: 10.0.0.59
+    ports:
+      - name: http
+        port: 5690
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: wizarr
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure-external
+  routes:
+    - match: Host(`invitations.mcnees.me`)
+      kind: Rule
+      services:
+        - name: wizarr-external
+          port: 5690
+  tls:
+    secretName: legacy-public-wildcard-tls

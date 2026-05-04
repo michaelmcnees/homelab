@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - certificates.yaml
+  - adguard.yaml
+  - bazarr.yaml
+  - beszel.yaml
+  - booklore.yaml
+  - gitea.yaml
+  - gramps.yaml
+  - hass.yaml
+  - homey-public.yaml
+  - influxdb.yaml
+  - lazylibrarian.yaml
+  - lidarr.yaml
+  - lidarr-kids.yaml
+  - n8n.yaml
+  - openwebui.yaml
+  - outline.yaml
+  - overseer.yaml
+  - pelican.yaml
+  - pelican-wings-public.yaml
+  - portainer.yaml
+  - prowlarr.yaml
+  - pterodactyl.yaml
+  - pterodactyl-wings.yaml
+  - radarr.yaml
+  - readarr.yaml
+  - romm.yaml
+  - sonarr.yaml
+  - sonarr-anime.yaml
+  - stash.yaml
+  - tautulli.yaml
+  - uptime-kuma.yaml
+  - wizarr.yaml
+  - pxe-bulbasaur.yaml
+  - pxe-charmander.yaml
+  - pxe-mew.yaml
+  - pxe-pikachu.yaml
+  - pxe-squirtle.yaml

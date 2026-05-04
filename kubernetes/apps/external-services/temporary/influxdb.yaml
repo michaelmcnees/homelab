@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: influxdb-external
+  namespace: apps
+spec:
+  ports:
+    - name: http
+      port: 8086
+      targetPort: 8086
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: influxdb-external
+  namespace: apps
+subsets:
+  - addresses:
+      - ip: 10.0.0.53
+    ports:
+      - name: http
+        port: 8086
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: influxdb
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`influxdb.home.mcnees.me`)
+      kind: Rule
+      middlewares:
+        - name: oauth2-proxy
+          namespace: auth
+      services:
+        - name: influxdb-external
+          port: 8086
+  tls:
+    secretName: legacy-home-wildcard-tls

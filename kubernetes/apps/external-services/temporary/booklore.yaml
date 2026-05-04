@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: booklore-external
+  namespace: apps
+spec:
+  ports:
+    - name: http
+      port: 6060
+      targetPort: 6060
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: booklore-external
+  namespace: apps
+subsets:
+  - addresses:
+      - ip: 10.0.0.61
+    ports:
+      - name: http
+        port: 6060
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: booklore
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure-external
+  routes:
+    - match: Host(`library.mcnees.me`)
+      kind: Rule
+      middlewares:
+        - name: oauth2-proxy
+          namespace: auth
+      services:
+        - name: booklore-external
+          port: 6060
+  tls:
+    secretName: legacy-public-wildcard-tls

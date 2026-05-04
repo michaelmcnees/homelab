@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: stash-external
+  namespace: apps
+spec:
+  ports:
+    - name: http
+      port: 30198
+      targetPort: 30198
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: stash-external
+  namespace: apps
+subsets:
+  - addresses:
+      - ip: 10.0.1.1
+    ports:
+      - name: http
+        port: 30198
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: stash
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`stash.home.mcnees.me`)
+      kind: Rule
+      middlewares:
+        - name: oauth2-proxy
+          namespace: auth
+      services:
+        - name: stash-external
+          port: 30198
+  tls:
+    secretName: legacy-home-wildcard-tls

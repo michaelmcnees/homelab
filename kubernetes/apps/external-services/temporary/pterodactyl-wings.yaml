@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pterodactyl-wings-external
+  namespace: apps
+spec:
+  ports:
+    - name: http
+      port: 443
+      targetPort: 443
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: pterodactyl-wings-external
+  namespace: apps
+subsets:
+  - addresses:
+      - ip: 10.0.2.20
+    ports:
+      - name: http
+        port: 443
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: pterodactyl-wings
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure-external
+  routes:
+    - match: Host(`gaming.mcnees.me`)
+      kind: Rule
+      services:
+        - name: pterodactyl-wings-external
+          port: 443
+  tls:
+    secretName: legacy-public-wildcard-tls

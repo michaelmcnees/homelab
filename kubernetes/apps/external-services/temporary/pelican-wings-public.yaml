@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: pelican-wings-public
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure-external
+  routes:
+    - match: Host(`games.mcnees.me`)
+      kind: Rule
+      services:
+        - name: pelican-wings-external
+          port: 8080
+  tls:
+    secretName: legacy-public-wildcard-tls

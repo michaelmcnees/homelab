@@ -1,0 +1,25 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: legacy-home-wildcard
+  namespace: apps
+spec:
+  secretName: legacy-home-wildcard-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - '*.home.mcnees.me'
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: legacy-public-wildcard
+  namespace: apps
+spec:
+  secretName: legacy-public-wildcard-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - '*.mcnees.me'
