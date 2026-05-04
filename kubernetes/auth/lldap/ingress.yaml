@@ -9,6 +9,9 @@ spec:
   routes:
     - match: Host(`lldap.home.mcnees.me`)
       kind: Rule
+      middlewares:
+        - name: oauth2-proxy
+          namespace: auth
       services:
         - name: lldap
           port: 17170
