@@ -1,0 +1,9 @@
+unifi_api_url        = "https://10.0.0.1"
+unifi_api_key        = "REPLACE_WITH_UNIFI_API_KEY"
+unifi_username       = ""
+unifi_password       = ""
+# UniFi expects the site short name/API slug here, not the display name.
+# For most single-site consoles this is "default", even if the UI shows a
+# custom name like "Central Command".
+unifi_site           = "default"
+unifi_allow_insecure = true

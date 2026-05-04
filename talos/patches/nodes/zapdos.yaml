@@ -1,0 +1,14 @@
+machine:
+  network:
+    interfaces:
+      - interface: ens18
+        addresses:
+          - 10.0.10.12/24
+        routes:
+          - network: 0.0.0.0/0
+            gateway: 10.0.10.1
+---
+apiVersion: v1alpha1
+kind: HostnameConfig
+hostname: zapdos
+auto: off

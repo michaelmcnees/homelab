@@ -45,6 +45,7 @@ Use this to track where you are in the migration. When starting a new Claude ses
 | 1.4 | 🖥️ Physical | Configure VLAN-aware bridges on each Proxmox node | ⬜ |
 | 1.5 | 🔀 Both | Verify: spin up test VM on VLAN 10, confirm IP assignment + inter-VLAN routing | ⬜ |
 | 1.6 | 🔀 Both | Verify AdGuard (on Mew, flat network) reachable from all VLANs | ⬜ |
+| 1.7 | 💻 Software | After VLAN 10/40 are verified, tighten the UniFi Proxmox host ports from tagged VLAN `Allow All` to custom tagged VLANs for K8s (10) and Storage (40). Note: USW Flex XG rejects provider-created port profiles that include implicit QoS queue fields, so prefer built-in/manual port settings unless provider behavior improves. | ⬜ |
 
 **Gate:** All VLANs active, VLAN 10 test VM passes connectivity tests.
 

@@ -1,8 +1,8 @@
 ---
 # Creates a cloud-init Ubuntu 24.04 VM template on a Proxmox node.
-# Run once per Proxmox node that will host K3s VMs.
+# Run once per Proxmox cluster when using shared storage for the template.
 #
-# Usage: ansible-playbook playbooks/create-vm-template.yml -e "target_node=charmander"
+# Usage: ansible-playbook playbooks/create-vm-template.yml -e "target_node=latios"
 #
 # Prerequisites: SSH access to the Proxmox node as root.
 
@@ -14,7 +14,7 @@
     template_name: "ubuntu-2404-cloud-init"
     ubuntu_image_url: "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
     ubuntu_image_file: "/tmp/noble-server-cloudimg-amd64.img"
-    storage_pool: "local-lvm"
+    storage_pool: "ceph-nvme"
 
   tasks:
     - name: Check if template already exists

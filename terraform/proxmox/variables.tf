@@ -16,33 +16,42 @@ variable "proxmox_password" {
   sensitive   = true
 }
 
-# --- VM Defaults ---
+# --- Talos Image ---
 
-variable "vm_template_id" {
-  description = "Proxmox VM template ID for cloud-init Ubuntu"
-  type        = number
-  default     = 9000
+variable "talos_version" {
+  description = "Talos Linux version for VM boot media"
+  type        = string
+  default     = "v1.12.6"
 }
+
+variable "talos_iso_url" {
+  description = "Talos ISO URL. Override with an Image Factory ISO URL when adding system extensions."
+  type        = string
+  default     = "https://github.com/siderolabs/talos/releases/download/v1.12.6/metal-amd64.iso"
+}
+
+variable "talos_iso_datastore" {
+  description = "Shared Proxmox datastore used for the Talos ISO"
+  type        = string
+  default     = "nfs-isos"
+}
+
+variable "talos_iso_file_id" {
+  description = "Proxmox file ID for the pre-seeded Talos ISO"
+  type        = string
+  default     = "nfs-isos:iso/talos-1.12.6-metal-amd64.iso"
+}
+
+# --- VM Defaults ---
 
 variable "vm_default_storage" {
   description = "Default storage pool for VM disks"
   type        = string
-  default     = "ceph-pool"
+  default     = "ceph-nvme"
 }
 
-variable "vm_ssh_public_key" {
-  description = "SSH public key to inject via cloud-init"
-  type        = string
-}
-
-variable "vm_default_gateway" {
-  description = "Default gateway for VM network"
-  type        = string
-  default     = "10.0.0.1"
-}
-
-variable "vm_dns_servers" {
-  description = "DNS servers for VMs"
-  type        = string
-  default     = "10.0.0.53"
+variable "kubernetes_vlan_tag" {
+  description = "VLAN tag for Kubernetes node VM network interfaces"
+  type        = number
+  default     = 10
 }

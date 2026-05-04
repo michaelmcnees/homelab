@@ -1,13 +1,18 @@
-resource "proxmox_virtual_environment_vm" "k3s_node" {
+resource "proxmox_virtual_environment_vm" "talos_node" {
   name      = var.vm_name
   node_name = var.target_node
   vm_id     = var.vm_id
   on_boot   = var.onboot
+  started   = var.started
   tags      = var.tags
 
-  clone {
-    vm_id = var.template_vm_id
-    full  = true
+  bios          = "seabios"
+  boot_order    = ["scsi0", "ide2"]
+  machine       = "q35"
+  scsi_hardware = "virtio-scsi-single"
+
+  operating_system {
+    type = "l26"
   }
 
   cpu {
@@ -27,37 +32,23 @@ resource "proxmox_virtual_environment_vm" "k3s_node" {
     ssd          = true
   }
 
+  cdrom {
+    file_id   = var.talos_iso_file_id
+    interface = "ide2"
+  }
+
   network_device {
     bridge   = var.bridge
     vlan_id  = var.vlan_tag >= 0 ? var.vlan_tag : null
     firewall = false
   }
 
-  agent {
-    enabled = true
+  serial_device {
+    device = "socket"
   }
 
-  initialization {
-    user_account {
-      username = var.ci_user
-      keys     = [var.ssh_public_key]
-    }
-
-    ip_config {
-      ipv4 {
-        address = var.ip_address
-        gateway = var.gateway
-      }
-    }
-
-    dns {
-      servers = split(" ", var.dns_servers)
-    }
-  }
-
-  lifecycle {
-    ignore_changes = [
-      initialization[0].user_account[0].password,
-    ]
+  vga {
+    type   = "std"
+    memory = 16
   }
 }
