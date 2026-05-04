@@ -42,6 +42,11 @@
         owner: prowlarr
       - name: bazarr
         owner: bazarr
+    postgresql_human_users:
+      - name: mmcnees-readonly
+        password_var: pg_password_mmcnees_readonly
+      - name: mmcnees-readwrite
+        password_var: pg_password_mmcnees_readwrite
 
   tasks:
     - name: Install PostgreSQL prerequisites
@@ -125,6 +130,96 @@
         owner: "{{ item.owner }}"
         state: present
       loop: "{{ postgresql_databases }}"
+
+    - name: Create shared PostgreSQL users
+      become_user: postgres
+      community.postgresql.postgresql_user:
+        name: "{{ item.name }}"
+        password: "{{ lookup('vars', item.password_var) }}"
+        role_attr_flags: LOGIN
+        state: present
+      loop: "{{ postgresql_human_users }}"
+      no_log: true
+
+    - name: Grant shared database access
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: postgres
+        query:
+          - GRANT CONNECT ON DATABASE "{{ item.name }}" TO "mmcnees-readonly";
+          - GRANT CONNECT, TEMPORARY ON DATABASE "{{ item.name }}" TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant shared schema access
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - GRANT USAGE ON SCHEMA public TO "mmcnees-readonly";
+          - GRANT USAGE, CREATE ON SCHEMA public TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant shared table privileges
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - GRANT SELECT ON ALL TABLES IN SCHEMA public TO "mmcnees-readonly";
+          - GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant shared sequence privileges
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO "mmcnees-readonly";
+          - GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant shared routine privileges
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - GRANT EXECUTE ON ALL ROUTINES IN SCHEMA public TO "mmcnees-readonly";
+          - GRANT EXECUTE ON ALL ROUTINES IN SCHEMA public TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant default shared table privileges
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - ALTER DEFAULT PRIVILEGES FOR ROLE "{{ item.owner }}" IN SCHEMA public GRANT SELECT ON TABLES TO "mmcnees-readonly";
+          - ALTER DEFAULT PRIVILEGES FOR ROLE "{{ item.owner }}" IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant default shared sequence privileges
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - ALTER DEFAULT PRIVILEGES FOR ROLE "{{ item.owner }}" IN SCHEMA public GRANT SELECT ON SEQUENCES TO "mmcnees-readonly";
+          - ALTER DEFAULT PRIVILEGES FOR ROLE "{{ item.owner }}" IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant default shared routine privileges
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - ALTER DEFAULT PRIVILEGES FOR ROLE "{{ item.owner }}" IN SCHEMA public GRANT EXECUTE ON ROUTINES TO "mmcnees-readonly";
+          - ALTER DEFAULT PRIVILEGES FOR ROLE "{{ item.owner }}" IN SCHEMA public GRANT EXECUTE ON ROUTINES TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
 
     - name: Install logical backup script
       ansible.builtin.copy:
