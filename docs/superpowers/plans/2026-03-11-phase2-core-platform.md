@@ -2796,9 +2796,6 @@ spec:
   routes:
     - match: Host(`lldap.home.mcnees.me`)
       kind: Rule
-      middlewares:
-        - name: oauth2-proxy
-          namespace: auth
       services:
         - name: lldap
           port: 17170
@@ -2821,6 +2818,12 @@ spec:
     - lldap.home.mcnees.me
 ```
 
+**Auth boundary:** Do not attach the OAuth2-Proxy middleware to LLDAP. LLDAP is
+the user directory Pocket ID depends on, so protecting it with the same auth
+chain creates an avoidable recovery loop. Keep it on the internal `websecure`
+entrypoint with TLS and rely on local-network access plus LLDAP's own admin
+login.
+
 Update `kubernetes/auth/lldap/kustomization.yaml`:
 
 ```yaml
@@ -2838,7 +2841,7 @@ resources:
 
 ```bash
 git add kubernetes/auth/lldap/ingress.yaml kubernetes/auth/lldap/kustomization.yaml
-git commit -m "feat: add LLDAP IngressRoute with OAuth2-Proxy auth middleware"
+git commit -m "feat: add local-only LLDAP IngressRoute"
 git push
 ```
 
@@ -2846,7 +2849,7 @@ git push
 
 1. Configure AdGuard Home: Add DNS rewrite `*.home.mcnees.me` → `10.0.0.200` (Traefik LB IP)
 2. Open `https://lldap.home.mcnees.me` in a browser
-3. Expected flow: Browser → Traefik → OAuth2-Proxy → redirect to Pocket ID → OIDC login → redirect back to LLDAP web UI
+3. Expected flow: Browser → internal Traefik `websecure` entrypoint → LLDAP web UI
 4. Create users in LLDAP: Michael, Hannah
 
 ---
@@ -2857,8 +2860,8 @@ git push
 - [ ] LLDAP deployed in `auth` namespace with SQLite on `local-path`
 - [ ] Pocket ID deployed in `auth` namespace with PostgreSQL backend, accessible at `https://id.mcnees.me`
 - [ ] OAuth2-Proxy deployed with Traefik ForwardAuth middleware
-- [ ] LLDAP web UI accessible at `https://lldap.home.mcnees.me` behind OAuth2-Proxy auth
-- [ ] Full auth chain works: user → Traefik → OAuth2-Proxy → Pocket ID OIDC → LLDAP credentials → authenticated
+- [ ] LLDAP web UI accessible at `https://lldap.home.mcnees.me` on internal Traefik TLS without OAuth2-Proxy middleware
+- [ ] Full auth chain works against a non-directory test service: user → Traefik → OAuth2-Proxy → Pocket ID OIDC → LLDAP credentials → authenticated
 - [ ] Users created in LLDAP (Michael, Hannah)
 
 ---
