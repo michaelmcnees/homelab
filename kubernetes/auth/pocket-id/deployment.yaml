@@ -38,6 +38,40 @@ spec:
               value: "true"
             - name: VERSION_CHECK_DISABLED
               value: "true"
+            - name: UI_CONFIG_DISABLED
+              value: "true"
+            - name: LDAP_ENABLED
+              value: "true"
+            - name: LDAP_URL
+              value: ldap://lldap.auth.svc.cluster.local:389
+            - name: LDAP_BIND_DN
+              value: uid=admin,ou=people,dc=mcnees,dc=me
+            - name: LDAP_BASE
+              value: dc=mcnees,dc=me
+            - name: LDAP_USER_SEARCH_FILTER
+              value: (objectClass=person)
+            - name: LDAP_USER_GROUP_SEARCH_FILTER
+              value: (objectClass=groupOfUniqueNames)
+            - name: LDAP_SOFT_DELETE_USERS
+              value: "true"
+            - name: LDAP_ATTRIBUTE_USER_UNIQUE_IDENTIFIER
+              value: uuid
+            - name: LDAP_ATTRIBUTE_USER_USERNAME
+              value: uid
+            - name: LDAP_ATTRIBUTE_USER_EMAIL
+              value: mail
+            - name: LDAP_ATTRIBUTE_USER_FIRST_NAME
+              value: givenName
+            - name: LDAP_ATTRIBUTE_USER_LAST_NAME
+              value: sn
+            - name: LDAP_ATTRIBUTE_GROUP_MEMBER
+              value: member
+            - name: LDAP_ATTRIBUTE_GROUP_UNIQUE_IDENTIFIER
+              value: uuid
+            - name: LDAP_ATTRIBUTE_GROUP_NAME
+              value: cn
+            - name: LDAP_ADMIN_GROUP_NAME
+              value: lldap_admin
             - name: DB_CONNECTION_STRING
               valueFrom:
                 secretKeyRef:
@@ -48,6 +82,11 @@ spec:
                 secretKeyRef:
                   name: pocket-id-secret
                   key: ENCRYPTION_KEY
+            - name: LDAP_BIND_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: lldap-secret
+                  key: LLDAP_LDAP_USER_PASS
           readinessProbe:
             httpGet:
               path: /healthz
