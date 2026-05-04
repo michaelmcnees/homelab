@@ -37,7 +37,6 @@ spec:
       - dev.home.mcnees.me
     extraArgs:
       - --cloudflare-dns-records-per-page=5000
-      - --traefik-disable-legacy
     interval: 5m
     policy: upsert-only
     provider:
