@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pocket-id
+  namespace: auth
+  labels:
+    app.kubernetes.io/name: pocket-id
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pocket-id
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pocket-id
+    spec:
+      enableServiceLinks: false
+      priorityClassName: critical
+      containers:
+        - name: pocket-id
+          image: ghcr.io/pocket-id/pocket-id:v2.5.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 1411
+              protocol: TCP
+          env:
+            - name: APP_URL
+              value: https://id.mcnees.me
+            - name: TRUST_PROXY
+              value: "true"
+            - name: FILE_BACKEND
+              value: database
+            - name: ANALYTICS_DISABLED
+              value: "true"
+            - name: VERSION_CHECK_DISABLED
+              value: "true"
+            - name: DB_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: pocket-id-secret
+                  key: DB_CONNECTION_STRING
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pocket-id-secret
+                  key: ENCRYPTION_KEY
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 256Mi

@@ -1,5 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - lldap
-  - pocket-id
+  - secret.sops.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
