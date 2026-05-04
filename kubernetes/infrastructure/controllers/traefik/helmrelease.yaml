@@ -28,6 +28,10 @@ spec:
   values:
     deployment:
       kind: DaemonSet
+    tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
     ingressRoute:
       dashboard:
         enabled: false
