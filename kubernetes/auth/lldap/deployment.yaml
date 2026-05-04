@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lldap
+  namespace: auth
+  labels:
+    app.kubernetes.io/name: lldap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lldap
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: lldap
+    spec:
+      priorityClassName: critical
+      containers:
+        - name: lldap
+          image: lldap/lldap:v0.6.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: ldap
+              containerPort: 3890
+              protocol: TCP
+            - name: http
+              containerPort: 17170
+              protocol: TCP
+          env:
+            - name: LLDAP_LDAP_BASE_DN
+              value: dc=mcnees,dc=me
+            - name: LLDAP_LDAP_USER_DN
+              value: admin
+            - name: LLDAP_HTTP_URL
+              value: https://lldap.home.mcnees.me
+            - name: LLDAP_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: lldap-secret
+                  key: LLDAP_JWT_SECRET
+            - name: LLDAP_KEY_SEED
+              valueFrom:
+                secretKeyRef:
+                  name: lldap-secret
+                  key: LLDAP_KEY_SEED
+            - name: LLDAP_LDAP_USER_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: lldap-secret
+                  key: LLDAP_LDAP_USER_PASS
+            - name: LLDAP_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: lldap-secret
+                  key: LLDAP_DATABASE_URL
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
