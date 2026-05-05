@@ -5,3 +5,5 @@ resources:
   - helmrelease.yaml
   - ingress.yaml
   - loki-datasource.yaml
+  - homelab-k8s-overview-dashboard.yaml
+  - homelab-pod-logs-dashboard.yaml

@@ -11,11 +11,12 @@ The hub stores its PocketBase data on the `beszel-data` local-path PVC. Do not m
 Beszel agents are installed manually on the hosts being monitored. Start with:
 
 - Proxmox hosts: `latias`, `latios`, `rayquaza`
-- TrueNAS VM: `snorlax`
 
 Use the Beszel UI to add each system and copy the generated agent command. SSH-mode agents are the simplest starting point. If WebSocket/token agents are used, keep them on the internal `beszel.home.mcnees.me` route.
+
+`snorlax` is intentionally not tracked as a Beszel host right now because it is a VM. Use the Proxmox metrics path for VM-level visibility once the Proxmox exporter is added.
 
 Current status:
 
 - `latios` is registered and reporting.
-- `latias`, `rayquaza`, and `snorlax` still need agents.
+- `latias` and `rayquaza` are registered and reporting.

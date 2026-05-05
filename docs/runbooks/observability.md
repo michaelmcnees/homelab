@@ -23,6 +23,15 @@ Alloy ships pod logs to Loki with `loki.source.kubernetes`, which tails containe
 
 Loki's local ingestion rate is raised above the chart default to absorb the startup burst when Alloy opens log streams for all existing pods.
 
+## Dashboards
+
+Grafana dashboards are provisioned from ConfigMaps labeled `grafana_dashboard: "1"` in `kubernetes/infrastructure/observability/kube-prometheus-stack`.
+
+The homelab-specific dashboards are:
+
+- `homelab-k8s-overview`: cluster and node vitals backed by Prometheus.
+- `homelab-pod-logs`: namespace-filtered Loki log volume and log search.
+
 ## Current Tradeoffs
 
 Node-exporter is enabled through `kube-prometheus-stack`. The `observability` namespace is explicitly labeled with `pod-security.kubernetes.io/enforce=privileged` because node-exporter needs host-level access for node metrics. Keep privileged workloads in this namespace limited to observability components.

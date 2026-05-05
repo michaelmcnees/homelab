@@ -59,6 +59,14 @@ data:
             icon: beszel.png
             href: https://beszel.home.mcnees.me
             description: Lightweight host monitoring
+        - K8s Overview:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-k8s-overview/homelab-k8s-overview
+            description: Cluster vitals
+        - Pod Logs:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-pod-logs/homelab-pod-logs
+            description: Loki log search
     - Media Cabinet:
         - Plex:
             icon: plex.png
