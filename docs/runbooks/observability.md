@@ -58,6 +58,18 @@ Homelab-specific alerts live in the `homelab-alerts` PrometheusRule:
 
 cert-manager metrics are scraped through the `cert-manager` ServiceMonitor in the `infrastructure` namespace.
 
+## Alert Delivery
+
+Alertmanager uses the SOPS-encrypted `alertmanager-homelab-config` Secret as its `configSecret`.
+
+Routing is intentionally simple:
+
+- `Watchdog` and `info` alerts are dropped.
+- `warning` alerts go to email.
+- `critical` alerts go to both Pushover and email.
+
+The local source values live outside Git in `.secrets/alertmanager.yml`. Regenerate `kubernetes/infrastructure/observability/kube-prometheus-stack/alertmanager-config.sops.yaml` after changing Pushover or SMTP credentials.
+
 ## Current Tradeoffs
 
 Node-exporter is enabled through `kube-prometheus-stack`. The `observability` namespace is explicitly labeled with `pod-security.kubernetes.io/enforce=privileged` because node-exporter needs host-level access for node metrics. Keep privileged workloads in this namespace limited to observability components.

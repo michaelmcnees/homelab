@@ -27,6 +27,7 @@ spec:
       create: true
     alertmanager:
       alertmanagerSpec:
+        configSecret: alertmanager-homelab-config
         priorityClassName: standard
         storage:
           volumeClaimTemplate:
