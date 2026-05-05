@@ -13,7 +13,7 @@ The auth flow is:
 5. Traefik forwards those headers to Grafana.
 6. Grafana auth-proxy mode uses `X-Auth-Request-Email` as the user identity and auto-creates the user.
 
-Current bootstrap behavior assigns auto-created Grafana users the Admin org role. Tighten this after the lab is fully bootstrapped by mapping Pocket ID groups to Grafana roles or by disabling auto-admin assignment.
+Auto-created Grafana users default to the Viewer org role. Promote admin users explicitly in Grafana after their first login, or add group-to-role mapping later if Pocket ID group claims become authoritative enough for Grafana role assignment.
 
 ## Logs
 

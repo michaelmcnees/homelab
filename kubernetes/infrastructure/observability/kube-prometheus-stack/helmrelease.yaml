@@ -64,7 +64,7 @@ spec:
           sync_ttl: 60
         users:
           auto_assign_org: true
-          auto_assign_org_role: Admin
+          auto_assign_org_role: Viewer
     kubeControllerManager:
       enabled: false
     kubeEtcd:

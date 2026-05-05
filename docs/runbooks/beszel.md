@@ -14,3 +14,8 @@ Beszel agents are installed manually on the hosts being monitored. Start with:
 - TrueNAS VM: `snorlax`
 
 Use the Beszel UI to add each system and copy the generated agent command. SSH-mode agents are the simplest starting point. If WebSocket/token agents are used, keep them on the internal `beszel.home.mcnees.me` route.
+
+Current status:
+
+- `latios` is registered and reporting.
+- `latias`, `rayquaza`, and `snorlax` still need agents.

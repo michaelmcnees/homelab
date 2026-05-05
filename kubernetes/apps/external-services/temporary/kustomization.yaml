@@ -9,7 +9,6 @@ resources:
   - gramps.yaml
   - hass.yaml
   - homey-public.yaml
-  - influxdb.yaml
   - lazylibrarian.yaml
   - lidarr.yaml
   - lidarr-kids.yaml
