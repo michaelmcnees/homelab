@@ -31,7 +31,6 @@ resources:
   - sonarr-anime.yaml
   - stash.yaml
   - tautulli.yaml
-  - uptime-kuma.yaml
   - wizarr.yaml
   - pxe-bulbasaur.yaml
   - pxe-charmander.yaml

@@ -4,3 +4,4 @@ resources:
   - namespace.yaml
   - ./external-services
   - ./homepage
+  - ./uptime-kuma
