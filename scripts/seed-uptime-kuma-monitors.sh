@@ -17,23 +17,28 @@ INSERT INTO "group" (name, public, active, weight)
 SELECT 'Infrastructure', 0, 1, 2000
 WHERE NOT EXISTS (SELECT 1 FROM "group" WHERE name = 'Infrastructure');
 
-INSERT INTO monitor (
-  name, active, user_id, interval, url, type, weight, maxretries,
-  ignore_tls, maxredirects, accepted_statuscodes_json, retry_interval, method
-)
-SELECT name, 1, 1, interval, url, 'http', weight, 2, 1, 10, '["200-399"]', 20, 'GET'
-FROM (
+WITH http_monitors(name, url, interval, weight) AS (
   SELECT 'Pocket ID' AS name, 'https://id.mcnees.me' AS url, 60 AS interval, 1000 AS weight
   UNION ALL SELECT 'LLDAP', 'https://lldap.home.mcnees.me', 60, 1010
   UNION ALL SELECT 'Homepage', 'https://dashboard.home.mcnees.me', 60, 1020
   UNION ALL SELECT 'Uptime Kuma', 'https://status.home.mcnees.me', 60, 1030
   UNION ALL SELECT 'AdGuard Home', 'https://adguard.home.mcnees.me', 60, 1040
+  UNION ALL SELECT 'Grafana', 'https://grafana.home.mcnees.me', 60, 1060
   UNION ALL SELECT 'Proxmox Latios', 'https://latios.home.mcnees.me', 60, 2000
   UNION ALL SELECT 'Proxmox Latias', 'https://latias.home.mcnees.me', 60, 2010
   UNION ALL SELECT 'Proxmox Rayquaza', 'https://rayquaza.home.mcnees.me', 60, 2020
   UNION ALL SELECT 'TrueNAS', 'https://truenas.home.mcnees.me/ui/', 60, 2030
 )
-WHERE NOT EXISTS (SELECT 1 FROM monitor WHERE monitor.name = name);
+INSERT INTO monitor (
+  name, active, user_id, interval, url, type, weight, maxretries,
+  ignore_tls, maxredirects, accepted_statuscodes_json, retry_interval, method
+)
+SELECT name, 1, 1, interval, url, 'http', weight, 2, 1, 10, '["200-399"]', 20, 'GET'
+FROM http_monitors
+WHERE NOT EXISTS (
+  SELECT 1 FROM monitor
+  WHERE monitor.name = http_monitors.name
+);
 
 UPDATE monitor
 SET url = 'https://truenas.home.mcnees.me/ui/'
@@ -56,6 +61,7 @@ WHERE monitor.name IN (
   'Homepage',
   'Uptime Kuma',
   'AdGuard Home',
+  'Grafana',
   'Metagross Postgres'
 )
 AND NOT EXISTS (

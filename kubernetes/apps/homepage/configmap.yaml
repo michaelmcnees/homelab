@@ -16,6 +16,9 @@ data:
       Core:
         style: row
         columns: 4
+      Observability:
+        style: row
+        columns: 4
       Media:
         style: row
         columns: 4
@@ -39,6 +42,11 @@ data:
             icon: adguard-home.png
             href: https://adguard.home.mcnees.me
             description: Local DNS and filtering
+    - Observability:
+        - Grafana:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me
+            description: Metrics and dashboards
         - Uptime Kuma:
             icon: uptime-kuma.png
             href: https://status.home.mcnees.me
