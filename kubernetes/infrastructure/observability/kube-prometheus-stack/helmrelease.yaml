@@ -75,37 +75,7 @@ spec:
       enabled: false
     prometheus:
       prometheusSpec:
-        initContainers:
-          - name: fix-prometheus-data-permissions
-            image: busybox:1.37.0
-            command:
-              - sh
-              - -c
-              - chown -R 1000:2000 /prometheus
-            securityContext:
-              allowPrivilegeEscalation: false
-              runAsNonRoot: false
-              runAsUser: 0
-            volumeMounts:
-              - name: prometheus-kube-prometheus-stack-prometheus-db
-                mountPath: /prometheus
         priorityClassName: standard
         retention: 30d
-        securityContext:
-          fsGroup: 2000
-          runAsGroup: 2000
-          runAsNonRoot: false
-          runAsUser: 1000
-          seccompProfile:
-            type: RuntimeDefault
-        storageSpec:
-          volumeClaimTemplate:
-            spec:
-              storageClassName: local-path
-              accessModes:
-                - ReadWriteOnce
-              resources:
-                requests:
-                  storage: 50Gi
     prometheus-node-exporter:
       enabled: false
