@@ -72,10 +72,35 @@ spec:
     kubeScheduler:
       enabled: false
     nodeExporter:
-      enabled: false
+      enabled: true
     prometheus:
       prometheusSpec:
+        initContainers:
+          - name: init-prometheus-data
+            image: busybox:1.37.0
+            command:
+              - sh
+              - -c
+              - |
+                chown -R 1000:2000 /prometheus
+                chmod -R g+rwX /prometheus
+            securityContext:
+              runAsUser: 0
+              runAsNonRoot: false
+            volumeMounts:
+              - name: prometheus-kube-prometheus-stack-prometheus-db
+                mountPath: /prometheus
+                subPath: prometheus-db
         priorityClassName: standard
         retention: 30d
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: local-path
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 50Gi
     prometheus-node-exporter:
-      enabled: false
+      enabled: true

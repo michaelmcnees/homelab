@@ -43,7 +43,11 @@ spec:
             - name: OLLAMA_HOST
               value: 0.0.0.0:11434
             - name: OLLAMA_KEEP_ALIVE
-              value: 24h
+              value: 30m
+            - name: OLLAMA_MAX_LOADED_MODELS
+              value: "1"
+            - name: OLLAMA_NUM_PARALLEL
+              value: "1"
           readinessProbe:
             httpGet:
               path: /api/tags
@@ -59,9 +63,7 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 2Gi
-            limits:
-              memory: 8Gi
+              memory: 4Gi
           volumeMounts:
             - name: models
               mountPath: /root/.ollama

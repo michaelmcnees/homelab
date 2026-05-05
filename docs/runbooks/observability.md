@@ -25,6 +25,6 @@ Loki's local ingestion rate is raised above the chart default to absorb the star
 
 ## Current Tradeoffs
 
-Node-exporter is disabled in `kube-prometheus-stack` because it requires host namespaces, hostPath mounts, and host ports. The cluster baseline Pod Security policy rejects those by default. Re-enable it only after explicitly deciding whether the `observability` namespace should receive a scoped Pod Security exception for host-level metrics.
+Node-exporter is enabled through `kube-prometheus-stack`. The `observability` namespace is explicitly labeled with `pod-security.kubernetes.io/enforce=privileged` because node-exporter needs host-level access for node metrics. Keep privileged workloads in this namespace limited to observability components.
 
-Prometheus is currently using ephemeral pod storage. A first attempt with a `local-path` PVC exposed ownership issues on `/prometheus/queries.active`. Revisit persistent Prometheus storage as a focused follow-up, ideally by testing the chart/operator-supported security context and local-path ownership behavior in isolation.
+Prometheus uses a `50Gi` `local-path` PVC for TSDB data with 30 days of retention. The chart/operator-managed Prometheus pod security context runs as UID/GID `1000:2000` with `fsGroup=2000`. Because the operator mounts the data volume through a subPath, an init container chowns `/prometheus` before startup so Prometheus can create `queries.active` and TSDB files.
