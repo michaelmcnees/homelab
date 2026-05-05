@@ -71,6 +71,8 @@ spec:
       enabled: false
     kubeScheduler:
       enabled: false
+    nodeExporter:
+      enabled: false
     prometheus:
       prometheusSpec:
         initContainers:
@@ -97,3 +99,5 @@ spec:
               resources:
                 requests:
                   storage: 50Gi
+    prometheus-node-exporter:
+      enabled: false
