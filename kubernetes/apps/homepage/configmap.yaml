@@ -51,6 +51,10 @@ data:
             icon: uptime-kuma.png
             href: https://status.home.mcnees.me
             description: Service checks
+        - Beszel:
+            icon: beszel.png
+            href: https://beszel.home.mcnees.me
+            description: Lightweight host monitoring
     - Media:
         - Sonarr:
             icon: sonarr.png
@@ -105,10 +109,6 @@ data:
             icon: portainer.png
             href: https://portainer.home.mcnees.me
             description: Container management
-        - Beszel:
-            icon: beszel.png
-            href: https://beszel.home.mcnees.me
-            description: Lightweight monitoring
         - Gitea:
             icon: gitea.png
             href: https://git.home.mcnees.me

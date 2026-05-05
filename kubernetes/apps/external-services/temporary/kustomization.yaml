@@ -4,7 +4,6 @@ resources:
   - certificates.yaml
   - adguard.yaml
   - bazarr.yaml
-  - beszel.yaml
   - booklore.yaml
   - gitea.yaml
   - gramps.yaml

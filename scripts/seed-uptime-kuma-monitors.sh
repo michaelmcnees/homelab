@@ -24,6 +24,7 @@ WITH http_monitors(name, url, interval, weight) AS (
   UNION ALL SELECT 'Uptime Kuma', 'https://status.home.mcnees.me', 60, 1030
   UNION ALL SELECT 'AdGuard Home', 'https://adguard.home.mcnees.me', 60, 1040
   UNION ALL SELECT 'Grafana', 'https://grafana.home.mcnees.me', 60, 1060
+  UNION ALL SELECT 'Beszel', 'https://beszel.home.mcnees.me', 60, 1070
   UNION ALL SELECT 'Proxmox Latios', 'https://latios.home.mcnees.me', 60, 2000
   UNION ALL SELECT 'Proxmox Latias', 'https://latias.home.mcnees.me', 60, 2010
   UNION ALL SELECT 'Proxmox Rayquaza', 'https://rayquaza.home.mcnees.me', 60, 2020
@@ -62,6 +63,7 @@ WHERE monitor.name IN (
   'Uptime Kuma',
   'AdGuard Home',
   'Grafana',
+  'Beszel',
   'Metagross Postgres'
 )
 AND NOT EXISTS (

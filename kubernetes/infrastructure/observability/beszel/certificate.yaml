@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: beszel
+  namespace: observability
+spec:
+  secretName: beszel-tls
+  dnsNames:
+    - beszel.home.mcnees.me
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-production
