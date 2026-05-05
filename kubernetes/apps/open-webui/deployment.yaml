@@ -35,6 +35,10 @@ spec:
               value: http://ollama.apps.svc.cluster.local:11434
             - name: WEBUI_URL
               value: https://ai.home.mcnees.me
+            - name: CORS_ALLOW_ORIGIN
+              value: https://ai.home.mcnees.me
+            - name: USER_AGENT
+              value: McNees Homelab Open WebUI
             - name: ENABLE_LOGIN_FORM
               value: "true"
             - name: ENABLE_SIGNUP
