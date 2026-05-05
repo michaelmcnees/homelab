@@ -6,4 +6,5 @@ resources:
   - external-dns.yaml
   - local-path-provisioner.yaml
   - metallb.yaml
+  - prometheus-community.yaml
   - traefik.yaml

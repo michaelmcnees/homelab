@@ -1,0 +1,87 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+  namespace: observability
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      version: "84.5.0"
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: flux-system
+      interval: 12h
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    defaultRules:
+      create: true
+    alertmanager:
+      alertmanagerSpec:
+        priorityClassName: standard
+        storage:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: local-path
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 1Gi
+    grafana:
+      enabled: true
+      admin:
+        existingSecret: grafana-admin
+        userKey: admin-user
+        passwordKey: admin-password
+      ingress:
+        enabled: false
+      persistence:
+        enabled: true
+        storageClassName: local-path
+        accessModes:
+          - ReadWriteOnce
+        size: 5Gi
+      grafana.ini:
+        server:
+          root_url: https://grafana.home.mcnees.me
+        auth:
+          disable_login_form: true
+        auth.proxy:
+          enabled: true
+          header_name: X-Auth-Request-Email
+          header_property: email
+          auto_sign_up: true
+          sync_ttl: 60
+        users:
+          auto_assign_org: true
+          auto_assign_org_role: Admin
+    kubeControllerManager:
+      enabled: false
+    kubeEtcd:
+      enabled: false
+    kubeScheduler:
+      enabled: false
+    prometheus:
+      prometheusSpec:
+        priorityClassName: standard
+        retention: 30d
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: local-path
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 50Gi
+
