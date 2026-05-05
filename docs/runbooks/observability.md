@@ -43,6 +43,21 @@ The `proxmox-exporter` component runs `prompve/prometheus-pve-exporter` in the `
 
 The exporter credentials live in the SOPS-encrypted `proxmox-exporter-config` Secret. Prefer a Proxmox API token with `PVEAuditor` permissions at `/`; the first bootstrap currently reuses the local Terraform API token so we can replace it with a read-only monitoring token later.
 
+## Alerts
+
+kube-prometheus-stack already provides the baseline Kubernetes alert pack, including target down, pod crashlooping, pod not ready, persistent volume filling, node filesystem pressure, and Prometheus/operator health.
+
+Homelab-specific alerts live in the `homelab-alerts` PrometheusRule:
+
+- cert-manager certificate expiration at 21 days and 7 days.
+- frequent pod restarts outside `kube-system`.
+- Proxmox exporter scrape failures.
+- Proxmox node down for `latios`, `latias`, and `rayquaza`.
+- Proxmox on-boot VM/LXC guests down.
+- Proxmox storage over 85% full.
+
+cert-manager metrics are scraped through the `cert-manager` ServiceMonitor in the `infrastructure` namespace.
+
 ## Current Tradeoffs
 
 Node-exporter is enabled through `kube-prometheus-stack`. The `observability` namespace is explicitly labeled with `pod-security.kubernetes.io/enforce=privileged` because node-exporter needs host-level access for node metrics. Keep privileged workloads in this namespace limited to observability components.

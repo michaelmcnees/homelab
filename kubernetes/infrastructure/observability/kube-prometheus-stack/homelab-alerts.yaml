@@ -1,0 +1,71 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: homelab-alerts
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: homelab.certificates
+      rules:
+        - alert: HomelabCertificateExpiringSoon
+          expr: certmanager_certificate_expiration_timestamp_seconds - time() < 21 * 24 * 60 * 60
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Certificate {{ $labels.namespace }}/{{ $labels.name }} expires soon"
+            description: "The cert-manager Certificate {{ $labels.namespace }}/{{ $labels.name }} expires in less than 21 days."
+        - alert: HomelabCertificateExpiringCritical
+          expr: certmanager_certificate_expiration_timestamp_seconds - time() < 7 * 24 * 60 * 60
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Certificate {{ $labels.namespace }}/{{ $labels.name }} expires critically soon"
+            description: "The cert-manager Certificate {{ $labels.namespace }}/{{ $labels.name }} expires in less than 7 days."
+    - name: homelab.kubernetes
+      rules:
+        - alert: HomelabPodRestartingFrequently
+          expr: sum by (namespace, pod, container) (increase(kube_pod_container_status_restarts_total{namespace!="kube-system"}[30m])) > 10
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is restarting frequently"
+            description: "Container {{ $labels.container }} in {{ $labels.namespace }}/{{ $labels.pod }} restarted more than 10 times in the last 30 minutes."
+    - name: homelab.proxmox
+      rules:
+        - alert: HomelabProxmoxExporterDown
+          expr: up{job="proxmox-exporter"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Proxmox exporter scrape target is down"
+            description: "Prometheus cannot scrape the Proxmox exporter target {{ $labels.instance }}."
+        - alert: HomelabProxmoxNodeDown
+          expr: max by (id) (pve_up{id=~"node/(latios|latias|rayquaza)"}) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Proxmox node {{ $labels.id }} is down"
+            description: "The Proxmox exporter reports {{ $labels.id }} as offline."
+        - alert: HomelabProxmoxExpectedGuestDown
+          expr: max by (id) (pve_up{id=~"(qemu|lxc)/.*"}) == 0 and on (id) max by (id) (pve_onboot_status == 1)
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Expected Proxmox guest {{ $labels.id }} is down"
+            description: "The Proxmox guest {{ $labels.id }} is marked on-boot but is not running."
+        - alert: HomelabProxmoxStorageFillingUp
+          expr: max by (id) (pve_disk_usage_bytes{id=~"storage/.*"} / pve_disk_size_bytes{id=~"storage/.*"}) > 0.85
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Proxmox storage {{ $labels.id }} is over 85% full"
+            description: "The Proxmox storage {{ $labels.id }} has been above 85% usage for 15 minutes."
