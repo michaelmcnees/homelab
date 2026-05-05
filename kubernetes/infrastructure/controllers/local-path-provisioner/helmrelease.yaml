@@ -23,7 +23,7 @@ spec:
   values:
     storageClass:
       name: local-path
-      defaultClass: false
+      defaultClass: true
       defaultVolumeType: hostPath
       reclaimPolicy: Retain
       volumeBindingMode: WaitForFirstConsumer

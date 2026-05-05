@@ -16,7 +16,7 @@ Both services require S3-compatible object storage for file uploads, attachments
                          +----------------------------------+
                          |        storage namespace          |
                          |  RustFS (S3-compatible storage)   |
-                         |  PVC: flash/k8s/ (bucket data)   |
+                         |  PVC: TrueNAS bulk/shared storage |
                          +--------+--------------+----------+
                                   |              |
     +-----------------------------+              +-------------------------------+
@@ -61,7 +61,7 @@ infrastructure --> databases --> storage --> hdf
 
 **Deployment:** Single standalone Deployment (not distributed mode). Runs `rustfs server` command.
 
-**Storage:** PVC on `truenas-nfs` (`flash/k8s/`) for all bucket data. This is the authoritative store for S3 objects.
+**Storage:** PVC on TrueNAS bulk/shared storage for all bucket data. This is the authoritative store for S3 objects and should not use the default `local-path` class unless we intentionally accept node-bound object data.
 
 **Service:** ClusterIP only — no public ingress.
 - Port 9000: S3 API
@@ -90,7 +90,7 @@ infrastructure --> databases --> storage --> hdf
 
 **Deployment:** Single Deployment (web server + queue worker).
 
-**Storage:** PVC on `truenas-nfs` for `/var/www/app/public/storage` (local file cache). With S3 configured, most files go to RustFS.
+**Storage:** PVC on `local-path` for `/var/www/app/public/storage` (local file cache). With S3 configured, most files go to RustFS.
 
 **Ingress:** IngressRoute on external Traefik entrypoint, TLS via cert-manager Certificate resource (Cloudflare DNS-01 ClusterIssuer).
 
@@ -133,7 +133,7 @@ infrastructure --> databases --> storage --> hdf
 - **worker** — Runs `bundle exec sidekiq` (background jobs: emails, webhooks, notifications)
 - Both share the same image and config, different entrypoint commands.
 
-**Storage:** PVC on `truenas-nfs` for local file cache. With S3 configured, most attachments go to RustFS.
+**Storage:** PVC on `local-path` for local file cache. With S3 configured, most attachments go to RustFS.
 
 **Ingress:** IngressRoute on external Traefik entrypoint, TLS via cert-manager Certificate resource. Requires WebSocket support for live chat (Traefik handles this natively).
 

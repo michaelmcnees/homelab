@@ -137,36 +137,35 @@ SATA SSDs across latios, latias, and rayquaza form a Ceph pool with 3-way replic
 - PostgreSQL LXC disk (HA, live-migratable — critical shared database)
 - Any other VM/LXC disks
 
-### Kubernetes Persistent Volumes — democratic-csi
+### Kubernetes Persistent Volumes — local-path on Ceph-backed VM disks
 
-**democratic-csi** connects K8s to TrueNAS via its API, dynamically creating ZFS datasets per PVC.
+Kubernetes uses Rancher `local-path` as the default StorageClass. Talos VM disks live on Proxmox `ceph-nvme`, so `local-path` data is physically backed by the replicated Proxmox Ceph pool even though Kubernetes treats each PVC as node-local `ReadWriteOnce` storage.
 
 | Storage Class | Backend | Use Case |
 |---------------|---------|----------|
-| `truenas-nfs` | democratic-csi -> TrueNAS NFS | Most workloads (bulk data, media references, document storage). ReadWriteMany. |
-| `local-path` | Rancher local-path-provisioner | SQLite fallbacks (e.g., LLDAP), Redis persistence, anything with NFS/locking issues. Node-local Ceph-backed storage. |
+| `local-path` | Rancher local-path-provisioner on Talos VM disks backed by Proxmox `ceph-nvme` | **Default.** App config, caches, single-pod service data, Redis persistence, and anything with NFS/locking sensitivity. ReadWriteOnce and node-bound at the Kubernetes layer. |
+| TrueNAS NFS | Static or future dynamic NFS shares from snorlax | Bulk/shared datasets: media, downloads, ROM libraries, document archives, backups, and workloads that truly need ReadWriteMany semantics. |
 
-Why democratic-csi over Longhorn: democratic-csi puts all persistent data on TrueNAS's massive ZFS pool — K3s nodes stay stateless compute. Simpler, more storage, fewer moving parts.
+This intentionally avoids a `flash/k8s` default PVC pool. The scarce resource is bulk drive capacity, while the Proxmox Ceph pool already gives the Talos VM disks replicated fast storage. If node-bound PVCs become painful later, add a real Kubernetes Ceph CSI layer deliberately rather than treating TrueNAS as the default app PVC backend.
 
 ### Storage Class Selection Guide
 
-With databases externalized to the PostgreSQL LXC, most K8s apps no longer manage their own databases. This dramatically simplifies storage — almost everything can go on `truenas-nfs`.
+With databases externalized to the PostgreSQL LXC, most K8s apps only need config/cache PVCs. Those should use `local-path` unless the workload explicitly needs shared filesystem access or bulk capacity.
 
-| Use `local-path` | Use `truenas-nfs` |
+| Use `local-path` | Use TrueNAS NFS |
 |-------------------|-------------------|
 | Redis (optional persistence) | Paperless-ngx document storage |
-| LLDAP (if Postgres fallback to SQLite) | Ollama model files |
-| Any app with known NFS/locking issues | Media references, bulk downloads |
-| | App configs (no longer databases — just config files) |
-| | Everything else by default |
+| App config and caches | Ollama model files |
+| SQLite or NFS/locking-sensitive data | Media references, bulk downloads |
+| Single-pod service data that can tolerate node-bound PVCs | ROM libraries, documents, archives |
 
-**Why this is simpler now:** The *arr apps, Paperless-ngx, Gramps, Pocket ID, and Pelican Panel all use the PostgreSQL LXC for their databases. Their K8s PVCs only store config files and cache — safe on NFS.
+**Why this is simpler now:** The *arr apps, Paperless-ngx, Pocket ID, and Pelican Panel all use the PostgreSQL LXC for their databases. Their K8s PVCs mostly store config files and cache, which fit well on `local-path`.
 
-**Escape hatch:** If NFS performance becomes an issue for a service, moving it to `local-path` is a PVC migration — not an architecture change.
+**Tradeoff:** `local-path` PVCs are node-bound at the Kubernetes layer. A pod using one of these PVCs can restart on the same node automatically, but moving the workload to another node requires operational recovery or a future migration to Ceph CSI/NFS.
 
 ### Storage Tiering — Optane, L2ARC, and SSD Pool
 
-> This section has been superseded by `docs/superpowers/specs/2026-03-14-storage-tiering-design.md`. See that spec for the full tiered storage design: Optane metadata/SLOG, NVMe L2ARC, SSD `flash` pool, and StorageClass mappings.
+> This section has been revised by `docs/superpowers/specs/2026-03-14-storage-tiering-design.md`. The old `flash/k8s` default PVC pool is no longer planned; TrueNAS focuses on bulk/shared/backup storage.
 
 ### TrueNAS Dataset Layout
 
@@ -182,7 +181,7 @@ data/
 │   ├── stash/
 │   ├── lazylibrarian/
 │   └── romm/
-├── k8s/                    # democratic-csi managed (auto-creates child datasets)
+├── k8s-bulk/               # optional K8s bulk/shared NFS datasets
 │   ├── nfs/
 │   └── snapshots/
 ├── backups/
@@ -222,7 +221,7 @@ A **PBS instance** (LXC or lightweight VM) provides deduplicated, incremental ba
 #### Other Backup Layers
 
 - **PostgreSQL**: `pg_dump` cron inside the LXC writes logical backups to TrueNAS (`data/backups/postgresql/`). Supplements the PBS VM-level backup with application-consistent database dumps.
-- **K8s persistent data**: Protected by TrueNAS ZFS snapshots (automated hourly/daily/weekly retention). democratic-csi creates per-PVC datasets, so each service's data gets independent snapshot coverage.
+- **K8s persistent data**: Default app PVCs live on Talos VM disks and are protected through Proxmox/PBS VM backups plus app-level exports where needed. TrueNAS-backed bulk/shared datasets use ZFS snapshots.
 - **GitOps repo**: The GitHub repo IS the backup for all K8s manifests and configuration. Cluster can be rebuilt entirely from the repo.
 - **TrueNAS ZFS**: Automated snapshot schedule (hourly/daily/weekly retention) via built-in snapshot tasks.
 
@@ -564,7 +563,7 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 | `media` | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr, Seer, Wizarr, Tautulli |
 | `apps` | Pelican Panel, Paperless-ngx, Paperless-ai, Ollama, Homepage, Stash, Netboot.xyz |
 | `hdf` | Invoice Ninja, Chatwoot (Hudsonville Digital Foundry client services) |
-| `storage` | democratic-csi, RustFS (S3-compatible object storage) |
+| `storage` | local-path provisioner, future TrueNAS NFS mounts, RustFS (S3-compatible object storage) |
 | `networking` | AdGuard Home, Tailscale |
 | `dev-lab` | Development/experimentation workloads (see Section 8) |
 
@@ -810,7 +809,7 @@ An isolated environment within K8s for career development, experimentation, and 
 - **Namespace**: `dev-lab` with its own resource quotas (CPU/memory limits) to prevent experiments from starving production workloads.
 - **DNS**: `*.dev.home.mcnees.me` — separate subdomain so it's clear what's dev vs. production.
 - **Traefik**: Dedicated IngressRoute entries under the dev subdomain. Same internal entrypoint as production (no public exposure).
-- **Storage**: Uses the same `truenas-nfs` storage class. democratic-csi creates datasets under `data/k8s/nfs/` — no special config needed.
+- **Storage**: Uses `local-path` by default. Add a TrueNAS NFS mount only for experiments that need shared filesystem semantics or bulk datasets.
 - **NetworkPolicies**: Dev lab namespace can reach the PostgreSQL LXC IP (for testing against shared databases), Redis in the databases namespace, and the internet, but not production app namespaces.
 - **Auth**: Dev services behind the same OAuth2-Proxy chain — only Michael has access.
 

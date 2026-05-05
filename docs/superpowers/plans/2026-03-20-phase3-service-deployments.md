@@ -4,16 +4,16 @@
 
 **Goal:** Deploy all application workloads into the K3s cluster across 9 migration waves — starting with a hard Traefik ingress cutover, then migrating services from Mew LXCs and TrueNAS apps to K8s, and finally deploying new services (observability, HDF). Services with data migrations run in parallel with the old instance until verified, then the old instance is destroyed.
 
-**Architecture:** Each K8s service follows the Flux CD GitOps pattern: namespace directory → Kustomization → Deployment/HelmRelease → Service → IngressRoute → Certificate → ConfigMap → SOPS-encrypted Secret. Services needing PostgreSQL connect to metagross (external LXC) via `metagross.internal.svc.cluster.local` DNS. Services needing NFS storage use `truenas-nfs` (SSD-backed `flash/k8s/` pool) or `truenas-nfs-bulk` (HDD-backed `data/k8s/` pool) StorageClasses via democratic-csi. Plex, Tdarr, and SABnzbd stay on TrueNAS with permanent ExternalService IngressRoutes.
+**Architecture:** Each K8s service follows the Flux CD GitOps pattern: namespace directory → Kustomization → Deployment/HelmRelease → Service → IngressRoute → Certificate → ConfigMap → SOPS-encrypted Secret. Services needing PostgreSQL connect to metagross (external LXC) via `metagross.internal.svc.cluster.local` DNS. App config/cache PVCs use `local-path` by default on Ceph-backed Talos VM disks. TrueNAS NFS is reserved for bulk/shared datasets such as media, downloads, ROMs, documents, archives, backups, and workloads requiring ReadWriteMany semantics. Plex, Tdarr, and SABnzbd stay on TrueNAS with permanent ExternalService IngressRoutes.
 
-**Tech Stack:** Flux CD v2, Kustomize, SOPS + age, Traefik v3 IngressRoutes, cert-manager, democratic-csi, PostgreSQL 16 (metagross LXC), Redis 7 (databases namespace), RustFS, AdGuard Home, kube-prometheus-stack, Loki, Beszel, Uptime Kuma
+**Tech Stack:** Flux CD v2, Kustomize, SOPS + age, Traefik v3 IngressRoutes, cert-manager, local-path-provisioner, PostgreSQL 16 (metagross LXC), Redis 7 (databases namespace), RustFS, AdGuard Home, kube-prometheus-stack, Loki, Beszel, Uptime Kuma
 
 **Specs:**
 - `docs/superpowers/specs/2026-03-11-homelab-redesign-design.md` — master design
 - `docs/superpowers/specs/2026-03-13-migration-plan-design.md` — migration waves and stages
 - `docs/superpowers/specs/2026-03-16-hdf-services-design.md` — Invoice Ninja, Chatwoot, RustFS
 
-**Depends on:** Phase 2 (Core Platform) — all infrastructure services running: democratic-csi, MetalLB, Traefik, cert-manager, ExternalDNS, metagross (PostgreSQL), Redis, LLDAP, Pocket ID, OAuth2-Proxy
+**Depends on:** Phase 2 (Core Platform) — all infrastructure services running: local-path-provisioner, MetalLB, Traefik, cert-manager, ExternalDNS, metagross (PostgreSQL), Redis, LLDAP, Pocket ID, OAuth2-Proxy
 
 **Services intentionally removed from plan** (decided during design review):
 - Outline — replaced by Obsidian, data already migrated
@@ -484,7 +484,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: truenas-nfs
+  storageClassName: local-path
   resources:
     requests:
       storage: 1Gi
@@ -497,7 +497,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: truenas-nfs
+  storageClassName: local-path
   resources:
     requests:
       storage: 5Gi
@@ -841,8 +841,8 @@ git commit -m "feat: add servarr PostgreSQL databases to metagross playbook"
 
 **Context:** Each *arr app is deployed as a Deployment with:
 - PostgreSQL connection env vars pointing at metagross (with `POSTGRES__MAINDB` and `POSTGRES__LOGDB` for Sonarr/Radarr/Prowlarr)
-- NFS PVC (`truenas-nfs-bulk`) for media access at `/media` (the TRaSH Guides hardlink structure)
-- NFS PVC (`truenas-nfs`) for config at `/config`
+- TrueNAS NFS bulk mount for media access at `/media` (the TRaSH Guides hardlink structure)
+- `local-path` PVC for config at `/config`
 - OAuth2-Proxy ForwardAuth middleware (none of the *arr apps have native auth)
 - IngressRoute on internal entrypoint
 
@@ -977,7 +977,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: truenas-nfs
+  storageClassName: local-path
   resources:
     requests:
       storage: 2Gi
@@ -990,7 +990,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: truenas-nfs-bulk
+  storageClassName: truenas-bulk # Future TrueNAS NFS class/static PV for media datasets.
   resources:
     requests:
       storage: 1Ti
@@ -1083,7 +1083,7 @@ ssh root@<docker-lxc-ip> "cd /opt/docker && docker compose stop sonarr radarr pr
 
 - [ ] **Step 2: Copy SQLite databases and config to K8s PVCs**
 
-For each service, scale down the K8s deployment and copy data directly to the NFS PVC mount on TrueNAS (since `kubectl cp` requires a running pod):
+For each service, scale down the K8s deployment and copy data into the config PVC with a temporary helper pod or an init/import job. Config PVCs use `local-path`, so do not assume a directly accessible TrueNAS dataset path.
 
 ```bash
 # Scale down the K8s deployment
@@ -1092,10 +1092,10 @@ kubectl scale deployment sonarr -n media --replicas=0
 # Copy config from Docker LXC to local
 scp -r root@<docker-lxc-ip>:/opt/docker/sonarr/config/ /tmp/sonarr-config/
 
-# Copy directly to the NFS PVC mount on TrueNAS
-# Find the PVC's NFS path (democratic-csi creates datasets under flash/k8s/)
-scp /tmp/sonarr-config/sonarr.db root@<snorlax-ip>:/mnt/flash/k8s/nfs/<pvc-dataset>/sonarr.db
-scp /tmp/sonarr-config/config.xml root@<snorlax-ip>:/mnt/flash/k8s/nfs/<pvc-dataset>/config.xml
+# Copy into the local-path PVC via a temporary pod that mounts the claim.
+# Exact helper pod manifest depends on the app PVC name.
+kubectl cp /tmp/sonarr-config/sonarr.db media/<helper-pod>:/config/sonarr.db
+kubectl cp /tmp/sonarr-config/config.xml media/<helper-pod>:/config/config.xml
 ```
 
 Repeat for sonarr-anime, radarr, prowlarr, bazarr.
@@ -1490,7 +1490,7 @@ spec:
       envFromSecret: grafana-secrets
       persistence:
         enabled: true
-        storageClassName: truenas-nfs
+        storageClassName: local-path
         size: 5Gi
     prometheus:
       prometheusSpec:
@@ -1498,7 +1498,7 @@ spec:
         storageSpec:
           volumeClaimTemplate:
             spec:
-              storageClassName: truenas-nfs
+              storageClassName: local-path
               resources:
                 requests:
                   storage: 50Gi
@@ -1507,7 +1507,7 @@ spec:
         storage:
           volumeClaimTemplate:
             spec:
-              storageClassName: truenas-nfs
+              storageClassName: local-path
               resources:
                 requests:
                   storage: 1Gi
@@ -1617,7 +1617,7 @@ spec:
     singleBinary:
       replicas: 1
       persistence:
-        storageClass: truenas-nfs
+        storageClass: local-path
         size: 20Gi
     gateway:
       enabled: false
@@ -1903,7 +1903,7 @@ spec:
             claimName: ollama-models
 ```
 
-PVC on `truenas-nfs`, 50Gi for model storage.
+PVC on TrueNAS NFS bulk/shared storage, 50Gi for model storage.
 
 - [ ] **Step 2: Create Service (ClusterIP only)**
 
@@ -2197,10 +2197,10 @@ spec:
 Secret (SOPS): `PAPERLESS_DBUSER`, `PAPERLESS_DBPASS`, `PAPERLESS_SECRET_KEY` (generate via `openssl rand -hex 32`), `PAPERLESS_ADMIN_USER`, `PAPERLESS_ADMIN_PASSWORD`
 
 PVCs:
-- `paperless-data` — `truenas-nfs`, 5Gi (index, thumbnails, classifier)
-- `paperless-media` — `truenas-nfs`, 50Gi (original + archived documents)
-- `paperless-consume` — `truenas-nfs`, 5Gi (inbox for new documents)
-- `paperless-export` — `truenas-nfs`, 10Gi (document export backups)
+- `paperless-data` — `local-path`, 5Gi (index, thumbnails, classifier)
+- `paperless-media` — TrueNAS NFS bulk/shared storage, 50Gi (original + archived documents)
+- `paperless-consume` — TrueNAS NFS bulk/shared storage, 5Gi (inbox for new documents)
+- `paperless-export` — TrueNAS NFS bulk/shared storage, 10Gi (document export backups)
 
 IngressRoute on internal entrypoint, host `paperless.home.mcnees.me`. Paperless has its own auth.
 
@@ -2478,7 +2478,7 @@ DB_NAME: romm
 
 Secret (SOPS): `DB_USER`, `DB_PASSWD`, `ROMM_AUTH_SECRET_KEY`
 
-PVCs: `romm-library` on `truenas-nfs-bulk` (ROM files), `romm-assets` on `truenas-nfs` (cover art, metadata).
+PVCs: `romm-library` on TrueNAS NFS bulk/shared storage (ROM files), `romm-assets` on `local-path` (cover art, metadata).
 
 IngressRoute on internal entrypoint, host `romm.home.mcnees.me`. RomM has its own auth.
 
@@ -2581,7 +2581,7 @@ spec:
             claimName: stash-media
 ```
 
-PVCs: `stash-config` on `truenas-nfs`, `stash-media` on `truenas-nfs-bulk`.
+PVCs: `stash-config` on `local-path`, `stash-media` on TrueNAS NFS bulk/shared storage.
 IngressRoute on internal entrypoint, host `stash.home.mcnees.me`, OAuth2-Proxy middleware.
 
 - [ ] **Step 2: Commit and deploy**
@@ -2807,7 +2807,7 @@ spec:
 
 Secret (SOPS): `RUSTFS_ROOT_USER`, `RUSTFS_ROOT_PASSWORD`
 
-PVC: `rustfs-data` on `truenas-nfs`, 50Gi.
+PVC: `rustfs-data` on TrueNAS NFS bulk/shared storage, 50Gi.
 
 Service: ClusterIP only (ports 9000, 9001).
 

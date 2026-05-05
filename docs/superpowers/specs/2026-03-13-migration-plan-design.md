@@ -80,7 +80,7 @@ As defined in the redesign spec (with naming and service updates from this migra
 - TrueNAS virtualized as **snorlax** on rayquaza (Proxmox)
 - Homey LXC on latios, Homebridge LXC on latias, Home Assistant VM on latios
 - Pelican game server VM (**pelipper**) on latias
-- democratic-csi for K8s persistent storage via TrueNAS NFS
+- local-path for default K8s persistent storage on Ceph-backed Talos VM disks; TrueNAS NFS only for bulk/shared datasets
 - Cold spare Dell 3050 powered off for DR
 
 ### Naming Decisions
@@ -242,7 +242,7 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 
 **Steps (all GitOps via Flux):**
 1. Helm repositories — add chart sources for all infrastructure components.
-2. Storage — democratic-csi (TrueNAS NFS via `truenas-nfs` storage class) + local-path-provisioner (`local-path` storage class). Requires firewall rule: VLAN 10 → snorlax TrueNAS API.
+2. Storage — local-path-provisioner (`local-path` default StorageClass) on Ceph-backed Talos VM disks. Add TrueNAS NFS only for bulk/shared datasets.
 3. Ingress — MetalLB (LoadBalancer IPs from VLAN 10) + Traefik v3.
 4. TLS + DNS — cert-manager (Let's Encrypt, Cloudflare DNS-01) + ExternalDNS (Cloudflare).
 5. PostgreSQL LXC (metagross) — OpenTofu creates LXC (Ceph-backed, Proxmox HA). Ansible installs and configures PostgreSQL.
@@ -280,7 +280,7 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 | 1 | AdGuard Home | DNS — everything depends on it. Cut over DHCP DNS settings to new MetalLB VIP. |
 | 2 | Traefik cutover | Already deployed in Stage 3. Cut over ingress from old Traefik LXC — update DNS records. |
 | 3 | Auth chain verification | Already deployed in Stage 3 (LLDAP, Pocket ID, OAuth2-Proxy). Verify SSO end-to-end. |
-| 4 | Servarr stack | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr. From Docker LXC. Need democratic-csi NFS to TrueNAS media datasets. Migrate Docker volume configs. |
+| 4 | Servarr stack | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr. From Docker LXC. Config PVCs use local-path; media libraries mount from TrueNAS bulk storage. Migrate Docker volume configs. |
 | 5 | Media adjacent | Seer (replaces Overseerr), Wizarr, Tautulli. Low data, mostly config. |
 | 6 | Productivity | Paperless-ngx + Paperless-ai, Gramps. Gramps has family tree data in Docker volume. |
 | 7 | AI | Ollama + OpenWebUI (models on TrueNAS NFS, prefer scheduling on lugia/latios for memory headroom). |

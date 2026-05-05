@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Deploy the core platform services onto the K3s cluster — persistent storage (democratic-csi, local-path), ingress (MetalLB, Traefik), TLS (cert-manager), DNS automation (ExternalDNS), a centralized PostgreSQL LXC, and the full authentication chain (Redis, LLDAP, Pocket ID, OAuth2-Proxy) — establishing the foundation that all application workloads in Phase 3 will build on.
+**Goal:** Deploy the core platform services onto the K3s cluster — `local-path` storage on Ceph-backed Talos VM disks, ingress (MetalLB, Traefik), TLS (cert-manager), DNS automation (ExternalDNS), a centralized PostgreSQL LXC, and the full authentication chain (Redis, LLDAP, Pocket ID, OAuth2-Proxy) — establishing the foundation that all application workloads in Phase 3 will build on.
 
 **Architecture:** Flux CD GitOps deploys everything inside K8s. Each service follows the same pattern: HelmRepository → HelmRelease → SOPS-encrypted secrets → Kustomization wiring. Infrastructure outside K8s (PostgreSQL LXC) is managed by OpenTofu (provisioning) + Ansible (configuration). Services deploy in dependency order: storage → ingress → TLS/DNS → databases → auth.
 
-**Tech Stack:** Flux CD v2, Helm, SOPS + age, democratic-csi, Rancher local-path-provisioner, MetalLB, Traefik v3, cert-manager, ExternalDNS, PostgreSQL 16, Redis 7, LLDAP, Pocket ID, OAuth2-Proxy, OpenTofu, Ansible
+**Tech Stack:** Flux CD v2, Helm, SOPS + age, Rancher local-path-provisioner, MetalLB, Traefik v3, cert-manager, ExternalDNS, PostgreSQL 16, Redis 7, LLDAP, Pocket ID, OAuth2-Proxy, OpenTofu, Ansible
 
 **Spec:** `docs/superpowers/specs/2026-03-11-homelab-redesign-design.md`
 
@@ -16,7 +16,7 @@
 
 ## Chunk 1: Storage, PriorityClasses & Helm Repositories
 
-This chunk deploys PriorityClasses for workload scheduling, the two storage backends (democratic-csi for TrueNAS NFS, local-path-provisioner for node-local), and sets up shared Helm repositories that later chunks reference.
+This chunk deploys PriorityClasses for workload scheduling, `local-path-provisioner` as the default StorageClass, and shared Helm repositories that later chunks reference. TrueNAS NFS is intentionally deferred until a concrete bulk/shared workload needs it.
 
 ### Task 0: Deploy PriorityClasses
 
@@ -98,7 +98,6 @@ kubectl get priorityclass
 ### Task 1: Add Helm repositories for Phase 2
 
 **Files:**
-- Create: `kubernetes/repositories/democratic-csi.yaml`
 - Create: `kubernetes/repositories/metallb.yaml`
 - Create: `kubernetes/repositories/traefik.yaml`
 - Create: `kubernetes/repositories/jetstack.yaml`
@@ -106,19 +105,6 @@ kubectl get priorityclass
 - Modify: `kubernetes/repositories/kustomization.yaml`
 
 **Context:** All HelmRelease resources reference HelmRepository sources. Create them all now so later chunks can reference them without modifying the repositories directory again.
-
-- [ ] **Step 1: Create `kubernetes/repositories/democratic-csi.yaml`**
-
-```yaml
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: HelmRepository
-metadata:
-  name: democratic-csi
-  namespace: flux-system
-spec:
-  interval: 24h
-  url: https://democratic-csi.github.io/charts/
-```
 
 - [ ] **Step 2: Create `kubernetes/repositories/metallb.yaml`**
 
@@ -178,7 +164,6 @@ spec:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - democratic-csi.yaml
   - metallb.yaml
   - traefik.yaml
   - jetstack.yaml
@@ -194,219 +179,15 @@ git commit -m "feat: add Helm repositories for Phase 2 platform services"
 
 ---
 
-### Task 2: Deploy democratic-csi (TrueNAS NFS storage class)
+### Task 2: Deferred — TrueNAS NFS StorageClass
 
-**Files:**
-- Create: `kubernetes/infrastructure/controllers/democratic-csi/`
-- Create: `kubernetes/infrastructure/controllers/democratic-csi/namespace.yaml`
-- Create: `kubernetes/infrastructure/controllers/democratic-csi/helmrelease.yaml`
-- Create: `kubernetes/infrastructure/controllers/democratic-csi/secret.sops.yaml`
-- Create: `kubernetes/infrastructure/controllers/democratic-csi/kustomization.yaml`
-- Modify: `kubernetes/infrastructure/controllers/kustomization.yaml`
+**Status:** Deferred by the storage pivot. The default Kubernetes PVC backend is `local-path` on Talos VM disks backed by Proxmox `ceph-nvme`. Add TrueNAS NFS later only for concrete bulk/shared workloads that need ReadWriteMany or direct access to large datasets.
 
-**Context:** democratic-csi connects K8s to TrueNAS via its API, dynamically provisioning NFS shares as PVCs. K3s was bootstrapped with `--disable=local-storage`, so no default StorageClass exists yet. democratic-csi provides the `truenas-nfs` StorageClass. The chart needs TrueNAS API credentials and NFS server details.
-
-**Prerequisites you must verify before starting:**
-- TrueNAS API key exists (generate one in TrueNAS UI → top-right gear → API Keys)
-- TrueNAS dataset `data/k8s/nfs` exists (create manually or via `task ansible:truenas` if playbook is ready)
-- NFS service is enabled on TrueNAS
-- K3s nodes can reach TrueNAS NFS (port 2049) over the network
-
-- [ ] **Step 1: Create namespace file `kubernetes/infrastructure/controllers/democratic-csi/namespace.yaml`**
-
-```yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: storage
-```
-
-- [ ] **Step 2: Create SOPS-encrypted secret `kubernetes/infrastructure/controllers/democratic-csi/secret.sops.yaml`**
-
-First create the unencrypted secret:
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: democratic-csi-truenas
-  namespace: storage
-stringData:
-  # TrueNAS connection details — fill in real values before encrypting
-  TRUENAS_API_KEY: "CHANGE_ME"
-  TRUENAS_HOST: "10.0.0.74"  # snorlax IP — update to actual TrueNAS VM IP
-```
-
-Then encrypt it:
-
-```bash
-sops --encrypt --in-place kubernetes/infrastructure/controllers/democratic-csi/secret.sops.yaml
-```
-
-- [ ] **Step 3: Create HelmRelease `kubernetes/infrastructure/controllers/democratic-csi/helmrelease.yaml`**
-
-```yaml
-apiVersion: helm.toolkit.fluxcd.io/v2
-kind: HelmRelease
-metadata:
-  name: democratic-csi-nfs
-  namespace: storage
-spec:
-  interval: 30m
-  chart:
-    spec:
-      chart: democratic-csi
-      version: "0.14.x"  # Pin to latest 0.14.x — check https://github.com/democratic-csi/charts/releases
-      sourceRef:
-        kind: HelmRepository
-        name: democratic-csi
-        namespace: flux-system
-  values:
-    csiDriver:
-      name: "org.democratic-csi.nfs"
-
-    storageClasses:
-      - name: truenas-nfs
-        defaultClass: true
-        reclaimPolicy: Retain
-        volumeBindingMode: Immediate
-        allowVolumeExpansion: true
-        parameters:
-          fsType: nfs
-        mountOptions:
-          - noatime
-          - nfsvers=4
-
-    driver:
-      config:
-        driver: freenas-nfs
-        instance_id: ""
-        httpConnection:
-          protocol: https
-          host: "${TRUENAS_HOST}"
-          port: 443
-          apiKey: "${TRUENAS_API_KEY}"
-          allowInsecure: true  # Self-signed TrueNAS cert
-        zfs:
-          datasetParentName: data/k8s/nfs
-          detachedSnapshotsDatasetParentName: data/k8s/snapshots
-          datasetProperties:
-            "org.freenas:description": "{{ parameters.[csi.storage.k8s.io/pvc/namespace] }}/{{ parameters.[csi.storage.k8s.io/pvc/name] }}"
-        nfs:
-          shareHost: "${TRUENAS_HOST}"
-          shareAlldirs: false
-          shareAllowedHosts: []
-          shareAllowedNetworks:
-            - "10.0.0.0/16"  # All homelab subnets
-          shareMaprootUser: root
-          shareMaprootGroup: wheel
-
-  valuesFrom:
-    - kind: Secret
-      name: democratic-csi-truenas
-      valuesKey: TRUENAS_HOST
-      targetPath: driver.config.httpConnection.host
-    - kind: Secret
-      name: democratic-csi-truenas
-      valuesKey: TRUENAS_API_KEY
-      targetPath: driver.config.httpConnection.apiKey
-    - kind: Secret
-      name: democratic-csi-truenas
-      valuesKey: TRUENAS_HOST
-      targetPath: driver.config.nfs.shareHost
-```
-
-- [ ] **Step 4: Create `kubernetes/infrastructure/controllers/democratic-csi/kustomization.yaml`**
-
-```yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - namespace.yaml
-  - secret.sops.yaml
-  - helmrelease.yaml
-```
-
-- [ ] **Step 5: Update `kubernetes/infrastructure/controllers/kustomization.yaml`**
-
-```yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - democratic-csi
-  # Will be populated as controllers are added:
-  # - metallb
-  # - traefik
-  # - cert-manager
-  # - external-dns
-```
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add kubernetes/infrastructure/controllers/democratic-csi/ kubernetes/infrastructure/controllers/kustomization.yaml
-git commit -m "feat: add democratic-csi NFS storage class via TrueNAS"
-```
-
-- [ ] **Step 7: Push and verify Flux deploys democratic-csi**
-
-```bash
-git push
-```
-
-Wait 2-5 minutes for Flux to reconcile, then verify:
-
-```bash
-flux get helmrelease -n storage
-# Expected: democratic-csi-nfs  True  Release reconciliation succeeded
-
-kubectl get storageclass
-# Expected: truenas-nfs (default)   org.democratic-csi.nfs   ...
-
-kubectl get pods -n storage
-# Expected: democratic-csi controller and node pods running
-```
-
-- [ ] **Step 8: Test PVC creation and deletion**
-
-Create a test PVC:
-
-```bash
-cat <<'EOF' | kubectl apply -f -
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: test-nfs-pvc
-  namespace: default
-spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: truenas-nfs
-EOF
-```
-
-Verify it binds:
-
-```bash
-kubectl get pvc test-nfs-pvc -n default
-# Expected: STATUS = Bound
-```
-
-Verify dataset was created on TrueNAS:
-
-```bash
-# SSH to TrueNAS or check the web UI
-# Expected: new dataset under data/k8s/nfs/
-```
-
-Clean up:
-
-```bash
-kubectl delete pvc test-nfs-pvc -n default
-```
+**Future prerequisite checklist:**
+- TrueNAS NFS service is enabled.
+- A concrete dataset/share exists for the workload, such as media, downloads, ROMs, documents, archives, or backup data.
+- K8s nodes can reach TrueNAS NFS over the storage/trusted network.
+- The workload cannot reasonably use `local-path`.
 
 ---
 
@@ -439,7 +220,6 @@ spec:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - democratic-csi.yaml
   - local-path-provisioner.yaml
   - metallb.yaml
   - traefik.yaml
@@ -469,7 +249,7 @@ spec:
   values:
     storageClass:
       name: local-path
-      defaultClass: false  # truenas-nfs is the default
+      defaultClass: true
       reclaimPolicy: Retain
     nodePathMap:
       - node: DEFAULT_PATH_FOR_NON_LISTED_NODES
@@ -492,7 +272,6 @@ resources:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - democratic-csi
   - local-path-provisioner
   # Will be populated as controllers are added:
   # - metallb
@@ -523,7 +302,7 @@ flux get helmrelease -n storage
 kubectl get storageclass
 # Expected:
 # local-path      rancher.io/local-path   ...
-# truenas-nfs (default)   org.democratic-csi.nfs   ...
+# local-path (default)   cluster.local/local-path-provisioner   ...
 ```
 
 - [ ] **Step 8: Test local-path PVC**
@@ -586,10 +365,9 @@ kubectl delete pvc test-local-pvc -n default
 ### Chunk 1 Checklist
 
 - [ ] PriorityClasses deployed: `critical` (1000), `standard` (500, globalDefault), `best-effort` (100)
-- [ ] HelmRepositories created for all Phase 2 services (democratic-csi, local-path-provisioner, metallb, traefik, jetstack, bitnami)
-- [ ] democratic-csi deployed, `truenas-nfs` StorageClass is default, test PVC binds and creates TrueNAS dataset
-- [ ] local-path-provisioner deployed, `local-path` StorageClass available (not default), test PVC works
-- [ ] Both storage classes visible via `kubectl get storageclass`
+- [ ] HelmRepositories created for all Phase 2 services (local-path-provisioner, metallb, traefik, jetstack, bitnami)
+- [ ] local-path-provisioner deployed, `local-path` StorageClass is default, test PVC works
+- [ ] TrueNAS NFS is deferred until a concrete bulk/shared workload needs it
 
 ---
 
@@ -686,7 +464,6 @@ spec:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - democratic-csi
   - local-path-provisioner
   - metallb
   # Will be populated as controllers are added:
@@ -850,7 +627,6 @@ resources:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - democratic-csi
   - local-path-provisioner
   - metallb
   - traefik
@@ -1005,7 +781,6 @@ resources:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - democratic-csi
   - local-path-provisioner
   - metallb
   - traefik
@@ -1274,7 +1049,6 @@ resources:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - democratic-csi
   - local-path-provisioner
   - metallb
   - traefik
@@ -2412,7 +2186,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: truenas-nfs
+  storageClassName: local-path
   resources:
     requests:
       storage: 1Gi
@@ -2871,7 +2645,7 @@ git push
 When all chunks are complete, verify the full platform stack:
 
 - [ ] **PriorityClasses**: `critical`, `standard` (default), `best-effort` deployed
-- [ ] **Storage**: `truenas-nfs` (default) and `local-path` StorageClasses operational
+- [ ] **Storage**: `local-path` StorageClass operational and default; TrueNAS NFS deferred until bulk/shared workloads need it
 - [ ] **Ingress**: MetalLB assigning IPs, Traefik routing requests on internal (80/443) and external (81/444) entrypoints
 - [ ] **TLS**: cert-manager issuing Let's Encrypt certificates via Cloudflare DNS-01
 - [ ] **DNS**: ExternalDNS managing Cloudflare records for public services
