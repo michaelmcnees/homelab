@@ -14,6 +14,7 @@ resources:
   - lazylibrarian.yaml
   - lidarr.yaml
   - lidarr-kids.yaml
+  - lldap-legacy.yaml
   - n8n.yaml
   - openwebui.yaml
   - outline.yaml
@@ -24,6 +25,7 @@ resources:
   - prowlarr.yaml
   - pterodactyl.yaml
   - pterodactyl-wings.yaml
+  - pocket-id-legacy.yaml
   - radarr.yaml
   - readarr.yaml
   - romm.yaml
