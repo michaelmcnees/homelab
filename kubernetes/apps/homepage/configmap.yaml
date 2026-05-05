@@ -156,7 +156,11 @@ data:
         provider: duckduckgo
         target: _blank
   docker.yaml: |
+    ---
   kubernetes.yaml: |
+    ---
     mode: disabled
+  proxmox.yaml: |
+    ---
   custom.css: |
   custom.js: |
