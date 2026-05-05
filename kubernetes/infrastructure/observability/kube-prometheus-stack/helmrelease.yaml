@@ -72,10 +72,19 @@ spec:
     kubeScheduler:
       enabled: false
     nodeExporter:
-      enabled: false
+      enabled: true
     prometheus:
       prometheusSpec:
         priorityClassName: standard
         retention: 30d
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: local-path
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 50Gi
     prometheus-node-exporter:
-      enabled: false
+      enabled: true
