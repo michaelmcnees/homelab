@@ -1,0 +1,160 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage-config
+  namespace: apps
+data:
+  settings.yaml: |
+    title: McNees Homelab
+    startUrl: https://dashboard.home.mcnees.me
+    theme: dark
+    color: slate
+    statusStyle: dot
+    hideVersion: true
+    showStats: false
+    layout:
+      Core:
+        style: row
+        columns: 4
+      Media:
+        style: row
+        columns: 4
+      Infrastructure:
+        style: row
+        columns: 4
+      Utilities:
+        style: row
+        columns: 4
+  services.yaml: |
+    - Core:
+        - Pocket ID:
+            icon: pocket-id.png
+            href: https://id.mcnees.me
+            description: Passkey identity provider
+        - LLDAP:
+            icon: lldap.png
+            href: https://lldap.home.mcnees.me
+            description: Local directory
+        - AdGuard Home:
+            icon: adguard-home.png
+            href: https://adguard.home.mcnees.me
+            description: Local DNS and filtering
+        - Uptime Kuma:
+            icon: uptime-kuma.png
+            href: https://status.home.mcnees.me
+            description: Service checks
+    - Media:
+        - Sonarr:
+            icon: sonarr.png
+            href: https://sonarr.home.mcnees.me
+            description: TV management
+        - Radarr:
+            icon: radarr.png
+            href: https://radarr.home.mcnees.me
+            description: Movie management
+        - Prowlarr:
+            icon: prowlarr.png
+            href: https://prowlarr.home.mcnees.me
+            description: Indexer management
+        - Bazarr:
+            icon: bazarr.png
+            href: https://bazarr.home.mcnees.me
+            description: Subtitle management
+        - Lidarr:
+            icon: lidarr.png
+            href: https://lidarr.home.mcnees.me
+            description: Music management
+        - Tautulli:
+            icon: tautulli.png
+            href: https://tautulli.home.mcnees.me
+            description: Plex analytics
+        - Plex:
+            icon: plex.png
+            href: https://plex.home.mcnees.me
+            description: Media server
+        - Overseerr:
+            icon: overseerr.png
+            href: https://seer.home.mcnees.me
+            description: Media requests
+    - Infrastructure:
+        - Proxmox Latios:
+            icon: proxmox.png
+            href: https://latios.home.mcnees.me
+            description: Proxmox node
+        - Proxmox Latias:
+            icon: proxmox.png
+            href: https://latias.home.mcnees.me
+            description: Proxmox node
+        - Proxmox Rayquaza:
+            icon: proxmox.png
+            href: https://rayquaza.home.mcnees.me
+            description: Proxmox node
+        - TrueNAS:
+            icon: truenas.png
+            href: https://truenas.home.mcnees.me
+            description: Bulk storage
+        - Portainer:
+            icon: portainer.png
+            href: https://portainer.home.mcnees.me
+            description: Container management
+        - Beszel:
+            icon: beszel.png
+            href: https://beszel.home.mcnees.me
+            description: Lightweight monitoring
+        - Gitea:
+            icon: gitea.png
+            href: https://git.home.mcnees.me
+            description: Git hosting
+        - Pelican:
+            icon: pelican-panel.png
+            href: https://panel.home.mcnees.me
+            description: Game server panel
+    - Utilities:
+        - Home Assistant:
+            icon: home-assistant.png
+            href: https://hass.home.mcnees.me
+            description: Home automation
+        - Homebridge:
+            icon: homebridge.png
+            href: https://homebridge.home.mcnees.me
+            description: HomeKit bridge
+        - Open WebUI:
+            icon: open-webui.png
+            href: https://ai.home.mcnees.me
+            description: Local AI chat
+        - Paperless:
+            icon: paperless-ngx.png
+            href: https://paperless.home.mcnees.me
+            description: Documents
+        - RomM:
+            icon: romm.png
+            href: https://romm.home.mcnees.me
+            description: Game library
+        - Stash:
+            icon: stash.png
+            href: https://stash.home.mcnees.me
+            description: Media library
+        - BookLore:
+            icon: booklore.png
+            href: https://booklore.home.mcnees.me
+            description: Books
+        - n8n:
+            icon: n8n.png
+            href: https://n8n.home.mcnees.me
+            description: Automations
+  bookmarks.yaml: |
+    - Repositories:
+        - Homelab:
+            - abbr: HL
+              href: https://github.com/michaelmcnees/homelab
+  widgets.yaml: |
+    - resources:
+        cpu: true
+        memory: true
+        disk: /
+    - search:
+        provider: duckduckgo
+        target: _blank
+  docker.yaml: |
+  kubernetes.yaml: |
+    mode: disabled
