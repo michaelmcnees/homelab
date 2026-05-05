@@ -89,7 +89,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "count(count by (proxmox_node) (pve_up{id=~\"node/.*\"}))",
+              "expr": "count(max by (id) (pve_up{id=~\"node/.*\"}))",
               "legendFormat": "nodes",
               "range": true,
               "refId": "A"
@@ -157,7 +157,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(pve_up{id=~\"qemu/.*\"})",
+              "expr": "sum(max by (id) (pve_up{id=~\"qemu/.*\"}))",
               "legendFormat": "running vms",
               "range": true,
               "refId": "A"
@@ -324,8 +324,8 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "pve_cpu_usage_ratio{id=~\"node/.*\"}",
-              "legendFormat": "{{proxmox_node}}",
+              "expr": "max by (id) (pve_cpu_usage_ratio{id=~\"node/.*\"})",
+              "legendFormat": "{{id}}",
               "range": true,
               "refId": "A"
             }
@@ -419,8 +419,8 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "pve_memory_usage_bytes{id=~\"node/.*\"}",
-              "legendFormat": "{{proxmox_node}} used",
+              "expr": "max by (id) (pve_memory_usage_bytes{id=~\"node/.*\"})",
+              "legendFormat": "{{id}} used",
               "range": true,
               "refId": "A"
             },
@@ -430,8 +430,8 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "pve_memory_size_bytes{id=~\"node/.*\"}",
-              "legendFormat": "{{proxmox_node}} total",
+              "expr": "max by (id) (pve_memory_size_bytes{id=~\"node/.*\"})",
+              "legendFormat": "{{id}} total",
               "range": true,
               "refId": "B"
             }
@@ -525,7 +525,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "pve_cpu_usage_ratio{id=~\"qemu/.*\"}",
+              "expr": "max by (id, name) (pve_cpu_usage_ratio{id=~\"qemu/.*\"})",
               "legendFormat": "{{name}}",
               "range": true,
               "refId": "A"
@@ -620,7 +620,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "pve_memory_usage_bytes{id=~\"qemu/.*\"}",
+              "expr": "max by (id, name) (pve_memory_usage_bytes{id=~\"qemu/.*\"})",
               "legendFormat": "{{name}} used",
               "range": true,
               "refId": "A"
