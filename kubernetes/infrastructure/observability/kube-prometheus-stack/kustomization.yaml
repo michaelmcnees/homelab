@@ -4,4 +4,4 @@ resources:
   - secret.sops.yaml
   - helmrelease.yaml
   - ingress.yaml
-
+  - loki-datasource.yaml

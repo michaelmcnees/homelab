@@ -4,6 +4,7 @@ resources:
   - bitnami.yaml
   - cert-manager.yaml
   - external-dns.yaml
+  - grafana.yaml
   - local-path-provisioner.yaml
   - metallb.yaml
   - prometheus-community.yaml

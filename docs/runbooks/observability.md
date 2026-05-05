@@ -15,9 +15,14 @@ The auth flow is:
 
 Current bootstrap behavior assigns auto-created Grafana users the Admin org role. Tighten this after the lab is fully bootstrapped by mapping Pocket ID groups to Grafana roles or by disabling auto-admin assignment.
 
+## Logs
+
+Loki is deployed in single-binary mode for cluster logs. Grafana gets Loki as a datasource from the `grafana-loki-datasource` ConfigMap.
+
+Alloy ships pod logs to Loki with `loki.source.kubernetes`, which tails container logs through the Kubernetes API. This avoids hostPath mounts, privileged containers, root filesystem access, and DaemonSet requirements while the cluster is still running baseline Pod Security.
+
 ## Current Tradeoffs
 
 Node-exporter is disabled in `kube-prometheus-stack` because it requires host namespaces, hostPath mounts, and host ports. The cluster baseline Pod Security policy rejects those by default. Re-enable it only after explicitly deciding whether the `observability` namespace should receive a scoped Pod Security exception for host-level metrics.
 
 Prometheus is currently using ephemeral pod storage. A first attempt with a `local-path` PVC exposed ownership issues on `/prometheus/queries.active`. Revisit persistent Prometheus storage as a focused follow-up, ideally by testing the chart/operator-supported security context and local-path ownership behavior in isolation.
-
