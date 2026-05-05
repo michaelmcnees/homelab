@@ -21,6 +21,8 @@ Loki is deployed in single-binary mode for cluster logs. Grafana gets Loki as a 
 
 Alloy ships pod logs to Loki with `loki.source.kubernetes`, which tails container logs through the Kubernetes API. This avoids hostPath mounts, privileged containers, root filesystem access, and DaemonSet requirements while the cluster is still running baseline Pod Security.
 
+Loki's local ingestion rate is raised above the chart default to absorb the startup burst when Alloy opens log streams for all existing pods.
+
 ## Current Tradeoffs
 
 Node-exporter is disabled in `kube-prometheus-stack` because it requires host namespaces, hostPath mounts, and host ports. The cluster baseline Pod Security policy rejects those by default. Re-enable it only after explicitly deciding whether the `observability` namespace should receive a scoped Pod Security exception for host-level metrics.
