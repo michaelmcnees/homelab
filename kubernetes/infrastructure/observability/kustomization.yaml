@@ -5,4 +5,5 @@ resources:
   - ./beszel
   - ./loki
   - ./alloy
+  - ./proxmox-exporter
   - ./kube-prometheus-stack

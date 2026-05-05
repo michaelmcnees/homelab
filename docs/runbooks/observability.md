@@ -31,6 +31,17 @@ The homelab-specific dashboards are:
 
 - `homelab-k8s-overview`: cluster and node vitals backed by Prometheus.
 - `homelab-pod-logs`: namespace-filtered Loki log volume and log search.
+- `homelab-proxmox`: Proxmox host and VM metrics from prometheus-pve-exporter.
+
+## Proxmox Metrics
+
+The `proxmox-exporter` component runs `prompve/prometheus-pve-exporter` in the `observability` namespace. Prometheus scrapes `/metrics` for exporter health and `/pve` for each Proxmox node:
+
+- `latios`: `10.0.3.196`
+- `latias`: `10.0.3.40`
+- `rayquaza`: `10.0.1.100`
+
+The exporter credentials live in the SOPS-encrypted `proxmox-exporter-config` Secret. Prefer a Proxmox API token with `PVEAuditor` permissions at `/`; the first bootstrap currently reuses the local Terraform API token so we can replace it with a read-only monitoring token later.
 
 ## Current Tradeoffs
 

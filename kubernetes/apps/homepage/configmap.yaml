@@ -67,6 +67,10 @@ data:
             icon: grafana.png
             href: https://grafana.home.mcnees.me/d/homelab-pod-logs/homelab-pod-logs
             description: Loki log search
+        - Proxmox Metrics:
+            icon: proxmox.png
+            href: https://grafana.home.mcnees.me/d/homelab-proxmox/homelab-proxmox
+            description: VM and host metrics
     - Media Cabinet:
         - Plex:
             icon: plex.png
