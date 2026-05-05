@@ -158,3 +158,5 @@ data:
   docker.yaml: |
   kubernetes.yaml: |
     mode: disabled
+  custom.css: |
+  custom.js: |
