@@ -13,23 +13,23 @@ data:
     hideVersion: true
     showStats: false
     layout:
-      Core:
+      Control Deck:
         style: row
         columns: 4
-      Observability:
+      High Scores:
         style: row
         columns: 4
-      Media:
+      Media Cabinet:
         style: row
         columns: 4
-      Infrastructure:
+      Machine Room:
         style: row
         columns: 4
-      Utilities:
+      Bonus Stage:
         style: row
         columns: 4
   services.yaml: |
-    - Core:
+    - Control Deck:
         - Pocket ID:
             icon: pocket-id.png
             href: https://id.mcnees.me
@@ -42,7 +42,11 @@ data:
             icon: adguard-home.png
             href: https://adguard.home.mcnees.me
             description: Local DNS and filtering
-    - Observability:
+        - Open WebUI:
+            icon: open-webui.png
+            href: https://ai.home.mcnees.me
+            description: Local AI chat
+    - High Scores:
         - Grafana:
             icon: grafana.png
             href: https://grafana.home.mcnees.me
@@ -55,7 +59,15 @@ data:
             icon: beszel.png
             href: https://beszel.home.mcnees.me
             description: Lightweight host monitoring
-    - Media:
+    - Media Cabinet:
+        - Plex:
+            icon: plex.png
+            href: https://plex.home.mcnees.me
+            description: Media server
+        - Overseerr:
+            icon: overseerr.png
+            href: https://seer.home.mcnees.me
+            description: Media requests
         - Sonarr:
             icon: sonarr.png
             href: https://sonarr.home.mcnees.me
@@ -80,15 +92,7 @@ data:
             icon: tautulli.png
             href: https://tautulli.home.mcnees.me
             description: Plex analytics
-        - Plex:
-            icon: plex.png
-            href: https://plex.home.mcnees.me
-            description: Media server
-        - Overseerr:
-            icon: overseerr.png
-            href: https://seer.home.mcnees.me
-            description: Media requests
-    - Infrastructure:
+    - Machine Room:
         - Proxmox Latios:
             icon: proxmox.png
             href: https://latios.home.mcnees.me
@@ -117,7 +121,7 @@ data:
             icon: pelican-panel.png
             href: https://panel.home.mcnees.me
             description: Game server panel
-    - Utilities:
+    - Bonus Stage:
         - Home Assistant:
             icon: home-assistant.png
             href: https://hass.home.mcnees.me
@@ -126,10 +130,6 @@ data:
             icon: homebridge.png
             href: https://homebridge.home.mcnees.me
             description: HomeKit bridge
-        - Open WebUI:
-            icon: open-webui.png
-            href: https://ai.home.mcnees.me
-            description: Local AI chat
         - Paperless:
             icon: paperless-ngx.png
             href: https://paperless.home.mcnees.me
@@ -171,4 +171,148 @@ data:
   proxmox.yaml: |
     ---
   custom.css: |
+    :root {
+      --arcade-bg: #07080d;
+      --arcade-panel: rgba(13, 17, 28, 0.86);
+      --arcade-panel-strong: rgba(17, 23, 37, 0.94);
+      --arcade-border: rgba(73, 235, 255, 0.32);
+      --arcade-cyan: #49ebff;
+      --arcade-gold: #ffd166;
+      --arcade-red: #ff4d6d;
+      --arcade-green: #7cff6b;
+      --arcade-text: #f6f1d1;
+      --arcade-muted: #a6adc8;
+    }
+
+    html,
+    body {
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.025) 50%, rgba(0, 0, 0, 0.08) 50%),
+        radial-gradient(circle at 18% 12%, rgba(73, 235, 255, 0.11), transparent 28rem),
+        radial-gradient(circle at 82% 4%, rgba(255, 77, 109, 0.08), transparent 22rem),
+        linear-gradient(180deg, #0b1020 0%, var(--arcade-bg) 42%, #05060a 100%) !important;
+      background-size: 100% 3px, auto, auto, auto !important;
+      color: var(--arcade-text) !important;
+      font-family: "Courier New", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      background:
+        linear-gradient(90deg, rgba(255, 0, 0, 0.035), rgba(0, 255, 60, 0.018), rgba(0, 160, 255, 0.035)),
+        repeating-linear-gradient(0deg, transparent 0 2px, rgba(255, 255, 255, 0.025) 2px 3px);
+      mix-blend-mode: screen;
+      opacity: 0.46;
+    }
+
+    a,
+    button {
+      transition: color 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease !important;
+    }
+
+    h1,
+    h2,
+    h3,
+    [class*="group"] > div:first-child {
+      letter-spacing: 0 !important;
+      text-transform: uppercase;
+      color: var(--arcade-gold) !important;
+      text-shadow:
+        2px 0 rgba(255, 77, 109, 0.52),
+        -2px 0 rgba(73, 235, 255, 0.45),
+        0 0 14px rgba(255, 209, 102, 0.3);
+    }
+
+    main,
+    #page_container,
+    [class*="page"],
+    [class*="content"] {
+      background: transparent !important;
+    }
+
+    input,
+    [role="searchbox"],
+    [class*="search"] {
+      border: 1px solid rgba(255, 209, 102, 0.28) !important;
+      background: rgba(4, 6, 12, 0.72) !important;
+      color: var(--arcade-text) !important;
+      box-shadow: inset 0 0 0 1px rgba(73, 235, 255, 0.08), 0 0 18px rgba(73, 235, 255, 0.08) !important;
+    }
+
+    [class*="service"],
+    [class*="bookmark"],
+    [class*="widget"] {
+      border-radius: 2px !important;
+    }
+
+    [class*="service-card"],
+    [class*="serviceCard"],
+    [class*="service"] a,
+    [class*="bookmark"] a,
+    [class*="widget"] > div {
+      border: 1px solid var(--arcade-border) !important;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 38%),
+        var(--arcade-panel) !important;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+        0 0 0 1px rgba(0, 0, 0, 0.8),
+        0 10px 24px rgba(0, 0, 0, 0.32) !important;
+    }
+
+    [class*="service"] a:hover,
+    [class*="bookmark"] a:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 209, 102, 0.78) !important;
+      background:
+        linear-gradient(180deg, rgba(255, 209, 102, 0.08), transparent 45%),
+        var(--arcade-panel-strong) !important;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 209, 102, 0.1),
+        0 0 18px rgba(73, 235, 255, 0.18),
+        0 14px 28px rgba(0, 0, 0, 0.42) !important;
+    }
+
+    [class*="service"] img,
+    [class*="bookmark"] img {
+      image-rendering: auto;
+      filter: saturate(1.25) contrast(1.08) drop-shadow(0 0 5px rgba(73, 235, 255, 0.28));
+    }
+
+    [class*="service"] a:hover img,
+    [class*="bookmark"] a:hover img {
+      filter: saturate(1.45) contrast(1.12) drop-shadow(0 0 7px rgba(255, 209, 102, 0.38));
+    }
+
+    [class*="description"],
+    [class*="subtitle"],
+    [class*="text-muted"],
+    p {
+      color: var(--arcade-muted) !important;
+    }
+
+    [class*="status"] {
+      filter: drop-shadow(0 0 4px rgba(124, 255, 107, 0.35));
+    }
+
+    ::selection {
+      background: var(--arcade-cyan);
+      color: #05060a;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      a,
+      button {
+        transition: none !important;
+      }
+
+      [class*="service"] a:hover,
+      [class*="bookmark"] a:hover {
+        transform: none;
+      }
+    }
   custom.js: |
