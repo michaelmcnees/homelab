@@ -17,6 +17,10 @@ INSERT INTO "group" (name, public, active, weight)
 SELECT 'Infrastructure', 0, 1, 2000
 WHERE NOT EXISTS (SELECT 1 FROM "group" WHERE name = 'Infrastructure');
 
+INSERT INTO "group" (name, public, active, weight)
+SELECT 'Utilities', 0, 1, 3000
+WHERE NOT EXISTS (SELECT 1 FROM "group" WHERE name = 'Utilities');
+
 WITH http_monitors(name, url, interval, weight) AS (
   SELECT 'Pocket ID' AS name, 'https://id.mcnees.me' AS url, 60 AS interval, 1000 AS weight
   UNION ALL SELECT 'LLDAP', 'https://lldap.home.mcnees.me', 60, 1010
@@ -29,6 +33,7 @@ WITH http_monitors(name, url, interval, weight) AS (
   UNION ALL SELECT 'Proxmox Latias', 'https://latias.home.mcnees.me', 60, 2010
   UNION ALL SELECT 'Proxmox Rayquaza', 'https://rayquaza.home.mcnees.me', 60, 2020
   UNION ALL SELECT 'TrueNAS', 'https://truenas.home.mcnees.me/ui/', 60, 2030
+  UNION ALL SELECT 'Open WebUI', 'https://ai.home.mcnees.me', 60, 3000
 )
 INSERT INTO monitor (
   name, active, user_id, interval, url, type, weight, maxretries,
@@ -81,6 +86,19 @@ WHERE monitor.name IN (
   'Proxmox Latias',
   'Proxmox Rayquaza',
   'TrueNAS'
+)
+AND NOT EXISTS (
+  SELECT 1 FROM monitor_group
+  WHERE monitor_group.monitor_id = monitor.id
+    AND monitor_group.group_id = "group".id
+);
+
+INSERT INTO monitor_group (monitor_id, group_id, weight)
+SELECT monitor.id, "group".id, monitor.weight
+FROM monitor
+JOIN "group" ON "group".name = 'Utilities'
+WHERE monitor.name IN (
+  'Open WebUI'
 )
 AND NOT EXISTS (
   SELECT 1 FROM monitor_group
