@@ -100,7 +100,7 @@ infrastructure --> databases --> storage --> hdf
 
 **Environment (SOPS-encrypted Secret + ConfigMap):**
 - `DB_TYPE=pgsql`
-- `DB_HOST=metagross.internal`
+- `DB_HOST=metagross.internal.svc.cluster.local`
 - `DB_DATABASE=invoice_ninja`
 - `DB_USERNAME`, `DB_PASSWORD` — SOPS-encrypted
 - `QUEUE_CONNECTION=redis`
@@ -142,7 +142,7 @@ infrastructure --> databases --> storage --> hdf
 **Database:** `chatwoot` on metagross (PostgreSQL LXC).
 
 **Environment (SOPS-encrypted Secret + ConfigMap):**
-- `DATABASE_URL=postgres://chatwoot:pass@metagross.internal:5432/chatwoot`
+- `DATABASE_URL=postgres://chatwoot:pass@metagross.internal.svc.cluster.local:5432/chatwoot`
 - `REDIS_URL=redis://redis.databases.svc:6379/2`
 - `ACTIVE_STORAGE_SERVICE=amazon`
 - `S3_BUCKET_NAME=chatwoot`

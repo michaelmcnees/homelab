@@ -4,7 +4,7 @@
 
 **Goal:** Deploy all application workloads into the K3s cluster across 9 migration waves — starting with a hard Traefik ingress cutover, then migrating services from Mew LXCs and TrueNAS apps to K8s, and finally deploying new services (observability, HDF). Services with data migrations run in parallel with the old instance until verified, then the old instance is destroyed.
 
-**Architecture:** Each K8s service follows the Flux CD GitOps pattern: namespace directory → Kustomization → Deployment/HelmRelease → Service → IngressRoute → Certificate → ConfigMap → SOPS-encrypted Secret. Services needing PostgreSQL connect to metagross (external LXC) via `metagross.internal` DNS. Services needing NFS storage use `truenas-nfs` (SSD-backed `flash/k8s/` pool) or `truenas-nfs-bulk` (HDD-backed `data/k8s/` pool) StorageClasses via democratic-csi. Plex, Tdarr, and SABnzbd stay on TrueNAS with permanent ExternalService IngressRoutes.
+**Architecture:** Each K8s service follows the Flux CD GitOps pattern: namespace directory → Kustomization → Deployment/HelmRelease → Service → IngressRoute → Certificate → ConfigMap → SOPS-encrypted Secret. Services needing PostgreSQL connect to metagross (external LXC) via `metagross.internal.svc.cluster.local` DNS. Services needing NFS storage use `truenas-nfs` (SSD-backed `flash/k8s/` pool) or `truenas-nfs-bulk` (HDD-backed `data/k8s/` pool) StorageClasses via democratic-csi. Plex, Tdarr, and SABnzbd stay on TrueNAS with permanent ExternalService IngressRoutes.
 
 **Tech Stack:** Flux CD v2, Kustomize, SOPS + age, Traefik v3 IngressRoutes, cert-manager, democratic-csi, PostgreSQL 16 (metagross LXC), Redis 7 (databases namespace), RustFS, AdGuard Home, kube-prometheus-stack, Loki, Beszel, Uptime Kuma
 
@@ -911,7 +911,7 @@ spec:
             - name: SONARR__AUTH__REQUIRED
               value: DisabledForLocalAddresses
             - name: SONARR__POSTGRES__HOST
-              value: metagross.internal
+              value: metagross.internal.svc.cluster.local
             - name: SONARR__POSTGRES__PORT
               value: "5432"
             - name: SONARR__POSTGRES__MAINDB
@@ -2137,7 +2137,7 @@ spec:
             - name: PAPERLESS_DBENGINE
               value: postgresql
             - name: PAPERLESS_DBHOST
-              value: metagross.internal
+              value: metagross.internal.svc.cluster.local
             - name: PAPERLESS_DBPORT
               value: "5432"
             - name: PAPERLESS_DBNAME
@@ -2471,7 +2471,7 @@ spec:
 
 ConfigMap:
 ```yaml
-DB_HOST: metagross.internal
+DB_HOST: metagross.internal.svc.cluster.local
 DB_PORT: "5432"
 DB_NAME: romm
 ```
@@ -2682,7 +2682,7 @@ spec:
             claimName: pelican-panel-data
 ```
 
-ConfigMap: `DB_HOST=metagross.internal`, `DB_PORT=5432`, `DB_DATABASE=pelican`, `APP_URL=https://panel.home.mcnees.me`
+ConfigMap: `DB_HOST=metagross.internal.svc.cluster.local`, `DB_PORT=5432`, `DB_DATABASE=pelican`, `APP_URL=https://panel.home.mcnees.me`
 
 Secret (SOPS): `DB_USERNAME`, `DB_PASSWORD`, `APP_KEY`, `HASHIDS_SALT`
 
@@ -2905,7 +2905,7 @@ task ansible:postgresql
 - [ ] **Step 3: Create Invoice Ninja deployment**
 
 Follow the spec exactly. Key env vars:
-- `DB_TYPE=pgsql`, `DB_HOST=metagross.internal`, `DB_DATABASE=invoice_ninja`
+- `DB_TYPE=pgsql`, `DB_HOST=metagross.internal.svc.cluster.local`, `DB_DATABASE=invoice_ninja`
 - `REDIS_HOST=redis.databases.svc`, `REDIS_PORT=6379`, `REDIS_DB=1`
 - `FILESYSTEM_DISK=s3`, `AWS_ENDPOINT=http://rustfs.storage.svc:9000`
 - `AWS_DEFAULT_REGION=us-east-1`, `AWS_USE_PATH_STYLE_ENDPOINT=true`
@@ -2946,7 +2946,7 @@ Run the PostgreSQL playbook (if not already run with the `chatwoot` database).
 - [ ] **Step 2: Create Chatwoot web deployment**
 
 Follow the spec. Key env vars:
-- `DATABASE_URL=postgres://chatwoot:pass@metagross.internal:5432/chatwoot`
+- `DATABASE_URL=postgres://chatwoot:pass@metagross.internal.svc.cluster.local:5432/chatwoot`
 - `REDIS_URL=redis://redis.databases.svc:6379/2`
 - `ACTIVE_STORAGE_SERVICE=amazon`, `S3_BUCKET_NAME=chatwoot`
 - `AWS_ENDPOINT=http://rustfs.storage.svc:9000`, `AWS_REGION=us-east-1`
