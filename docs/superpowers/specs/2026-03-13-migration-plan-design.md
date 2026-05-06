@@ -107,7 +107,7 @@ This migration spec also supersedes the redesign spec on:
 - **n8n**: Removed (replaced by mantle). Database no longer needs migration.
 - **Scrypted**: Removed.
 - **Outline, Linkwarden, Actual Budget, Booklore, Glances, InfluxDB, Portainer**: Removed.
-- **Paperless-ngx + Paperless-ai**: Added to Phase 3 service deployments.
+- **Paperless-ngx + Paperless-GPT**: Added to Phase 3 service deployments.
 - **Pelican Wings**: Stays as existing LXC. Wings is the daemon that runs game instances; Panel is the management UI in K3s. Pelipper VM (on latias) hosts additional game server capacity alongside the Wings LXC.
 - **Home Assistant**: Migrates from Mew to latios as a VM (6GB RAM, 2 cores).
 
@@ -282,7 +282,7 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 | 3 | Auth chain verification | Already deployed in Stage 3 (LLDAP, Pocket ID, OAuth2-Proxy). Verify SSO end-to-end. |
 | 4 | Servarr stack | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr. From Docker LXC. Config PVCs use local-path; media libraries mount from TrueNAS bulk storage. Migrate Docker volume configs. |
 | 5 | Media adjacent | Seer (replaces Overseerr), Wizarr, Tautulli. Low data, mostly config. |
-| 6 | Productivity | Paperless-ngx + Paperless-ai, Gramps. Gramps has family tree data in Docker volume. |
+| 6 | Productivity | Paperless-ngx + Paperless-GPT, Gramps. Gramps has family tree data in Docker volume. |
 | 7 | AI | Ollama + OpenWebUI (models on TrueNAS NFS, prefer scheduling on lugia/latios for memory headroom). |
 | 8 | Monitoring + Gaming | Grafana (fresh via kube-prometheus-stack), Beszel, Uptime Kuma. Replaces InfluxDB with Prometheus — no data migration. Pelican Panel (K3s, database already migrated). Points at existing Pelican Wings LXC. |
 | 9 | Misc infra | Tailscale subnet router, DbGate, Netboot.xyz, Stash, Romm, LazyLibrarian. |

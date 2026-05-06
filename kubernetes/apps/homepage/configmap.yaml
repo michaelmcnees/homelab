@@ -150,10 +150,6 @@ data:
             icon: paperless-ngx.png
             href: https://paperless.home.mcnees.me
             description: Documents
-        - Paperless AI:
-            icon: paperless-ngx.png
-            href: https://paperless-ai.home.mcnees.me
-            description: Document tagging
         - RomM:
             icon: romm.png
             href: https://romm.home.mcnees.me

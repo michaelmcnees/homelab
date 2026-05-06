@@ -1830,7 +1830,7 @@ git add -A && git commit -m "cleanup: remove temporary ExternalService routes fo
 
 ## Wave 6: AI & Dashboard
 
-Deploy Ollama, Open WebUI, Homepage, Paperless-ngx, and Paperless-ai — all fresh installs.
+Deploy Ollama, Open WebUI, Homepage, Paperless-ngx, and Paperless-GPT — all fresh installs.
 
 ### Task 16: Deploy Ollama
 
@@ -2215,46 +2215,46 @@ git commit -m "feat: deploy Paperless-ngx document management with PostgreSQL on
 
 Access `https://paperless.home.mcnees.me`. The `PAPERLESS_ADMIN_USER` and `PAPERLESS_ADMIN_PASSWORD` env vars create the initial superuser. Upload a test document and verify OCR processing.
 
-### Task 20: Deploy Paperless-ai
+### Task 20: Deploy Paperless-GPT
 
 **Files:**
-- Create: `kubernetes/apps/paperless-ai/deployment.yaml`
-- Create: `kubernetes/apps/paperless-ai/service.yaml`
-- Create: `kubernetes/apps/paperless-ai/configmap.yaml`
-- Create: `kubernetes/apps/paperless-ai/secret.sops.yaml`
-- Create: `kubernetes/apps/paperless-ai/kustomization.yaml`
+- Create: `kubernetes/apps/paperless-gpt/deployment.yaml`
+- Create: `kubernetes/apps/paperless-gpt/service.yaml`
+- Create: `kubernetes/apps/paperless-gpt/pvc.yaml`
+- Create: `kubernetes/apps/paperless-gpt/secret.sops.yaml`
+- Create: `kubernetes/apps/paperless-gpt/kustomization.yaml`
 - Modify: `kubernetes/apps/kustomization.yaml`
 
-**Context:** Paperless-ai is a companion app that auto-tags and classifies documents using Ollama. It connects to both Paperless-ngx (API) and Ollama (inference). No ingress needed — it runs as a background worker polling Paperless-ngx for new documents.
+**Context:** Paperless-GPT is a companion app that generates titles, tags, correspondents, document types, and optional OCR suggestions using Ollama. It connects to both Paperless-ngx (API) and Ollama (inference). It has a small web UI and prompt storage.
 
-- [ ] **Step 1: Create Paperless-ai deployment**
+- [ ] **Step 1: Create Paperless-GPT deployment**
 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: paperless-ai
+  name: paperless-gpt
   namespace: apps
   labels:
-    app.kubernetes.io/name: paperless-ai
+    app.kubernetes.io/name: paperless-gpt
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: paperless-ai
+      app.kubernetes.io/name: paperless-gpt
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: paperless-ai
+        app.kubernetes.io/name: paperless-gpt
     spec:
       containers:
-        - name: paperless-ai
-          image: clusterpedia/paperless-ai:v2
+        - name: paperless-gpt
+          image: icereed/paperless-gpt:v0.25.1
           envFrom:
             - configMapRef:
-                name: paperless-ai-config
+                name: paperless-gpt-config
             - secretRef:
-                name: paperless-ai-secrets
+                name: paperless-gpt-secrets
           resources:
             requests:
               memory: 128Mi
@@ -2265,28 +2265,30 @@ spec:
 
 ConfigMap:
 ```yaml
-PAPERLESS_API_URL: http://paperless-ngx.apps.svc:8000
-OLLAMA_API_URL: http://ollama.apps.svc:11434
-AI_MODEL: llama3.2
+PAPERLESS_BASE_URL: http://paperless-ngx.apps.svc.cluster.local:8000
+PAPERLESS_PUBLIC_URL: https://paperless.home.mcnees.me
+LLM_PROVIDER: ollama
+LLM_MODEL: qwen3:8b
+OLLAMA_HOST: http://ollama.apps.svc.cluster.local:11434
 ```
 
 Secret (SOPS): `PAPERLESS_API_TOKEN` (generate from Paperless-ngx admin UI after Task 19)
 
-No ingress, no PVC — stateless worker.
+Ingress is local-only at `paperless-gpt.home.mcnees.me` behind oauth2-proxy. Prompt templates persist on a small local-path PVC mounted at `/app/prompts`.
 
 - [ ] **Step 2: Commit and deploy**
 
 ```bash
-git add kubernetes/apps/paperless-ai/
-git commit -m "feat: deploy Paperless-ai auto-tagger with Ollama backend"
+git add kubernetes/apps/paperless-gpt/
+git commit -m "feat: deploy Paperless-GPT companion for Paperless"
 ```
 
 - [ ] **Step 3: Verify auto-tagging**
 
-Upload a document to Paperless-ngx. Watch Paperless-ai logs for classification activity:
+Upload a document to Paperless-ngx. Watch Paperless-GPT logs for classification activity:
 
 ```bash
-kubectl logs -n apps -l app.kubernetes.io/name=paperless-ai -f
+kubectl logs -n apps -l app.kubernetes.io/name=paperless-gpt -f
 ```
 
 Verify the document gets auto-tagged/classified.

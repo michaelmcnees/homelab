@@ -426,7 +426,7 @@ homelab/
 │   │   ├── lldap/
 │   │   ├── oauth2-proxy/
 │   │   ├── ollama/
-│   │   ├── paperless-ai/
+│   │   ├── paperless-gpt/
 │   │   ├── paperless-ngx/
 │   │   ├── pelican-panel/
 │   │   ├── pocket-id/
@@ -561,7 +561,7 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 | `auth` | Pocket ID, LLDAP, OAuth2-Proxy |
 | `databases` | Redis (cache/session store) |
 | `media` | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr, Seer, Wizarr, Tautulli |
-| `apps` | Pelican Panel, Paperless-ngx, Paperless-ai, Ollama, Homepage, Stash, Netboot.xyz |
+| `apps` | Pelican Panel, Paperless-ngx, Paperless-GPT, Ollama, Homepage, Stash, Netboot.xyz |
 | `hdf` | Invoice Ninja, Chatwoot (Hudsonville Digital Foundry client services) |
 | `storage` | local-path provisioner, future TrueNAS NFS mounts, RustFS (S3-compatible object storage) |
 | `networking` | AdGuard Home, Tailscale |
@@ -687,11 +687,11 @@ Home Dashboard
 
 **Productivity & Knowledge**
 - Paperless-ngx (document management, OCR, search)
-- Paperless-ai (auto-tagging and classification companion for Paperless-ngx)
+- Paperless-GPT (auto-tagging, metadata, and OCR companion for Paperless-ngx)
 - Homepage (dashboard)
 
 **AI/ML**
-- Ollama (local LLM inference — serves Paperless-ai and other local AI workloads)
+- Ollama (local LLM inference - serves Paperless-GPT and other local AI workloads)
 
 **Media Management**
 - Seer (replaces Overseerr — migration required)
@@ -722,19 +722,19 @@ Home Dashboard
 
 ### Document Processing — Paperless-ngx + Local AI
 
-**Paperless-ngx** handles document ingestion, OCR, storage, and search. **Paperless-ai** watches for new documents and sends them to an LLM for automatic tagging, classification, and summarization. **Ollama** runs the LLM locally — no documents leave the network.
+**Paperless-ngx** handles document ingestion, OCR, storage, and search. **Paperless-GPT** watches tagged documents and sends them to an LLM for automatic titles, tags, correspondents, document types, and optional OCR assistance. **Ollama** runs the LLM locally — no documents leave the network.
 
 | Component | RAM | Storage Class | Notes |
 |-----------|-----|---------------|-------|
 | Paperless-ngx | ~1GB | `truenas-nfs` (documents), PostgreSQL LXC (db) | Core document management |
-| Paperless-ai | ~512MB | — | Stateless companion, calls Ollama API |
+| Paperless-GPT | ~256-512MB | `local-path` (prompt templates) | Companion web UI, calls Paperless and Ollama APIs |
 | Ollama | 4-6GB limit | `truenas-nfs` (model files) | Serves LLM inference |
 
 **Default model:** Llama 3.2 3B (Q4 quantized) — ~2-3GB RAM, strong at classification and summarization. Upgrade path to Llama 3.1 8B (Q4, ~5GB) if quality is insufficient.
 
 **Node scheduling:** Ollama should prefer lugia (latios, 40GB worker) where there's the most memory headroom. Soft affinity — not a hard requirement.
 
-**Anthropic API fallback:** Paperless-ai supports any OpenAI-compatible API. If local model quality is insufficient for certain document types, it can be pointed at the Anthropic API (via a compatible proxy) without architecture changes. Preference is local-first for privacy.
+**Anthropic API fallback:** Paperless-GPT supports Anthropic directly. If local model quality is insufficient for certain document types, it can be pointed at Claude without architecture changes. Preference is local-first for privacy.
 
 ### Retired
 
