@@ -8,4 +8,5 @@ resources:
   - ./open-webui
   - ./paperless-gpt
   - ./paperless-ngx
+  - ./recyclarr
   - ./uptime-kuma

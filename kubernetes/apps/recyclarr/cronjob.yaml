@@ -1,0 +1,64 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: recyclarr
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: recyclarr
+spec:
+  schedule: "17 4 * * *"
+  suspend: true
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: recyclarr
+        spec:
+          restartPolicy: Never
+          enableServiceLinks: false
+          securityContext:
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: recyclarr
+              image: ghcr.io/recyclarr/recyclarr:8
+              imagePullPolicy: IfNotPresent
+              args:
+                - sync
+              env:
+                - name: TZ
+                  value: America/Detroit
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                runAsUser: 1000
+                capabilities:
+                  drop:
+                    - ALL
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  memory: 512Mi
+              volumeMounts:
+                - name: config
+                  mountPath: /config/configs/recyclarr.yml
+                  subPath: recyclarr.yml
+                  readOnly: true
+                - name: secrets
+                  mountPath: /config/secrets.yml
+                  subPath: secrets.yml
+                  readOnly: true
+          volumes:
+            - name: config
+              configMap:
+                name: recyclarr-config
+            - name: secrets
+              secret:
+                secretName: recyclarr-secrets
