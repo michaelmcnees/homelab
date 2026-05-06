@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis
+  namespace: databases
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - databases
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: metrics
+      app.kubernetes.io/instance: redis
+      app.kubernetes.io/name: redis
+  endpoints:
+    - port: http-metrics
+      interval: 30s
+      scrapeTimeout: 10s

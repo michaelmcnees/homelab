@@ -40,9 +40,7 @@ spec:
     metrics:
       enabled: true
       serviceMonitor:
-        enabled: true
-        labels:
-          release: kube-prometheus-stack
+        enabled: false
       resources:
         requests:
           cpu: 10m
