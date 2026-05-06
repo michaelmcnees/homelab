@@ -47,6 +47,8 @@ The exporter credentials live in the SOPS-encrypted `proxmox-exporter-config` Se
 
 kube-prometheus-stack already provides the baseline Kubernetes alert pack, including target down, pod crashlooping, pod not ready, persistent volume filling, node filesystem pressure, and Prometheus/operator health.
 
+The chart's kube-proxy scrape is disabled because the Talos nodes do not expose kube-proxy metrics on the default `10249` endpoint. Leaving it enabled creates a permanently firing `TargetDown` alert for `kube-system/kube-proxy`.
+
 Homelab-specific alerts live in the `homelab-alerts` PrometheusRule:
 
 - cert-manager certificate expiration at 21 days and 7 days.

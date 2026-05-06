@@ -89,6 +89,8 @@ spec:
       enabled: false
     kubeEtcd:
       enabled: false
+    kubeProxy:
+      enabled: false
     kubeScheduler:
       enabled: false
     nodeExporter:
