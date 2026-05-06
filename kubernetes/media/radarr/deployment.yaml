@@ -20,20 +20,12 @@ spec:
       enableServiceLinks: false
       securityContext:
         fsGroup: 2000
-        runAsGroup: 2000
-        runAsUser: 2000
-        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: radarr
-          image: ghcr.io/onedr0p/radarr:5
+          image: ghcr.io/linuxserver/radarr:6.0.4.10291-ls288
           imagePullPolicy: Always
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
           ports:
             - name: http
               containerPort: 7878
@@ -41,6 +33,12 @@ spec:
           env:
             - name: TZ
               value: America/Detroit
+            - name: PUID
+              value: "2000"
+            - name: PGID
+              value: "2000"
+            - name: UMASK
+              value: "002"
             - name: RADARR__AUTH__METHOD
               value: External
             - name: RADARR__AUTH__REQUIRED
