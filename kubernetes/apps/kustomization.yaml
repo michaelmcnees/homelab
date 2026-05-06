@@ -6,4 +6,6 @@ resources:
   - ./homepage
   - ./ollama
   - ./open-webui
+  - ./paperless-ngx
+  - ./paperless-ai-next
   - ./uptime-kuma

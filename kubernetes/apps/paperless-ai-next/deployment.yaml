@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-ai-next
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: paperless-ai-next
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paperless-ai-next
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paperless-ai-next
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: paperless-ai-next
+          image: admonstrator/paperless-ai-next:v2026.03.04-lite
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: PAPERLESS_AI_PORT
+              value: "3000"
+            - name: PAPERLESS_AI_INITIAL_SETUP
+              value: "yes"
+            - name: ALLOW_REMOTE_SETUP
+              value: "yes"
+            - name: PAPERLESS_API_URL
+              value: http://paperless-ngx.apps.svc.cluster.local:8000
+            - name: PAPERLESS_PUBLIC_URL
+              value: https://paperless.home.mcnees.me
+            - name: TRUST_PROXY
+              value: "1"
+            - name: COOKIE_SECURE_MODE
+              value: auto
+            - name: LOGIN_RATE_LIMIT_MAX
+              value: "20"
+            - name: LOG_LEVEL
+              value: info
+            - name: DISABLE_AUTOMATIC_PROCESSING
+              value: "yes"
+            - name: ADD_AI_PROCESSED_TAG
+              value: "yes"
+            - name: AI_PROCESSED_TAG_NAME
+              value: ai-processed
+            - name: USE_EXISTING_DATA
+              value: "yes"
+            - name: MISTRAL_OCR_ENABLED
+              value: "no"
+            - name: RAG_SERVICE_ENABLED
+              value: "no"
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-ai-next-secrets
+                  key: API_KEY
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-ai-next-secrets
+                  key: JWT_SECRET
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: paperless-ai-next-data
