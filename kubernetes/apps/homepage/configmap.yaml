@@ -75,6 +75,10 @@ data:
             icon: grafana.png
             href: https://grafana.home.mcnees.me/d/homelab-databases/homelab-databases
             description: Postgres, Redis, and backups
+        - App Versions:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-app-versions/homelab-app-versions
+            description: Deployed image updates
     - Media Cabinet:
         - Plex:
             icon: plex.png
