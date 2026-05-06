@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lidarr-kids
+  namespace: media
+  labels:
+    app.kubernetes.io/name: lidarr-kids
+spec:
+  selector:
+    app.kubernetes.io/name: lidarr-kids
+  ports:
+    - name: http
+      port: 8686
+      targetPort: http

@@ -4,5 +4,9 @@ resources:
   - namespace.yaml
   - shared-media-pv.yaml
   - ./sonarr
+  - ./sonarr-anime
   - ./radarr
   - ./prowlarr
+  - ./lidarr
+  - ./lidarr-kids
+  - ./bazarr

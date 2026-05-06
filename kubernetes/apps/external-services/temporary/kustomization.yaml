@@ -3,15 +3,12 @@ kind: Kustomization
 resources:
   - certificates.yaml
   - adguard.yaml
-  - bazarr.yaml
   - booklore.yaml
   - gitea.yaml
   - gramps.yaml
   - hass.yaml
   - homey-public.yaml
   - lazylibrarian.yaml
-  - lidarr.yaml
-  - lidarr-kids.yaml
   - n8n.yaml
   - outline.yaml
   - overseer.yaml
@@ -22,7 +19,6 @@ resources:
   - pterodactyl-wings.yaml
   - readarr.yaml
   - romm.yaml
-  - sonarr-anime.yaml
   - stash.yaml
   - tautulli.yaml
   - wizarr.yaml
