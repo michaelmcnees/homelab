@@ -12,7 +12,7 @@ spec:
     name: flux-system
   path: ./kubernetes/media
   prune: true
-  wait: true
+  wait: false
   dependsOn:
     - name: infrastructure-configs
     - name: databases
