@@ -194,7 +194,7 @@ Two new databases added to the metagross PostgreSQL playbook:
 - `invoice_ninja` — with dedicated user
 - `chatwoot` — with dedicated user
 
-These are added to the existing Phase 2 Task 11 (PostgreSQL playbook) database list alongside `pocket_id`, `pelican`, `n8n`, `romm`, and `outline`.
+These are added to the existing Phase 2 Task 11 (PostgreSQL playbook) database list alongside `pocket_id`, `pelican`, and `romm`. n8n is not migrating to this cluster.
 
 ## Migration Wave Placement
 

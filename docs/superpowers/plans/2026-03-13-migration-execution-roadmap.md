@@ -80,7 +80,7 @@ Use this to track where you are in the migration. When starting a new Claude ses
 | 3.3 | 💻 Software | Deploy MetalLB + Traefik v3 (ingress) | ⬜ |
 | 3.4 | 💻 Software | Deploy cert-manager + ExternalDNS (TLS + public DNS) | ⬜ |
 | 3.5 | 🔀 Both | Create metagross LXC (OpenTofu), install PostgreSQL (Ansible) | ⬜ |
-| 3.6 | 🔀 Both | Migrate databases to metagross: pocket_id, pelican, n8n, romm (pg_dump/restore) | ⬜ |
+| 3.6 | 🔀 Both | Migrate databases to metagross: pocket_id, pelican, romm (pg_dump/restore). n8n stays on the legacy path until replaced by Mantle. | ⬜ |
 | 3.7 | 💻 Software | Deploy Redis in K8s | ⬜ |
 | 3.8 | 💻 Software | Deploy auth chain: LLDAP → Pocket ID → OAuth2-Proxy | ⬜ |
 | 3.9 | 🔀 Both | Verify: all HelmReleases Ready, test Ingress gets TLS cert, auth SSO works | ⬜ |
@@ -102,7 +102,7 @@ Each wave follows: export data → deploy to K3s → import data → verify → 
 | 4.4b | 🔀 Both | Destroy Docker LXC, deploy 5th K3s VM on freed node, join to cluster | ⬜ |
 | 4.5 | 🔀 Both | **Wave 5:** Seer, Wizarr, Tautulli. Mostly config migration. | ⬜ |
 | 4.6 | 🔀 Both | **Wave 6:** Outline, Booklore, Paperless-ngx+ai, Gramps. Migrate DBs + file data. | ⬜ |
-| 4.7 | 🔀 Both | **Wave 7:** Ollama + OpenWebUI, n8n. | ⬜ |
+| 4.7 | 🔀 Both | **Wave 7:** Ollama + OpenWebUI. n8n is not migrating to this cluster. | ⬜ |
 | 4.8 | 🔀 Both | **Wave 8:** Monitoring (kube-prometheus-stack, Beszel, Uptime Kuma). Retire InfluxDB. | ⬜ |
 | 4.9 | 🔀 Both | **Wave 9:** Pelican Panel → K3s (points at Wings LXC on pikachu). | ⬜ |
 | 4.10 | 💻 Software | **Wave 10:** Scrypted (new deploy, replaces Homebridge cameras). | ⬜ |

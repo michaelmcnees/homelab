@@ -20,7 +20,7 @@
 - Linkwarden — never deployed, removed from scope
 - Actual Budget — previous experiment, removed
 - Gramps — removed, may build custom alternative later
-- n8n — replaced by Mantle (custom build)
+- n8n — stays on the legacy path until replaced by Mantle; no Kubernetes migration
 - Booklore — upstream repo pulled, no stable fork yet
 - Scrypted — too resource-intensive for current Dell hardware (revisit after node upgrade)
 - Glances — replaced by Prometheus/Grafana

@@ -26,8 +26,6 @@
         owner: invoice_ninja
       - name: chatwoot
         owner: chatwoot
-      - name: n8n
-        owner: n8n
       - name: romm
         owner: romm
       - name: sonarr
