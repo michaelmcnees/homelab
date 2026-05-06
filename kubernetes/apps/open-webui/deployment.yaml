@@ -50,6 +50,11 @@ spec:
                 secretKeyRef:
                   name: open-webui-secret
                   key: WEBUI_SECRET_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: open-webui-secret
+                  key: DATABASE_URL
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

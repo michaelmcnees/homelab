@@ -44,6 +44,8 @@
         owner: prowlarr
       - name: bazarr
         owner: bazarr
+      - name: openwebui
+        owner: openwebui
     postgresql_human_users:
       - name: mmcnees-readonly
         password_var: pg_password_mmcnees_readonly
