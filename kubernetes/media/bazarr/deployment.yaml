@@ -57,15 +57,13 @@ spec:
             - name: PGSSLCERT
               value: /tmp/postgresql.crt
           readinessProbe:
-            httpGet:
-              path: /api/system/status
+            tcpSocket:
               port: http
             initialDelaySeconds: 45
             periodSeconds: 10
             timeoutSeconds: 5
           livenessProbe:
-            httpGet:
-              path: /api/system/status
+            tcpSocket:
               port: http
             initialDelaySeconds: 180
             periodSeconds: 30
