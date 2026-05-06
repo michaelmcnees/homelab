@@ -150,6 +150,10 @@ data:
             icon: paperless-ngx.png
             href: https://paperless.home.mcnees.me
             description: Documents
+        - Paperless GPT:
+            icon: paperless-ngx.png
+            href: https://paperless-gpt.home.mcnees.me
+            description: Document AI
         - RomM:
             icon: romm.png
             href: https://romm.home.mcnees.me
