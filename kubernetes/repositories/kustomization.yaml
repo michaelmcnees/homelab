@@ -5,6 +5,7 @@ resources:
   - cert-manager.yaml
   - external-dns.yaml
   - grafana.yaml
+  - jetstack.yaml
   - local-path-provisioner.yaml
   - metallb.yaml
   - prometheus-community.yaml
