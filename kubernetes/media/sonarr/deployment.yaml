@@ -19,7 +19,7 @@ spec:
     spec:
       enableServiceLinks: false
       securityContext:
-        fsGroup: 2000
+        fsGroup: 568
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -34,9 +34,9 @@ spec:
             - name: TZ
               value: America/Detroit
             - name: PUID
-              value: "2000"
+              value: "568"
             - name: PGID
-              value: "2000"
+              value: "568"
             - name: UMASK
               value: "002"
             - name: SONARR__AUTH__METHOD
