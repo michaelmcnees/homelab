@@ -55,7 +55,7 @@ Before migrating Sonarr/Radarr into Kubernetes, validate:
 
 ## Kubernetes Migration
 
-Initial in-cluster Sonarr and Radarr scaffolding was deployed on 2026-05-06 in the `media` namespace with replicas set to `0`. Traffic still goes to the legacy external services until data import and validation are complete.
+Initial in-cluster Sonarr and Radarr scaffolding was deployed on 2026-05-06 in the `media` namespace. Traffic still goes to the legacy external services until the temporary Kubernetes routes are validated and the primary routes are cut over.
 
 Created PostgreSQL databases on metagross:
 
@@ -70,13 +70,18 @@ Created Kubernetes resources:
 - Shared media PVC: `media-library`, backed by `10.0.1.1:/mnt/data/media`
 - Temporary validation routes: `sonarr-k8s.home.mcnees.me`, `radarr-k8s.home.mcnees.me`
 
-The local-path config PVCs stay `Pending` while the deployments are scaled to zero. That is expected; local-path binds when a pod is scheduled.
+Backups were imported on 2026-05-06:
 
-Next import shape:
+- Sonarr backup: `sonarr_backup_v4.0.16.2944_2026.05.06_14.02.42.zip`
+- Radarr backup: `radarr_backup_v6.0.4.10291_2026.05.06_14.02.53.zip`
+- Imported files: `config.xml` and the SQLite backup database into each app's config PVC.
+- Config PVC ownership was repaired to UID/GID `2000` before starting the apps.
+- Sonarr is pinned to `ghcr.io/linuxserver/sonarr:4.0.16.2944-ls298`.
+- Radarr is pinned to `ghcr.io/linuxserver/radarr:6.0.4.10291-ls288`.
+- Both apps started against their PostgreSQL main/log databases and returned `{"status":"OK"}` from in-cluster `/ping` checks.
 
-1. Export backups from the current Sonarr and Radarr instances.
-2. Copy the backup/config into the new `sonarr-config` and `radarr-config` PVCs with helper pods.
-3. Scale each deployment to `1` one at a time.
-4. Confirm each app starts against its PostgreSQL main/log databases.
-5. Validate library data, root folders, download client, indexers, and Recyclarr profiles.
-6. Cut the primary `sonarr.home.mcnees.me` and `radarr.home.mcnees.me` routes over only after the k8s routes behave correctly.
+Remaining cutover checks:
+
+1. Validate library data, root folders, download client, indexers, and Recyclarr profiles through `sonarr-k8s.home.mcnees.me` and `radarr-k8s.home.mcnees.me`.
+2. Update Recyclarr to target `http://sonarr.media.svc.cluster.local:8989` and `http://radarr.media.svc.cluster.local:7878`.
+3. Cut the primary `sonarr.home.mcnees.me` and `radarr.home.mcnees.me` routes over only after the k8s routes behave correctly.
