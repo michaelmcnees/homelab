@@ -75,9 +75,11 @@ Backups were imported on 2026-05-06:
 - Sonarr backup: `sonarr_backup_v4.0.16.2944_2026.05.06_14.02.42.zip`
 - Radarr backup: `radarr_backup_v6.0.4.10291_2026.05.06_14.02.53.zip`
 - Imported files: `config.xml` and the SQLite backup database into each app's config PVC.
-- Config PVC ownership was repaired to UID/GID `2000` before starting the apps.
+- The SQLite backups were loaded into the PostgreSQL main databases with `pgloader --with "quote identifiers" --with "data only"` after the apps created the PostgreSQL schema. A normal in-app backup restore does not populate PostgreSQL once the app is already running with PostgreSQL environment variables.
+- Config PVC ownership and app runtime identity were aligned to UID/GID `568`, matching the TrueNAS media dataset owner seen on the `/media` NFS mount.
 - Sonarr is pinned to `ghcr.io/linuxserver/sonarr:4.0.16.2944-ls298`.
 - Radarr is pinned to `ghcr.io/linuxserver/radarr:6.0.4.10291-ls288`.
+- PostgreSQL verification counts matched the backups: Sonarr has 1 download client, 4 indexers, 1 root folder, and 352 series; Radarr has 1 download client, 4 indexers, 1 root folder, and 1132 movies.
 - Both apps started against their PostgreSQL main/log databases and returned `{"status":"OK"}` from in-cluster `/ping` checks.
 
 Remaining cutover checks:
