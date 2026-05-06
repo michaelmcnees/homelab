@@ -4,8 +4,15 @@ resources:
   - namespace.yaml
   - service.yaml
   - endpointslice.yaml
+  - postgres-exporter-secret.sops.yaml
+  - postgres-exporter-deployment.yaml
+  - postgres-exporter-service.yaml
+  - postgres-exporter-servicemonitor.yaml
   - backup-identity-configmap.yaml
   - backup-volume.yaml
   - backup-secret.sops.yaml
   - backup-cronjob.yaml
+  - backup-metrics-deployment.yaml
+  - backup-metrics-service.yaml
+  - backup-metrics-servicemonitor.yaml
   - backup-alerts.yaml

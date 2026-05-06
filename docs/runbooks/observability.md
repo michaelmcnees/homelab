@@ -30,6 +30,7 @@ Grafana dashboards are provisioned from ConfigMaps labeled `grafana_dashboard: "
 The homelab-specific dashboards are:
 
 - `homelab-k8s-overview`: cluster and node vitals backed by Prometheus.
+- `homelab-databases`: PostgreSQL, Redis, metagross LXC, and database backup health.
 - `homelab-pod-logs`: namespace-filtered Loki log volume and log search.
 - `homelab-proxmox`: Proxmox host and VM metrics from prometheus-pve-exporter.
 
@@ -59,6 +60,13 @@ Homelab-specific alerts live in the `homelab-alerts` PrometheusRule:
 - Proxmox storage over 85% full.
 
 cert-manager metrics are scraped through the `cert-manager` ServiceMonitor in the `infrastructure` namespace.
+
+Database metrics are split by responsibility:
+
+- PostgreSQL server and database usage metrics come from `postgres-exporter` in the `internal` namespace.
+- PostgreSQL logical backup storage and retention metrics come from `postgresql-backup-metrics`, which mounts the backup PVC read-only and exposes derived gauges.
+- Redis metrics come from the Bitnami Redis chart's metrics exporter and ServiceMonitor.
+- metagross LXC resource metrics come from the Proxmox exporter and are shown on the database dashboard with `pve_*` metrics for `lxc/200`.
 
 ## Alert Delivery
 

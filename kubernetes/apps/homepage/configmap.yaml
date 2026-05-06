@@ -71,6 +71,10 @@ data:
             icon: proxmox.png
             href: https://grafana.home.mcnees.me/d/homelab-proxmox/homelab-proxmox
             description: VM and host metrics
+        - Database Metrics:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-databases/homelab-databases
+            description: Postgres, Redis, and backups
     - Media Cabinet:
         - Plex:
             icon: plex.png

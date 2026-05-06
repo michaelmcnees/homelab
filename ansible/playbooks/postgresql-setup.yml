@@ -49,6 +49,9 @@
         password_var: pg_password_mmcnees_readonly
       - name: mmcnees-readwrite
         password_var: pg_password_mmcnees_readwrite
+    postgresql_monitor_users:
+      - name: postgres_exporter
+        password_var: pg_password_postgres_exporter
 
   tasks:
     - name: Install PostgreSQL prerequisites
@@ -142,6 +145,25 @@
         state: present
       loop: "{{ postgresql_human_users }}"
       no_log: true
+
+    - name: Create PostgreSQL monitor users
+      become_user: postgres
+      community.postgresql.postgresql_user:
+        name: "{{ item.name }}"
+        password: "{{ lookup('vars', item.password_var) }}"
+        role_attr_flags: LOGIN
+        state: present
+      loop: "{{ postgresql_monitor_users }}"
+      no_log: true
+
+    - name: Grant PostgreSQL monitor role
+      become_user: postgres
+      community.postgresql.postgresql_membership:
+        group: pg_monitor
+        target_roles:
+          - "{{ item.name }}"
+        state: present
+      loop: "{{ postgresql_monitor_users }}"
 
     - name: Grant shared database access
       become_user: postgres

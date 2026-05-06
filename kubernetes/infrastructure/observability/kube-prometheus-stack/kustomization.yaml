@@ -7,6 +7,7 @@ resources:
   - ingress.yaml
   - loki-datasource.yaml
   - homelab-k8s-overview-dashboard.yaml
+  - homelab-databases-dashboard.yaml
   - homelab-pod-logs-dashboard.yaml
   - homelab-proxmox-dashboard.yaml
   - homelab-alerts.yaml

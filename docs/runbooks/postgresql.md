@@ -2,6 +2,12 @@
 
 `metagross` is the shared PostgreSQL LXC for homelab applications. Kubernetes reaches it through the `metagross` Service in the `internal` namespace.
 
+## Monitoring
+
+Prometheus scrapes PostgreSQL metrics from `postgres-exporter` in the `internal` namespace. The exporter connects to metagross with the `postgres_exporter` PostgreSQL role, which is managed by `task ansible:postgresql` and granted the built-in `pg_monitor` role.
+
+Logical backup metrics come from `postgresql-backup-metrics`, which mounts the backup PVC read-only and publishes backup age, retained backup count, latest backup size, total backup export size, and retention window gauges.
+
 ## Logical Backups
 
 Kubernetes manages PostgreSQL logical backups with a CronJob:
@@ -77,7 +83,7 @@ kubectl --kubeconfig talos/kubeconfig run -n internal backup-shell --rm -it --re
   --overrides='{"spec":{"volumes":[{"name":"backups","persistentVolumeClaim":{"claimName":"postgresql-logical-backups"}}],"containers":[{"name":"backup-shell","image":"alpine:3.22","command":["sh"],"stdin":true,"tty":true,"volumeMounts":[{"name":"backups","mountPath":"/backups"}]}]}}'
 ```
 
-## Monitoring
+## Backup Alerts
 
 Prometheus alerts from kube-state-metrics when:
 

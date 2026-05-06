@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-exporter
+  namespace: internal
+  labels:
+    app.kubernetes.io/name: postgres-exporter
+    app.kubernetes.io/component: metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres-exporter
+        app.kubernetes.io/component: metrics
+    spec:
+      enableServiceLinks: false
+      priorityClassName: standard
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres-exporter
+          image: quay.io/prometheuscommunity/postgres-exporter:v0.19.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - --collector.long_running_transactions
+            - --collector.postmaster
+            - --collector.process_idle
+          env:
+            - name: DATA_SOURCE_URI
+              value: metagross.internal.svc.cluster.local:5432/postgres?sslmode=disable
+            - name: DATA_SOURCE_USER_FILE
+              value: /etc/postgres-exporter/username
+            - name: DATA_SOURCE_PASS_FILE
+              value: /etc/postgres-exporter/password
+          ports:
+            - name: metrics
+              containerPort: 9187
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: secret
+              mountPath: /etc/postgres-exporter
+              readOnly: true
+      volumes:
+        - name: secret
+          secret:
+            secretName: postgres-exporter
+            defaultMode: 0444

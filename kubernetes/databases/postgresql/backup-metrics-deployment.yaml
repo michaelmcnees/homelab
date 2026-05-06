@@ -1,0 +1,128 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgresql-backup-metrics
+  namespace: internal
+  labels:
+    app.kubernetes.io/name: postgresql-backup-metrics
+    app.kubernetes.io/component: metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql-backup-metrics
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgresql-backup-metrics
+        app.kubernetes.io/component: metrics
+    spec:
+      enableServiceLinks: false
+      priorityClassName: standard
+      securityContext:
+        fsGroup: 2000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 2000
+        runAsNonRoot: true
+        runAsUser: 2000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: metrics
+          image: alpine:3.22
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              mkdir -p /www
+              busybox httpd -f -p 8080 -h /www &
+              while true; do
+                latest="$(readlink /backups/latest 2>/dev/null || true)"
+                now="$(date +%s)"
+                total_bytes="$(du -sk /backups 2>/dev/null | awk '{print $1 * 1024}')"
+                backup_count="$(find /backups -mindepth 1 -maxdepth 1 -type d -name '20*' 2>/dev/null | wc -l | tr -d ' ')"
+                temp_count="$(find /backups -mindepth 1 -maxdepth 1 -type d -name '.tmp-*' 2>/dev/null | wc -l | tr -d ' ')"
+                latest_timestamp="0"
+                latest_size_bytes="0"
+                latest_database_count="0"
+                latest_file_count="0"
+
+                if [ -n "$latest" ] && [ -d "/backups/$latest" ]; then
+                  latest_timestamp="$(stat -c %Y "/backups/$latest" 2>/dev/null || echo 0)"
+                  latest_size_bytes="$(du -sk "/backups/$latest" 2>/dev/null | awk '{print $1 * 1024}')"
+                  latest_database_count="$(awk 'NR > 1 { count++ } END { print count + 0 }' "/backups/$latest/manifest.tsv" 2>/dev/null || echo 0)"
+                  latest_file_count="$(find "/backups/$latest" -mindepth 1 -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')"
+                fi
+
+                {
+                  printf "# HELP postgresql_backup_latest_timestamp_seconds Unix timestamp of the latest successful logical backup directory.\n"
+                  printf "# TYPE postgresql_backup_latest_timestamp_seconds gauge\n"
+                  printf "postgresql_backup_latest_timestamp_seconds %s\n" "$latest_timestamp"
+                  printf "# HELP postgresql_backup_latest_age_seconds Age of the latest successful logical backup directory.\n"
+                  printf "# TYPE postgresql_backup_latest_age_seconds gauge\n"
+                  printf "postgresql_backup_latest_age_seconds %s\n" "$((now - latest_timestamp))"
+                  printf "# HELP postgresql_backup_total_size_bytes Total size of the PostgreSQL logical backup export.\n"
+                  printf "# TYPE postgresql_backup_total_size_bytes gauge\n"
+                  printf "postgresql_backup_total_size_bytes %s\n" "${total_bytes:-0}"
+                  printf "# HELP postgresql_backup_latest_size_bytes Size of the latest PostgreSQL logical backup directory.\n"
+                  printf "# TYPE postgresql_backup_latest_size_bytes gauge\n"
+                  printf "postgresql_backup_latest_size_bytes %s\n" "${latest_size_bytes:-0}"
+                  printf "# HELP postgresql_backup_count Number of retained PostgreSQL logical backup directories.\n"
+                  printf "# TYPE postgresql_backup_count gauge\n"
+                  printf "postgresql_backup_count %s\n" "${backup_count:-0}"
+                  printf "# HELP postgresql_backup_temp_count Number of incomplete temporary PostgreSQL logical backup directories.\n"
+                  printf "# TYPE postgresql_backup_temp_count gauge\n"
+                  printf "postgresql_backup_temp_count %s\n" "${temp_count:-0}"
+                  printf "# HELP postgresql_backup_latest_database_count Number of databases in the latest PostgreSQL logical backup manifest.\n"
+                  printf "# TYPE postgresql_backup_latest_database_count gauge\n"
+                  printf "postgresql_backup_latest_database_count %s\n" "${latest_database_count:-0}"
+                  printf "# HELP postgresql_backup_latest_file_count Number of files in the latest PostgreSQL logical backup directory.\n"
+                  printf "# TYPE postgresql_backup_latest_file_count gauge\n"
+                  printf "postgresql_backup_latest_file_count %s\n" "${latest_file_count:-0}"
+                  printf "# HELP postgresql_backup_retention_days Configured logical backup retention window in days.\n"
+                  printf "# TYPE postgresql_backup_retention_days gauge\n"
+                  printf "postgresql_backup_retention_days 30\n"
+                } > /www/metrics.tmp
+                mv /www/metrics.tmp /www/metrics
+                sleep 300
+              done
+          ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: backups
+              mountPath: /backups
+              readOnly: true
+            - name: www
+              mountPath: /www
+      volumes:
+        - name: backups
+          persistentVolumeClaim:
+            claimName: postgresql-logical-backups
+        - name: www
+          emptyDir: {}
