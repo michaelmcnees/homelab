@@ -36,6 +36,8 @@ spec:
             - --cookie-samesite=lax
             - --cookie-refresh=1h
             - --cookie-expire=8h
+            - --cookie-csrf-per-request=true
+            - --cookie-csrf-per-request-limit=8
             - --email-domain=*
             - --whitelist-domain=.home.mcnees.me
             - --upstream=static://202
