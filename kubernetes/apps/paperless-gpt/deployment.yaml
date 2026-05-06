@@ -47,15 +47,15 @@ spec:
             - name: LLM_PROVIDER
               value: ollama
             - name: LLM_MODEL
-              value: qwen3:8b
+              value: granite4.1:3b
             - name: OLLAMA_HOST
               value: http://ollama.apps.svc.cluster.local:11434
             - name: OLLAMA_CONTEXT_LENGTH
-              value: "8192"
+              value: "4096"
             - name: TOKEN_LIMIT
-              value: "1000"
+              value: "500"
             - name: LLM_REQUESTS_PER_MINUTE
-              value: "20"
+              value: "5"
             - name: OCR_PROVIDER
               value: llm
             - name: VISION_LLM_PROVIDER
