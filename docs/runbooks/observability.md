@@ -68,6 +68,14 @@ Routing is intentionally simple:
 - `warning` alerts go to email.
 - `critical` alerts go to both Pushover and email.
 
+Alert links use internal Traefik hostnames instead of cluster service names:
+
+- Alertmanager: `https://alertmanager.home.mcnees.me`
+- Prometheus: `https://prometheus.home.mcnees.me`
+- Grafana: `https://grafana.home.mcnees.me`
+
+Prometheus and Alertmanager are protected by the shared `oauth2-proxy` middleware, matching Grafana's internal access pattern.
+
 The local source values live outside Git in `.secrets/alertmanager.yml`. Regenerate `kubernetes/infrastructure/observability/kube-prometheus-stack/alertmanager-config.sops.yaml` after changing Pushover or SMTP credentials.
 
 ## Current Tradeoffs
@@ -75,3 +83,5 @@ The local source values live outside Git in `.secrets/alertmanager.yml`. Regener
 Node-exporter is enabled through `kube-prometheus-stack`. The `observability` namespace is explicitly labeled with `pod-security.kubernetes.io/enforce=privileged` because node-exporter needs host-level access for node metrics. Keep privileged workloads in this namespace limited to observability components.
 
 Prometheus uses a `50Gi` `local-path` PVC for TSDB data with 30 days of retention. The chart/operator-managed Prometheus pod security context runs as UID/GID `1000:2000` with `fsGroup=2000`. Because the operator mounts the data volume through a subPath, an init container chowns `/prometheus` before startup so Prometheus can create `queries.active` and TSDB files.
+
+Alertmanager uses a `1Gi` `local-path` PVC for silences and the notification log. It uses the same UID/GID pattern and a matching init container chowns `/alertmanager` before startup so Alertmanager can maintain silences and notification dedupe state.

@@ -28,6 +28,23 @@ spec:
     alertmanager:
       alertmanagerSpec:
         configSecret: alertmanager-homelab-config
+        externalUrl: https://alertmanager.home.mcnees.me
+        initContainers:
+          - name: init-alertmanager-data
+            image: busybox:1.37.0
+            command:
+              - sh
+              - -c
+              - |
+                chown -R 1000:2000 /alertmanager
+                chmod -R g+rwX /alertmanager
+            securityContext:
+              runAsUser: 0
+              runAsNonRoot: false
+            volumeMounts:
+              - name: alertmanager-kube-prometheus-stack-alertmanager-db
+                mountPath: /alertmanager
+                subPath: alertmanager-db
         priorityClassName: standard
         storage:
           volumeClaimTemplate:
@@ -78,6 +95,7 @@ spec:
       enabled: true
     prometheus:
       prometheusSpec:
+        externalUrl: https://prometheus.home.mcnees.me
         initContainers:
           - name: init-prometheus-data
             image: busybox:1.37.0
