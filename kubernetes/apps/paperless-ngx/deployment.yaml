@@ -38,7 +38,7 @@ spec:
             - name: PAPERLESS_URL
               value: https://paperless.home.mcnees.me
             - name: PAPERLESS_ALLOWED_HOSTS
-              value: paperless.home.mcnees.me
+              value: paperless.home.mcnees.me,paperless-ngx,paperless-ngx.apps,paperless-ngx.apps.svc,paperless-ngx.apps.svc.cluster.local
             - name: PAPERLESS_CSRF_TRUSTED_ORIGINS
               value: https://paperless.home.mcnees.me
             - name: PAPERLESS_TIME_ZONE
@@ -93,6 +93,9 @@ spec:
             httpGet:
               path: /
               port: http
+              httpHeaders:
+                - name: Host
+                  value: paperless.home.mcnees.me
             initialDelaySeconds: 45
             periodSeconds: 10
             timeoutSeconds: 5
@@ -100,6 +103,9 @@ spec:
             httpGet:
               path: /
               port: http
+              httpHeaders:
+                - name: Host
+                  value: paperless.home.mcnees.me
             initialDelaySeconds: 120
             periodSeconds: 30
             timeoutSeconds: 5
