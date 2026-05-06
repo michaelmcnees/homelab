@@ -82,6 +82,14 @@ Backups were imported on 2026-05-06:
 - PostgreSQL verification counts matched the backups: Sonarr has 1 download client, 4 indexers, 1 root folder, and 352 series; Radarr has 1 download client, 4 indexers, 1 root folder, and 1132 movies.
 - Both apps started against their PostgreSQL main/log databases and returned `{"status":"OK"}` from in-cluster `/ping` checks.
 
+Prowlarr migration started on 2026-05-06:
+
+- Prowlarr backup: `prowlarr_backup_v2.3.4.5307_2026.05.06_17.54.21.zip`
+- Prowlarr is pinned to `ghcr.io/linuxserver/prowlarr:nightly-version-2.3.4.5307`.
+- The SQLite backup was loaded into `prowlarr_main` with `pgloader --with "quote identifiers" --with "data only"` after the app created its PostgreSQL schema.
+- PostgreSQL verification counts matched the backup: 6 applications, 3 indexers, 1 download client, and 0 tags.
+- Temporary validation route: `prowlarr-k8s.home.mcnees.me`
+
 Remaining cutover checks:
 
 1. Validate library data, root folders, download client, indexers, and Recyclarr profiles through `sonarr-k8s.home.mcnees.me` and `radarr-k8s.home.mcnees.me`.
