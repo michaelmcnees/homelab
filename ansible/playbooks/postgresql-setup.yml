@@ -28,17 +28,29 @@
         owner: chatwoot
       - name: romm
         owner: romm
-      - name: sonarr
+      - name: sonarr_main
         owner: sonarr
-      - name: sonarr_anime
+      - name: sonarr_log
+        owner: sonarr
+      - name: sonarr_anime_main
         owner: sonarr_anime
-      - name: radarr
+      - name: sonarr_anime_log
+        owner: sonarr_anime
+      - name: radarr_main
         owner: radarr
-      - name: lidarr
+      - name: radarr_log
+        owner: radarr
+      - name: lidarr_main
         owner: lidarr
-      - name: lidarr_kids
+      - name: lidarr_log
+        owner: lidarr
+      - name: lidarr_kids_main
         owner: lidarr_kids
-      - name: prowlarr
+      - name: lidarr_kids_log
+        owner: lidarr_kids
+      - name: prowlarr_main
+        owner: prowlarr
+      - name: prowlarr_log
         owner: prowlarr
       - name: bazarr
         owner: bazarr
@@ -128,7 +140,15 @@
       loop: "{{ postgresql_databases }}"
       no_log: true
 
-    - name: Create PostgreSQL databases
+    - name: Collect existing PostgreSQL databases
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: postgres
+        query: SELECT datname FROM pg_database;
+      register: postgresql_existing_databases
+      changed_when: false
+
+    - name: Create missing PostgreSQL databases
       become_user: postgres
       community.postgresql.postgresql_db:
         name: "{{ item.name }}"
@@ -139,6 +159,15 @@
         template: template0
         state: present
       loop: "{{ postgresql_databases }}"
+      when: item.name not in (postgresql_existing_databases.query_result | map(attribute='datname') | list)
+
+    - name: Ensure PostgreSQL database owners
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: postgres
+        query: ALTER DATABASE "{{ item.name }}" OWNER TO "{{ item.owner }}";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
 
     - name: Create shared PostgreSQL users
       become_user: postgres

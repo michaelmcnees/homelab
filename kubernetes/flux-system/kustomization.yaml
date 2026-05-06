@@ -8,6 +8,7 @@ resources:
 - gotk-sync.yaml
 - infrastructure-configs.yaml
 - infrastructure.yaml
+- media.yaml
 - observability.yaml
 patches:
 - path: patches/sops-decryption.yaml
