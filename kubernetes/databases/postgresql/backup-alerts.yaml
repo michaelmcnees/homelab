@@ -7,8 +7,50 @@ metadata:
     release: kube-prometheus-stack
 spec:
   groups:
+    - name: metagross.databases
+      rules:
+        - alert: MetagrossPostgreSQLExporterDown
+          expr: up{namespace="internal", job="postgres-exporter"} == 0 or absent(up{namespace="internal", job="postgres-exporter"})
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "metagross PostgreSQL exporter is down"
+            description: "Prometheus cannot scrape postgres-exporter, so PostgreSQL health and database usage metrics are unavailable."
+        - alert: MetagrossPostgreSQLDown
+          expr: pg_up{namespace="internal", job="postgres-exporter", instance="metagross"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "metagross PostgreSQL is down"
+            description: "postgres-exporter is reachable, but it cannot connect to the metagross PostgreSQL server."
+        - alert: MetagrossOpenWebUIDatabaseMissing
+          expr: absent(pg_database_size_bytes{namespace="internal", job="postgres-exporter", datname="openwebui"})
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Open WebUI PostgreSQL database is missing from metrics"
+            description: "postgres-exporter is not reporting the openwebui database. Check that the database exists and exporter scrapes are healthy."
+        - alert: HomelabRedisDown
+          expr: redis_up{namespace="databases", job="redis-metrics"} == 0 or absent(redis_up{namespace="databases", job="redis-metrics"})
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Redis is down"
+            description: "Prometheus cannot confirm Redis is healthy through the Redis metrics exporter."
     - name: metagross.backups
       rules:
+        - alert: MetagrossPostgreSQLBackupMetricsDown
+          expr: up{namespace="internal", job="postgresql-backup-metrics"} == 0 or absent(up{namespace="internal", job="postgresql-backup-metrics"})
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "metagross PostgreSQL backup metrics are down"
+            description: "Prometheus cannot scrape postgresql-backup-metrics, so backup age, size, count, and retention metrics are unavailable."
         - alert: MetagrossPostgreSQLBackupMissing
           expr: absent(kube_cronjob_status_last_successful_time{namespace="internal", cronjob="postgresql-logical-backup"}) or (time() - kube_cronjob_status_last_successful_time{namespace="internal", cronjob="postgresql-logical-backup"} > 36 * 60 * 60)
           for: 15m
@@ -25,3 +67,19 @@ spec:
           annotations:
             summary: "metagross PostgreSQL logical backup failed"
             description: "A metagross PostgreSQL logical backup Kubernetes Job has failed."
+        - alert: MetagrossPostgreSQLBackupExportFillingUp
+          expr: kubelet_volume_stats_used_bytes{namespace="internal", persistentvolumeclaim="postgresql-logical-backups"} / kubelet_volume_stats_capacity_bytes{namespace="internal", persistentvolumeclaim="postgresql-logical-backups"} > 0.8
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "metagross PostgreSQL backup export is over 80% full"
+            description: "The postgresql-logical-backups PVC has been above 80% usage for 30 minutes."
+        - alert: MetagrossPostgreSQLBackupTempDirectoriesPresent
+          expr: postgresql_backup_temp_count{namespace="internal", job="postgresql-backup-metrics"} > 0
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "metagross PostgreSQL backup temp directories are present"
+            description: "Incomplete .tmp-* directories are present in the PostgreSQL backup export, which may indicate interrupted backup jobs."

@@ -59,6 +59,17 @@ Homelab-specific alerts live in the `homelab-alerts` PrometheusRule:
 - Proxmox on-boot VM/LXC guests down.
 - Proxmox storage over 85% full.
 
+Database-specific alerts live in the `metagross-backups` PrometheusRule:
+
+- PostgreSQL exporter scrape failures.
+- PostgreSQL exporter unable to connect to metagross.
+- Redis down or missing from metrics.
+- Open WebUI database missing from PostgreSQL metrics.
+- PostgreSQL backup metrics scrape failures.
+- PostgreSQL logical backup stale, missing, or failed.
+- PostgreSQL backup PVC over 80% full.
+- incomplete PostgreSQL backup temp directories present for more than 1 hour.
+
 cert-manager metrics are scraped through the `cert-manager` ServiceMonitor in the `infrastructure` namespace.
 
 Database metrics are split by responsibility:

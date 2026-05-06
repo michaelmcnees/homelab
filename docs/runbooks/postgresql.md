@@ -85,27 +85,52 @@ kubectl --kubeconfig talos/kubeconfig run -n internal backup-shell --rm -it --re
 
 ## Backup Alerts
 
-Prometheus alerts from kube-state-metrics when:
+Prometheus database alerts fire when:
 
+- `postgres-exporter` is not scrapeable.
+- `postgres-exporter` cannot connect to metagross PostgreSQL.
+- the `openwebui` database disappears from PostgreSQL exporter metrics.
+- Redis is down or missing from Redis exporter metrics.
+- backup metrics are not scrapeable.
 - the CronJob has no successful run.
 - the last successful run is older than 36 hours.
 - a backup Job fails.
+- the backup PVC is over 80% full.
+- incomplete `.tmp-*` backup directories remain for more than 1 hour.
+
+The backup PVC fullness alert uses Kubernetes volume stats for `internal/postgresql-logical-backups`. The dashboard also shows exporter-derived logical backup size metrics, which are useful for trend inspection but are not a replacement for PVC capacity alerts.
 
 ## Restore One Database
 
 Stop the consuming app before restoring its database. For Kubernetes apps, scale the deployment to zero or suspend the HelmRelease/Kustomization if needed.
 
-From a machine with access to metagross and the NFS backup path, create a safety copy first:
+Pick a backup timestamp. `latest` is a symlink, but using a concrete timestamp makes the restore repeatable:
 
 ```bash
+kubectl --kubeconfig talos/kubeconfig run -n internal backup-shell --rm -it --restart=Never \
+  --image=alpine:3.22 \
+  --overrides='{"spec":{"volumes":[{"name":"backups","persistentVolumeClaim":{"claimName":"postgresql-logical-backups"}}],"containers":[{"name":"backup-shell","image":"alpine:3.22","command":["sh"],"stdin":true,"tty":true,"volumeMounts":[{"name":"backups","mountPath":"/backups","readOnly":true}]}]}}'
+
+ls -la /backups
+readlink /backups/latest
+cat /backups/latest/manifest.tsv
+exit
+```
+
+On metagross, mount the backup export read-only and create a safety copy of the current database:
+
+```bash
+ssh root@10.0.10.90 'mkdir -p /mnt/postgresql-backups && mountpoint -q /mnt/postgresql-backups || mount -o ro,nfsvers=4.2 10.0.1.1:/mnt/data/backups/postgresql /mnt/postgresql-backups'
 ssh root@10.0.10.90 'sudo -u postgres pg_dump --format=custom --file=/tmp/pocket_id-before-restore.dump pocket_id'
 ```
 
-Restore from the selected backup:
+Restore from the selected backup. Replace `20260506T023000Z`, `pocket_id`, and `--role=pocket_id` for the application you are restoring:
 
 ```bash
-ssh root@10.0.10.90 'sudo -u postgres pg_restore --dbname=pocket_id --clean --if-exists --no-owner /path/to/postgresql/latest/pocket_id.dump'
+ssh root@10.0.10.90 'sudo -u postgres pg_restore --dbname=pocket_id --clean --if-exists --no-owner --role=pocket_id /mnt/postgresql-backups/20260506T023000Z/pocket_id.dump'
 ```
+
+Start the app again and verify logs before deleting the `/tmp/*-before-restore.dump` safety copy.
 
 If ownership needs repair after a restore:
 
@@ -113,14 +138,25 @@ If ownership needs repair after a restore:
 ssh root@10.0.10.90 'sudo -u postgres psql --dbname=pocket_id --command="REASSIGN OWNED BY postgres TO pocket_id;"'
 ```
 
-Start the app again and verify logs before deleting the `/tmp/*-before-restore.dump` safety copy.
+## Test Restore Into Scratch Database
+
+Before trusting a backup after a major migration, restore one dump into a disposable database:
+
+```bash
+ssh root@10.0.10.90 'sudo -u postgres createdb --owner=pocket_id pocket_id_restore_test'
+ssh root@10.0.10.90 'sudo -u postgres pg_restore --dbname=pocket_id_restore_test --no-owner --role=pocket_id /mnt/postgresql-backups/20260506T023000Z/pocket_id.dump'
+ssh root@10.0.10.90 'sudo -u postgres psql --dbname=pocket_id_restore_test --command="\dt"'
+ssh root@10.0.10.90 'sudo -u postgres dropdb pocket_id_restore_test'
+```
+
+This verifies that the dump file is readable without touching the live application database.
 
 ## Restore Roles
 
 Only restore globals during full metagross rebuilds or when roles are missing. Do not run this casually against a healthy server.
 
 ```bash
-ssh root@10.0.10.90 'sudo -u postgres psql --file=/path/to/postgresql/latest/globals.sql postgres'
+ssh root@10.0.10.90 'sudo -u postgres psql --file=/mnt/postgresql-backups/20260506T023000Z/globals.sql postgres'
 ```
 
 ## Full Rebuild Shape
