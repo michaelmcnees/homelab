@@ -40,7 +40,8 @@ Bootstrap checklist:
 1. Create TrueNAS dataset `data/backups/postgresql`.
 2. Create an NFS share for `/mnt/data/backups/postgresql`.
 3. Allow Kubernetes node clients, preferably `10.0.10.0/24`.
-4. Confirm the export from a Proxmox host:
+4. Grant the Kubernetes backup pod write access. For this restricted export, set the NFS share maproot user to `root` and maproot group to `wheel`/`root`, or grant write access to the anonymous squashed NFS user.
+5. Confirm the export from a Proxmox host:
 
 ```bash
 ssh root@10.0.1.100 showmount -e 10.0.1.1
