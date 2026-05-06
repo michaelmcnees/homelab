@@ -101,12 +101,12 @@ Each wave follows: export data → deploy to K3s → import data → verify → 
 | 4.4 | 🔀 Both | **Wave 4:** Servarr stack (sonarr×2, radarr, lidarr×2, bazarr, prowlarr, recyclarr). Migrate Docker volumes. | ⬜ |
 | 4.4b | 🔀 Both | Destroy Docker LXC, deploy 5th K3s VM on freed node, join to cluster | ⬜ |
 | 4.5 | 🔀 Both | **Wave 5:** Seer, Wizarr, Tautulli. Mostly config migration. | ⬜ |
-| 4.6 | 🔀 Both | **Wave 6:** Outline, Booklore, Paperless-ngx+Paperless-GPT, Gramps. Migrate DBs + file data. | ⬜ |
-| 4.7 | 🔀 Both | **Wave 7:** Ollama + OpenWebUI. n8n is not migrating to this cluster. | ⬜ |
-| 4.8 | 🔀 Both | **Wave 8:** Monitoring (kube-prometheus-stack, Beszel, Uptime Kuma). Retire InfluxDB. | ⬜ |
-| 4.9 | 🔀 Both | **Wave 9:** Pelican Panel → K3s (points at Wings LXC on pikachu). | ⬜ |
-| 4.10 | 💻 Software | **Wave 10:** Scrypted (new deploy, replaces Homebridge cameras). | ⬜ |
-| 4.11 | 🔀 Both | **Wave 11:** Tailscale subnet router, DbGate, Netboot.xyz LXC. | ⬜ |
+| 4.6 | 🔀 Both | **Wave 6:** Ollama, Open WebUI, Homepage, Paperless-ngx, Paperless-GPT. | ⬜ |
+| 4.7 | 🔀 Both | **Wave 7:** Tautulli, RomM, LazyLibrarian/Readarr decision, Stash/alternative decision. | ⬜ |
+| 4.8 | 🔀 Both | **Wave 8:** Mantle dogfood deployment; replace n8n instead of migrating it. | ⬜ |
+| 4.9 | 🔀 Both | **Wave 9:** Pelican Panel → K3s and public exposure, then Wings public exposure. | ⬜ |
+| 4.10 | 🔀 Both | **Wave 10:** RustFS, Invoice Ninja, Chatwoot. | ⬜ |
+| 4.11 | 🔀 Both | **Phase 4 deferred:** Tailscale subnet router, DbGate, Netboot.xyz LXC. | ⬜ |
 | 4.12 | 🖥️ Physical | Destroy retired LXCs: InfluxDB, Overseerr, ntfy, LazyLibrarian, old Traefik, old PostgreSQL, Docker | ⬜ |
 
 **Gate:** All services in K3s verified, old LXCs destroyed, Mew nearly empty.

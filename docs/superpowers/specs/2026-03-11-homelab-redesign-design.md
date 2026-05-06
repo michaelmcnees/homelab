@@ -108,7 +108,6 @@ A single **PostgreSQL LXC** on Proxmox serves as the central database for all ap
 | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Prowlarr | `*__POSTGRES__HOST`, `*__POSTGRES__PORT`, etc. env vars |
 | Bazarr | PostgreSQL env vars |
 | Paperless-ngx | `PAPERLESS_DBENGINE=postgresql`, `PAPERLESS_DBHOST`, etc. |
-| Gramps Web | PostgreSQL connection string |
 | Pocket ID | `DB_CONNECTION_STRING` env var |
 | Pelican Panel | Database connection env vars |
 | LLDAP | Planned — env var config exists but documentation is sparse. Falls back to SQLite on `local-path` if Postgres doesn't work. |
@@ -329,7 +328,7 @@ Future consideration: evaluate Caddy as an alternative ingress controller once t
 - **Subnet router**: Runs as a K8s pod, advertises home subnets to the tailnet.
 - **Use case**: Access all internal services via `home.mcnees.me` names from anywhere.
 - **Tailscale SSH**: Bonus — SSH into Proxmox nodes from anywhere without port forwarding.
-- Publicly exposed services (Wizarr, Pocket ID) go through external Traefik entrypoint via Cloudflare, not Tailscale.
+- Publicly exposed services (Pocket ID, Wizarr, Pelican Panel, Pelican Wings, and selected HDF services) go through the external Traefik entrypoint via Cloudflare, not Tailscale. Local infrastructure UIs such as TrueNAS, Proxmox, Homebridge, SABnzbd, and Tdarr remain internal-only under `home.mcnees.me`.
 
 ---
 
@@ -561,7 +560,7 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 | `auth` | Pocket ID, LLDAP, OAuth2-Proxy |
 | `databases` | Redis (cache/session store) |
 | `media` | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr, Seer, Wizarr, Tautulli |
-| `apps` | Pelican Panel, Paperless-ngx, Paperless-GPT, Ollama, Homepage, Stash, Netboot.xyz |
+| `apps` | Mantle, Pelican Panel, Paperless-ngx, Paperless-GPT, Ollama, Homepage, Stash, Netboot.xyz |
 | `hdf` | Invoice Ninja, Chatwoot (Hudsonville Digital Foundry client services) |
 | `storage` | local-path provisioner, future TrueNAS NFS mounts, RustFS (S3-compatible object storage) |
 | `networking` | AdGuard Home, Tailscale |
@@ -743,7 +742,7 @@ Home Dashboard
 | Portainer | Flux + Grafana |
 | Overseerr | Seer |
 | InfluxDB | Prometheus |
-| n8n | Replaced by mantle |
+| n8n | Replaced by Mantle |
 | Scrypted | Removed |
 | Outline | Removed |
 | Linkwarden | Removed |

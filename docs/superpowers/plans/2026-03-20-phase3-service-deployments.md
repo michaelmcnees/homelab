@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Deploy all application workloads into the K3s cluster across 9 migration waves — starting with a hard Traefik ingress cutover, then migrating services from Mew LXCs and TrueNAS apps to K8s, and finally deploying new services (observability, HDF). Services with data migrations run in parallel with the old instance until verified, then the old instance is destroyed.
+**Goal:** Deploy all application workloads into the K3s cluster across migration waves — starting with a hard Traefik ingress cutover, then migrating services from Mew LXCs and TrueNAS apps to K8s, and finally deploying new services (observability, Mantle, Pelican, HDF). Services with data migrations run in parallel with the old instance until verified, then the old instance is destroyed.
 
-**Architecture:** Each K8s service follows the Flux CD GitOps pattern: namespace directory → Kustomization → Deployment/HelmRelease → Service → IngressRoute → Certificate → ConfigMap → SOPS-encrypted Secret. Services needing PostgreSQL connect to metagross (external LXC) via `metagross.internal.svc.cluster.local` DNS. App config/cache PVCs use `local-path` by default on Ceph-backed Talos VM disks. TrueNAS NFS is reserved for bulk/shared datasets such as media, downloads, ROMs, documents, archives, backups, and workloads requiring ReadWriteMany semantics. Plex, Tdarr, and SABnzbd stay on TrueNAS with permanent ExternalService IngressRoutes.
+**Architecture:** Each K8s service follows the Flux CD GitOps pattern: namespace directory → Kustomization → Deployment/HelmRelease → Service → IngressRoute → Certificate → ConfigMap → SOPS-encrypted Secret. Services needing PostgreSQL connect to metagross (external LXC) via `metagross.internal.svc.cluster.local` DNS. App config/cache PVCs use `local-path` by default on Ceph-backed Talos VM disks. TrueNAS NFS is reserved for bulk/shared datasets such as media, downloads, ROMs, documents, archives, backups, and workloads requiring ReadWriteMany semantics. Plex, Tdarr, SABnzbd, Homebridge, TrueNAS, and Proxmox UIs may use Kubernetes `ExternalService`/Endpoints because their backends live outside the cluster, but they remain local-only through the internal Traefik entrypoint. Public exposure is reserved for explicitly selected services such as Pocket ID, Wizarr, Pelican Panel, Pelican Wings, and HDF services.
 
 **Tech Stack:** Flux CD v2, Kustomize, SOPS + age, Traefik v3 IngressRoutes, cert-manager, local-path-provisioner, PostgreSQL 16 (metagross LXC), Redis 7 (databases namespace), RustFS, AdGuard Home, kube-prometheus-stack, Loki, Beszel, Uptime Kuma
 
@@ -119,6 +119,8 @@ spec:
 
 ### ExternalService Pattern
 
+In this plan, `ExternalService` means "Kubernetes route to a backend outside the cluster." It does not imply public internet exposure. Local-only outside-cluster services must use the internal `websecure` entrypoint and `*.home.mcnees.me` hosts. Public services must be called out explicitly and use `websecure-external`.
+
 For services running outside K8s (TrueNAS apps, LXCs):
 
 ```yaml
@@ -194,7 +196,7 @@ routes:
 
 Create ExternalService IngressRoutes for ALL existing services, then hard-cut DNS and port forwarding from the old Traefik LXC to the new K3s Traefik.
 
-### Task 1: Create ExternalService IngressRoutes for permanent services
+### Task 1: Create local-only ExternalService IngressRoutes for permanent outside-cluster services
 
 **Files:**
 - Create: `kubernetes/apps/external-services/plex.yaml`
@@ -202,7 +204,6 @@ Create ExternalService IngressRoutes for ALL existing services, then hard-cut DN
 - Create: `kubernetes/apps/external-services/sabnzbd.yaml`
 - Create: `kubernetes/apps/external-services/homebridge.yaml`
 - Create: `kubernetes/apps/external-services/homey.yaml`
-- Create: `kubernetes/apps/external-services/pelican-wings.yaml`
 - Create: `kubernetes/apps/external-services/truenas.yaml`
 - Create: `kubernetes/apps/external-services/proxmox-latios.yaml`
 - Create: `kubernetes/apps/external-services/proxmox-latias.yaml`
@@ -210,7 +211,7 @@ Create ExternalService IngressRoutes for ALL existing services, then hard-cut DN
 - Create: `kubernetes/apps/external-services/kustomization.yaml`
 - Modify: `kubernetes/apps/kustomization.yaml`
 
-**Context:** These are permanent ExternalService routes — they will never be replaced by in-cluster services. Plex, Tdarr, and SABnzbd stay on TrueNAS (snorlax). Homebridge stays as an LXC on latias, Homey stays as an LXC on latios, and Pelican Wings (pelipper) stays as a VM on latias. Proxmox node UIs and TrueNAS UI get routes for convenience. Stash is NOT here — it migrates to K8s in Wave 7 and is in the temporary routes.
+**Context:** These are permanent local-only ExternalService routes — the backends live outside Kubernetes, but the routes are internal-only. Plex, Tdarr, and SABnzbd stay on TrueNAS (snorlax). Homebridge stays as an LXC on latias. Homey stays as an LXC on latios. Proxmox node UIs and TrueNAS UI get internal routes for convenience. These must not use the public Traefik entrypoint or public DNS. Pelican Wings is intentionally not part of this local-only group because Panel and Wings need public game-server exposure and are handled in the Pelican wave. Stash is NOT here — it migrates to K8s in Wave 7 and is in the temporary routes.
 
 - [ ] **Step 1: Create the external-services directory**
 
@@ -287,7 +288,6 @@ Each file follows the plex.yaml pattern but adds the OAuth2-Proxy ForwardAuth mi
 Follow the same pattern for:
 - `homebridge.yaml` — latias LXC IP, port 8581, host `homebridge.home.mcnees.me`
 - `homey.yaml` — latios LXC IP, port 443, host `homey.home.mcnees.me`
-- `pelican-wings.yaml` — pelipper VM IP (latias), port 443, host `wings.home.mcnees.me`
 
 - [ ] **Step 5: Create Proxmox node and TrueNAS UI ExternalService files**
 
@@ -310,7 +310,6 @@ resources:
   - sabnzbd.yaml
   - homebridge.yaml
   - homey.yaml
-  - pelican-wings.yaml
   - truenas.yaml
   - proxmox-latios.yaml
   - proxmox-latias.yaml
@@ -325,7 +324,7 @@ Add `./external-services` to the resources list.
 
 ```bash
 git add kubernetes/apps/external-services/ kubernetes/apps/kustomization.yaml
-git commit -m "feat: add permanent ExternalService IngressRoutes for TrueNAS apps, LXCs, and Proxmox nodes"
+git commit -m "feat: add local-only ExternalService routes for TrueNAS apps, LXCs, and Proxmox nodes"
 ```
 
 ### Task 2: Create ExternalService IngressRoutes for temporary services
@@ -358,7 +357,8 @@ Services needing temporary routes (update IPs from Mew LXC assignments):
 - `uptime-kuma.yaml` — Uptime Kuma LXC, port 3001, host `status.home.mcnees.me`, OAuth2-Proxy
 - `beszel.yaml` — Beszel LXC, port 8090, host `beszel.home.mcnees.me`, OAuth2-Proxy
 - `grafana.yaml` — Grafana LXC, port 3000, host `grafana.home.mcnees.me` (has own auth / will use Pocket ID)
-- `pelican-panel.yaml` — Pelican Panel LXC, port 443, host `panel.home.mcnees.me` (has own auth)
+- `pelican-panel.yaml` — Pelican Panel LXC, port 443, host `pelican.mcnees.me` on the public entrypoint (has own auth)
+- `pelican-wings-public.yaml` — Pelican Wings backend, host `games.mcnees.me` on the public entrypoint. Create only after Panel is reachable and can manage the Wings node.
 - `romm.yaml` — TrueNAS app (until Wave 8 migration), snorlax IP, port 8080, host `romm.home.mcnees.me` (has own auth)
 - `lazylibrarian.yaml` — LazyLibrarian LXC, port 5299, host `books.home.mcnees.me`, OAuth2-Proxy
 - `stash.yaml` — TrueNAS app on snorlax, port 9999, host `stash.home.mcnees.me`, OAuth2-Proxy
@@ -2599,11 +2599,48 @@ Delete `tautulli.yaml`, `romm.yaml`, `lazylibrarian.yaml`, `stash.yaml` from tem
 
 ---
 
-## Wave 8: Hosting
+## Wave 8: Automation Dogfood
 
-Migrate Pelican Panel to K8s with PostgreSQL data migration.
+Deploy Mantle early so it can replace the legacy n8n path and be used by the household before the rest of the migration is complete.
 
-### Task 25: Deploy and migrate Pelican Panel
+### Task 25: Deploy Mantle
+
+**Files:**
+- Create: `kubernetes/apps/mantle/deployment.yaml`
+- Create: `kubernetes/apps/mantle/service.yaml`
+- Create: `kubernetes/apps/mantle/ingress.yaml`
+- Create: `kubernetes/apps/mantle/secret.sops.yaml`
+- Create: `kubernetes/apps/mantle/configmap.yaml`
+- Create: `kubernetes/apps/mantle/pvc.yaml`
+- Create: `kubernetes/apps/mantle/kustomization.yaml`
+- Modify: `kubernetes/apps/kustomization.yaml`
+- Modify: `kubernetes/apps/external-services/temporary/kustomization.yaml`
+
+**Context:** Mantle replaces n8n rather than migrating n8n data into Kubernetes. Deploy it sooner than the final cleanup waves so we can dogfood it for homelab automation while the rest of the migration is still active. Mantle should use PostgreSQL on metagross if supported, otherwise local-path for app state plus explicit export/backup coverage. Start internal-only behind Pocket ID/OAuth2-Proxy unless a specific public workflow requires exposure later.
+
+- [ ] **Step 1: Confirm Mantle runtime and persistence requirements**
+
+Document image, required environment variables, database support, file storage needs, and auth model before creating manifests.
+
+- [ ] **Step 2: Deploy Mantle to the apps namespace**
+
+Follow the standard GitOps pattern. Prefer `mantle.home.mcnees.me` on the internal entrypoint, with OAuth2-Proxy if Mantle does not provide a complete auth story itself.
+
+- [ ] **Step 3: Dogfood one homelab workflow**
+
+Move one small n8n-style automation or a new low-risk lab automation into Mantle. Verify execution, logs, persistence, and backup coverage.
+
+- [ ] **Step 4: Retire n8n temporary route when replaced**
+
+After Mantle covers the needed workflow(s), remove `n8n.yaml` from `kubernetes/apps/external-services/temporary/` and stop the legacy n8n service.
+
+---
+
+## Wave 9: Hosting
+
+Migrate Pelican Panel to K8s with PostgreSQL data migration, then configure and expose Pelican Wings. Panel comes first because Wings needs a reachable Panel to register with and receive configuration.
+
+### Task 26: Deploy and migrate Pelican Panel
 
 **Files:**
 - Create: `kubernetes/apps/pelican-panel/deployment.yaml`
@@ -2616,7 +2653,7 @@ Migrate Pelican Panel to K8s with PostgreSQL data migration.
 - Create: `kubernetes/apps/pelican-panel/kustomization.yaml`
 - Modify: `kubernetes/apps/kustomization.yaml`
 
-**Context:** Pelican Panel (management UI) moves to K8s. Pelican Wings (game server daemon) stays as a VM (pelipper) on latias. Panel connects to metagross for its database and to Wings over the network.
+**Context:** Pelican Panel (management UI) moves to K8s. Pelican Wings (game server daemon) stays outside the cluster on the dedicated game-hosting VM/backend. Panel connects to metagross for its database and to Wings over the network. Panel is publicly exposed because users need to reach it for game management.
 
 - [ ] **Step 1: Migrate Pelican database to metagross**
 
@@ -2684,11 +2721,11 @@ spec:
             claimName: pelican-panel-data
 ```
 
-ConfigMap: `DB_HOST=metagross.internal.svc.cluster.local`, `DB_PORT=5432`, `DB_DATABASE=pelican`, `APP_URL=https://panel.home.mcnees.me`
+ConfigMap: `DB_HOST=metagross.internal.svc.cluster.local`, `DB_PORT=5432`, `DB_DATABASE=pelican`, `APP_URL=https://pelican.mcnees.me`
 
 Secret (SOPS): `DB_USERNAME`, `DB_PASSWORD`, `APP_KEY`, `HASHIDS_SALT`
 
-IngressRoute on internal entrypoint, host `panel.home.mcnees.me`. Pelican has its own auth.
+IngressRoute on external entrypoint, host `pelican.mcnees.me`. Pelican has its own auth.
 
 - [ ] **Step 3: Update Wings configuration**
 
@@ -2703,13 +2740,34 @@ git commit -m "feat: deploy Pelican Panel with PostgreSQL migration to metagross
 
 Remove `pelican-panel.yaml` from temporary directory. Destroy old Pelican Panel LXC on Mew after 24 hours.
 
+### Task 27: Configure and expose Pelican Wings
+
+**Files:**
+- Create or update: `kubernetes/apps/external-services/pelican-wings.yaml`
+- Create or update: `kubernetes/apps/external-services/temporary/pelican-wings-public.yaml`
+- Modify: `kubernetes/apps/external-services/kustomization.yaml`
+
+**Context:** Wings is the daemon that runs game instances and should be configured only after Panel is migrated and reachable. Keep an internal route for admin/debug access if useful, but the game-server endpoint also needs a public route such as `games.mcnees.me` on the external Traefik entrypoint.
+
+- [ ] **Step 1: Register/update Wings against the new Panel URL**
+
+Update Wings configuration with the new Panel URL and credentials/token from the migrated Panel.
+
+- [ ] **Step 2: Verify public reachability**
+
+Confirm `games.mcnees.me` reaches the Wings backend through the public Traefik entrypoint and that Panel can communicate with Wings.
+
+- [ ] **Step 3: Remove old Wings temporary route after stability window**
+
+Remove obsolete temporary Wings routes after Panel and Wings are stable.
+
 ---
 
-## Wave 9: HDF Services
+## Wave 10: HDF Services
 
 Deploy RustFS, Invoice Ninja, and Chatwoot for Hudsonville Digital Foundry. All fresh deploys.
 
-### Task 26: Deploy RustFS
+### Task 28: Deploy RustFS
 
 **Files:**
 - Create: `kubernetes/storage/rustfs/deployment.yaml`
@@ -2849,7 +2907,7 @@ git add kubernetes/storage/ kubernetes/flux-system/storage.yaml kubernetes/flux-
 git commit -m "feat: deploy RustFS S3-compatible object storage with bucket provisioning"
 ```
 
-### Task 27: Deploy Invoice Ninja
+### Task 29: Deploy Invoice Ninja
 
 **Files:**
 - Create: `kubernetes/hdf/invoice-ninja/deployment.yaml`
@@ -2925,7 +2983,7 @@ git add kubernetes/hdf/invoice-ninja/
 git commit -m "feat: deploy Invoice Ninja for HDF client billing"
 ```
 
-### Task 28: Deploy Chatwoot
+### Task 30: Deploy Chatwoot
 
 **Files:**
 - Create: `kubernetes/hdf/chatwoot/deployment-web.yaml`
@@ -2972,7 +3030,7 @@ git add kubernetes/hdf/chatwoot/ kubernetes/hdf/kustomization.yaml kubernetes/fl
 git commit -m "feat: deploy Chatwoot for HDF client support"
 ```
 
-### Task 29: Configure Chatwoot widget in Invoice Ninja
+### Task 31: Configure Chatwoot widget in Invoice Ninja
 
 **Files:** None (manual configuration task)
 
@@ -2997,7 +3055,7 @@ Load the Invoice Ninja client portal in a browser. Verify the Chatwoot widget ap
 
 ## Post-Migration Cleanup
 
-### Task 30: Clean up temporary ExternalService routes
+### Task 32: Clean up temporary ExternalService routes
 
 **Files:**
 - Remove: `kubernetes/apps/external-services/temporary/` (entire directory)
@@ -3021,7 +3079,7 @@ rm -rf kubernetes/apps/external-services/temporary/
 git add -A && git commit -m "cleanup: remove empty temporary ExternalService directory"
 ```
 
-### Task 31: Destroy old LXCs and clean up Mew
+### Task 33: Destroy old LXCs and clean up Mew
 
 **Files:** None (operational task)
 

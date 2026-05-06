@@ -104,11 +104,11 @@ The redesign spec, Phase 1 plan, Phase 2 plan, OpenTofu configs, and Ansible inv
 ### Service Decisions
 
 This migration spec also supersedes the redesign spec on:
-- **n8n**: Removed (replaced by mantle). Database no longer needs migration.
+- **n8n**: Removed (replaced by Mantle). Database no longer needs migration. Mantle is promoted into the near-term Kubernetes plan so it can be dogfooded before the migration is complete.
 - **Scrypted**: Removed.
 - **Outline, Linkwarden, Actual Budget, Booklore, Glances, InfluxDB, Portainer**: Removed.
 - **Paperless-ngx + Paperless-GPT**: Added to Phase 3 service deployments.
-- **Pelican Wings**: Stays as existing LXC. Wings is the daemon that runs game instances; Panel is the management UI in K3s. Pelipper VM (on latias) hosts additional game server capacity alongside the Wings LXC.
+- **Pelican Panel and Wings**: Panel must be migrated and publicly reachable before Wings is finalized. Wings is the daemon that runs game instances and remains outside K3s on the game-hosting backend, but it also needs public exposure for game traffic. Pelipper VM (on latias) hosts additional game server capacity.
 - **Home Assistant**: Migrates from Mew to latios as a VM (6GB RAM, 2 cores).
 
 ### K3s Node Mapping
@@ -282,15 +282,15 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 | 3 | Auth chain verification | Already deployed in Stage 3 (LLDAP, Pocket ID, OAuth2-Proxy). Verify SSO end-to-end. |
 | 4 | Servarr stack | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr. From Docker LXC. Config PVCs use local-path; media libraries mount from TrueNAS bulk storage. Migrate Docker volume configs. |
 | 5 | Media adjacent | Seer (replaces Overseerr), Wizarr, Tautulli. Low data, mostly config. |
-| 6 | Productivity | Paperless-ngx + Paperless-GPT, Gramps. Gramps has family tree data in Docker volume. |
+| 6 | Productivity | Paperless-ngx + Paperless-GPT. |
 | 7 | AI | Ollama + OpenWebUI (models on TrueNAS NFS, prefer scheduling on lugia/latios for memory headroom). |
-| 8 | Monitoring + Gaming | Grafana (fresh via kube-prometheus-stack), Beszel, Uptime Kuma. Replaces InfluxDB with Prometheus — no data migration. Pelican Panel (K3s, database already migrated). Points at existing Pelican Wings LXC. |
+| 8 | Automation + Gaming | Mantle (n8n replacement, dogfood early). Pelican Panel (K3s, database already migrated) before Pelican Wings public exposure. |
 | 9 | Misc infra | Tailscale subnet router, DbGate, Netboot.xyz, Stash, Romm, LazyLibrarian. |
 
 **Services that stay as LXCs (do NOT migrate to K3s):**
 - Homey → LXC on latios (host networking, 1GB)
 - Homebridge → LXC on latias (host networking + USB, 1GB)
-- Pelican Wings → LXC (existing, stays)
+- Pelican Wings → outside K3s on the game-hosting backend; configure after the public Panel migration
 - PostgreSQL (metagross) → LXC on rayquaza (created in Stage 3, 2GB)
 - Home Assistant → VM on latios (6GB RAM, smart home)
 
@@ -302,8 +302,8 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 - LazyLibrarian LXC — already runs as a TrueNAS app on snorlax
 - Traefik LXC — replaced by Traefik in K3s (Stage 3)
 - Old PostgreSQL LXC — destroyed after databases migrated to metagross
-- Docker LXC — destroyed after servarr + Gramps migrated
-- n8n — replaced by mantle
+- Docker LXC — destroyed after servarr migration and any remaining non-migrating containers are retired
+- n8n — replaced by Mantle
 - Scrypted — removed
 - Outline — removed
 - Linkwarden — removed
@@ -314,7 +314,6 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 
 **Data preservation details:**
 - **Servarr apps** — Export Docker volumes (config dirs with databases + settings). Import into K8s PVCs.
-- **Gramps** — Export Docker volume (family tree data). Import into K8s PVC.
 - **Pocket ID** — PostgreSQL database migrated in Stage 3.
 - **Pelican Panel** — PostgreSQL database migrated in Stage 3.
 - **Uptime Kuma** — Export monitors config, reimport.
