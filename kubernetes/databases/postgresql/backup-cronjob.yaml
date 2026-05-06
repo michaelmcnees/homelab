@@ -14,10 +14,23 @@ spec:
       template:
         spec:
           restartPolicy: Never
+          securityContext:
+            fsGroup: 2000
+            fsGroupChangePolicy: OnRootMismatch
+            runAsGroup: 2000
+            runAsNonRoot: true
+            runAsUser: 2000
+            seccompProfile:
+              type: RuntimeDefault
           containers:
             - name: backup
               image: alpine/git:2.52.0
               imagePullPolicy: IfNotPresent
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
               command:
                 - /bin/sh
                 - -ec
@@ -60,7 +73,7 @@ spec:
             - name: ssh
               secret:
                 secretName: postgresql-logical-backup-ssh
-                defaultMode: 0400
+                defaultMode: 0440
             - name: backups
               persistentVolumeClaim:
                 claimName: postgresql-logical-backups

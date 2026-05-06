@@ -38,10 +38,16 @@ Export it over NFS as `/mnt/data/backups/postgresql`. TrueNAS must allow the Tal
 Bootstrap checklist:
 
 1. Create TrueNAS dataset `data/backups/postgresql`.
-2. Create an NFS share for `/mnt/data/backups/postgresql`.
-3. Allow Kubernetes node clients, preferably `10.0.10.0/24`.
-4. Grant the Kubernetes backup pod write access. For this restricted export, set the NFS share maproot user to `root` and maproot group to `wheel`/`root`, or grant write access to the anonymous squashed NFS user.
-5. Confirm the export from a Proxmox host:
+2. Create a dedicated TrueNAS user/group for Kubernetes backup writers:
+   - Username: `k8s-backup`
+   - UID: `2000`
+   - Primary group: `k8s-backup`
+   - GID: `2000`
+3. Set the dataset owner/group to `k8s-backup:k8s-backup` and grant write access.
+4. Create an NFS share for `/mnt/data/backups/postgresql`.
+5. Allow Kubernetes node clients, preferably `10.0.10.0/24`.
+6. Set the NFS share mapall user/group to `k8s-backup:k8s-backup`, or otherwise preserve UID/GID `2000` write access from clients.
+7. Confirm the export from a Proxmox host:
 
 ```bash
 ssh root@10.0.1.100 showmount -e 10.0.1.1
