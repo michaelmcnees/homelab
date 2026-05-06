@@ -21,6 +21,7 @@ spec:
     remediation:
       retries: 3
   values:
+    existingSecret: version-checker-registry-auth
     replicaCount: 1
     versionChecker:
       imageCacheTimeout: 2h
