@@ -9,6 +9,8 @@
     postgresql_listen_addresses: "*"
     postgresql_allowed_networks:
       - "10.0.0.0/16"
+    postgresql_backup_ssh_user: pgbackup
+    postgresql_backup_ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGiN+l0kfzJZQrdnlSHrFKBHbA3sd8yDg+ysTCOGw8bb k8s-postgresql-logical-backup"
     postgresql_databases:
       - name: lldap
         owner: lldap
@@ -221,33 +223,39 @@
       loop: "{{ postgresql_databases }}"
       changed_when: false
 
-    - name: Install logical backup script
-      ansible.builtin.copy:
-        dest: /usr/local/bin/pg-backup.sh
-        mode: "0755"
-        content: |
-          #!/usr/bin/env bash
-          set -euo pipefail
-
-          BACKUP_DIR="/var/backups/postgresql"
-          TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
-          mkdir -p "$BACKUP_DIR"
-
-          sudo -u postgres psql -t -c "SELECT datname FROM pg_database WHERE datistemplate = false AND datname != 'postgres';" | while read -r db; do
-            db="$(echo "$db" | xargs)"
-            test -n "$db" || continue
-            sudo -u postgres pg_dump "$db" | gzip > "$BACKUP_DIR/${db}_${TIMESTAMP}.sql.gz"
-          done
-
-          find "$BACKUP_DIR" -name "*.sql.gz" -mtime +14 -delete
-
-    - name: Schedule nightly pg_dump
+    - name: Remove legacy PostgreSQL backup cron
       ansible.builtin.cron:
         name: PostgreSQL nightly logical backup
-        minute: "30"
-        hour: "2"
-        job: /usr/local/bin/pg-backup.sh
+        state: absent
         user: root
+
+    - name: Remove legacy PostgreSQL backup script
+      ansible.builtin.file:
+        path: /usr/local/bin/pg-backup.sh
+        state: absent
+
+    - name: Create PostgreSQL backup SSH user
+      ansible.builtin.user:
+        name: "{{ postgresql_backup_ssh_user }}"
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+    - name: Install PostgreSQL backup SSH key
+      ansible.posix.authorized_key:
+        user: "{{ postgresql_backup_ssh_user }}"
+        key: "{{ postgresql_backup_ssh_public_key }}"
+        state: present
+
+    - name: Allow backup user to run PostgreSQL dump commands
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/postgresql-backup
+        owner: root
+        group: root
+        mode: "0440"
+        validate: "visudo -cf %s"
+        content: |
+          {{ postgresql_backup_ssh_user }} ALL=(postgres) NOPASSWD: /usr/bin/pg_dump, /usr/bin/pg_dumpall, /usr/bin/psql
 
   handlers:
     - name: Restart PostgreSQL

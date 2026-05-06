@@ -4,3 +4,7 @@ resources:
   - namespace.yaml
   - service.yaml
   - endpointslice.yaml
+  - backup-volume.yaml
+  - backup-secret.sops.yaml
+  - backup-cronjob.yaml
+  - backup-alerts.yaml

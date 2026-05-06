@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: metagross-backups
+  namespace: internal
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: metagross.backups
+      rules:
+        - alert: MetagrossPostgreSQLBackupMissing
+          expr: absent(kube_cronjob_status_last_successful_time{namespace="internal", cronjob="postgresql-logical-backup"}) or (time() - kube_cronjob_status_last_successful_time{namespace="internal", cronjob="postgresql-logical-backup"} > 36 * 60 * 60)
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "metagross PostgreSQL logical backup is stale"
+            description: "No successful metagross PostgreSQL logical backup has been observed in more than 36 hours."
+        - alert: MetagrossPostgreSQLBackupFailed
+          expr: kube_job_status_failed{namespace="internal", job_name=~"postgresql-logical-backup-.*"} > 0
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "metagross PostgreSQL logical backup failed"
+            description: "A metagross PostgreSQL logical backup Kubernetes Job has failed."

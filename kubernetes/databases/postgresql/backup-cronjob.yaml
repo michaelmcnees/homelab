@@ -1,0 +1,66 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgresql-logical-backup
+  namespace: internal
+spec:
+  schedule: "30 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: backup
+              image: alpine/git:2.51.1
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  umask 077
+                  export HOME=/tmp
+                  mkdir -p /tmp/.ssh
+                  cp /ssh/id_ed25519 /tmp/.ssh/id_ed25519
+                  cp /ssh/known_hosts /tmp/.ssh/known_hosts
+                  chmod 0400 /tmp/.ssh/id_ed25519
+                  chmod 0444 /tmp/.ssh/known_hosts
+
+                  ssh_opts="-i /tmp/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/tmp/.ssh/known_hosts -o HostKeyAlias=metagross"
+                  backup_root="/backups"
+                  timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+                  tmp_dir="${backup_root}/.tmp-${timestamp}"
+                  dest_dir="${backup_root}/${timestamp}"
+
+                  mkdir -p "$tmp_dir"
+                  ssh $ssh_opts pgbackup@metagross.internal.svc.cluster.local 'sudo -n -u postgres pg_dumpall --globals-only' > "${tmp_dir}/globals.sql"
+                  databases="$(ssh $ssh_opts pgbackup@metagross.internal.svc.cluster.local "sudo -n -u postgres psql -At -c \"SELECT datname FROM pg_database WHERE datistemplate = false AND datname != 'postgres' ORDER BY datname;\"")"
+
+                  printf "database\tfile\tsize_bytes\n" > "${tmp_dir}/manifest.tsv"
+                  for db in $databases; do
+                    ssh $ssh_opts pgbackup@metagross.internal.svc.cluster.local "sudo -n -u postgres pg_dump --format=custom \"${db}\"" > "${tmp_dir}/${db}.dump"
+                    size_bytes="$(wc -c < "${tmp_dir}/${db}.dump" | tr -d ' ')"
+                    printf "%s\t%s\t%s\n" "$db" "${db}.dump" "$size_bytes" >> "${tmp_dir}/manifest.tsv"
+                  done
+
+                  mv "$tmp_dir" "$dest_dir"
+                  ln -sfn "$timestamp" "${backup_root}/latest"
+                  find "$backup_root" -mindepth 1 -maxdepth 1 -type d -name "20*" -mtime +30 -exec rm -rf {} \;
+              volumeMounts:
+                - name: ssh
+                  mountPath: /ssh
+                  readOnly: true
+                - name: backups
+                  mountPath: /backups
+          volumes:
+            - name: ssh
+              secret:
+                secretName: postgresql-logical-backup-ssh
+                defaultMode: 0400
+            - name: backups
+              persistentVolumeClaim:
+                claimName: postgresql-logical-backups
