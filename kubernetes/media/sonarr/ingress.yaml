@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`sonarr-k8s.home.mcnees.me`)
+    - match: Host(`sonarr.home.mcnees.me`) || Host(`sonarr-k8s.home.mcnees.me`)
       kind: Rule
       middlewares:
         - name: oauth2-proxy
