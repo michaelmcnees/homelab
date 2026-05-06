@@ -17,7 +17,7 @@ spec:
     name: paperless-media
   nfs:
     server: 10.0.1.1
-    path: /mnt/data/apps/paperless/media
+    path: /mnt/data/k8s/apps/paperless/media
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -52,7 +52,7 @@ spec:
     name: paperless-consume
   nfs:
     server: 10.0.1.1
-    path: /mnt/data/apps/paperless/consume
+    path: /mnt/data/k8s/apps/paperless/consume
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -87,7 +87,7 @@ spec:
     name: paperless-export
   nfs:
     server: 10.0.1.1
-    path: /mnt/data/apps/paperless/export
+    path: /mnt/data/k8s/apps/paperless/export
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

@@ -9,10 +9,11 @@ The playbook uses the local TrueNAS `midclt` client on the appliance. This avoid
 Copy the example vars file:
 
 ```bash
-cp ansible/inventory/group_vars/truenas.yml.example ansible/inventory/group_vars/truenas.yml
+mkdir -p ansible/inventory/host_vars
+cp ansible/inventory/host_vars/truenas.yml.example ansible/inventory/host_vars/truenas.yml
 ```
 
-Then review the dataset and NFS share declarations in `ansible/inventory/group_vars/truenas.yml`. The file is gitignored because future TrueNAS automation may need local-only details.
+Then review the dataset and NFS share declarations in `ansible/inventory/host_vars/truenas.yml`. The file is gitignored because future TrueNAS automation may need local-only details.
 
 ## Access
 
@@ -24,7 +25,7 @@ ssh root@10.0.1.1 midclt call system.info
 
 If TrueNAS root SSH is disabled, enable SSH for an administrative account that can run `midclt`, then update `ansible/inventory/hosts.yml` or local inventory vars accordingly.
 
-For a non-root admin account, set these in `ansible/inventory/group_vars/truenas.yml`:
+For a non-root admin account, set these in `ansible/inventory/host_vars/truenas.yml`:
 
 ```yaml
 ansible_user: truenas_admin
@@ -50,9 +51,9 @@ The playbook manages:
 Paperless currently expects these TrueNAS exports:
 
 ```text
-10.0.1.1:/mnt/data/apps/paperless/media
-10.0.1.1:/mnt/data/apps/paperless/consume
-10.0.1.1:/mnt/data/apps/paperless/export
+10.0.1.1:/mnt/data/k8s/apps/paperless/media
+10.0.1.1:/mnt/data/k8s/apps/paperless/consume
+10.0.1.1:/mnt/data/k8s/apps/paperless/export
 ```
 
 Those desired datasets and shares are included in the example vars file. After `task ansible:truenas` succeeds, Paperless can be enabled in the root apps Kustomization.

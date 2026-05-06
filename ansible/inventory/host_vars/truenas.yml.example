@@ -25,17 +25,32 @@ truenas_datasets:
     mode: "0775"
     owner: k8s-backup
     group: k8s-backup
-  - name: data/apps/paperless/media
+  - name: data/k8s
+    comment: Kubernetes-managed storage root
+    mode: "0775"
+    owner: k8s-backup
+    group: k8s-backup
+  - name: data/k8s/apps
+    comment: Kubernetes application storage root
+    mode: "0775"
+    owner: k8s-backup
+    group: k8s-backup
+  - name: data/k8s/apps/paperless
+    comment: Paperless-ngx storage root
+    mode: "0775"
+    owner: k8s-backup
+    group: k8s-backup
+  - name: data/k8s/apps/paperless/media
     comment: Paperless-ngx document media
     mode: "0775"
     owner: k8s-backup
     group: k8s-backup
-  - name: data/apps/paperless/consume
+  - name: data/k8s/apps/paperless/consume
     comment: Paperless-ngx consume directory
     mode: "0775"
     owner: k8s-backup
     group: k8s-backup
-  - name: data/apps/paperless/export
+  - name: data/k8s/apps/paperless/export
     comment: Paperless-ngx export directory
     mode: "0775"
     owner: k8s-backup
@@ -46,15 +61,15 @@ truenas_nfs_shares:
     comment: PostgreSQL logical backups from Kubernetes
     mapall_user: k8s-backup
     mapall_group: k8s-backup
-  - path: /mnt/data/apps/paperless/media
+  - path: /mnt/data/k8s/apps/paperless/media
     comment: Paperless-ngx document media
     mapall_user: k8s-backup
     mapall_group: k8s-backup
-  - path: /mnt/data/apps/paperless/consume
+  - path: /mnt/data/k8s/apps/paperless/consume
     comment: Paperless-ngx consume directory
     mapall_user: k8s-backup
     mapall_group: k8s-backup
-  - path: /mnt/data/apps/paperless/export
+  - path: /mnt/data/k8s/apps/paperless/export
     comment: Paperless-ngx export directory
     mapall_user: k8s-backup
     mapall_group: k8s-backup

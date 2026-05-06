@@ -14,17 +14,19 @@ Paperless-ngx runs in the `apps` namespace at `https://paperless.home.mcnees.me`
 Create these TrueNAS datasets before first production use. The preferred path is now `task ansible:truenas`; see [truenas.md](truenas.md).
 
 ```text
-data/apps/paperless/media
-data/apps/paperless/consume
-data/apps/paperless/export
+data/k8s/apps/paperless/media
+data/k8s/apps/paperless/consume
+data/k8s/apps/paperless/export
 ```
+
+The parent datasets `data/k8s`, `data/k8s/apps`, and `data/k8s/apps/paperless` are also managed by the TrueNAS Ansible playbook.
 
 Export them over NFS and allow Kubernetes node clients. The manifests expect these export paths:
 
 ```text
-10.0.1.1:/mnt/data/apps/paperless/media
-10.0.1.1:/mnt/data/apps/paperless/consume
-10.0.1.1:/mnt/data/apps/paperless/export
+10.0.1.1:/mnt/data/k8s/apps/paperless/media
+10.0.1.1:/mnt/data/k8s/apps/paperless/consume
+10.0.1.1:/mnt/data/k8s/apps/paperless/export
 ```
 
 Set ownership or NFS mapall so UID/GID `2000` can read and write the exports. The deployment sets `USERMAP_UID=2000` and `USERMAP_GID=2000`.
@@ -50,4 +52,4 @@ Open `https://paperless.home.mcnees.me`, sign in with the bootstrap admin, and u
 
 PostgreSQL is covered by the metagross logical backup job.
 
-Document files live on TrueNAS in `data/apps/paperless/media`, so include that dataset in TrueNAS snapshots/replication. Paperless exports can be written to `data/apps/paperless/export` when you want an application-level export in addition to dataset snapshots.
+Document files live on TrueNAS in `data/k8s/apps/paperless/media`, so include that dataset in TrueNAS snapshots/replication. Paperless exports can be written to `data/k8s/apps/paperless/export` when you want an application-level export in addition to dataset snapshots.

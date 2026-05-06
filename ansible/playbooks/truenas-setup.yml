@@ -12,8 +12,6 @@
       gid: 2000
     truenas_k8s_nfs_networks:
       - 10.0.10.0/24
-    truenas_datasets: []
-    truenas_nfs_shares: []
 
   tasks:
     - name: Query Kubernetes NFS writer group
@@ -87,7 +85,7 @@
           - call
           - pool.dataset.query
           - "{{ [['id', '=', item.name]] | to_json }}"
-      loop: "{{ truenas_datasets }}"
+      loop: "{{ truenas_datasets | default([]) }}"
       loop_control:
         label: "{{ item.name }}"
       register: truenas_dataset_queries
@@ -116,7 +114,7 @@
         argv:
           - midclt
           - call
-          - -job
+          - --job
           - filesystem.setperm
           - "{{ truenas_setperm_payload | to_json }}"
       vars:
@@ -129,7 +127,7 @@
             recursive: false
             traverse: false
             stripacl: true
-      loop: "{{ truenas_datasets }}"
+      loop: "{{ truenas_datasets | default([]) }}"
       loop_control:
         label: "/mnt/{{ item.name }}"
 
@@ -140,7 +138,7 @@
           - call
           - sharing.nfs.query
           - "{{ [['path', '=', item.path]] | to_json }}"
-      loop: "{{ truenas_nfs_shares }}"
+      loop: "{{ truenas_nfs_shares | default([]) }}"
       loop_control:
         label: "{{ item.path }}"
       register: truenas_nfs_share_queries
