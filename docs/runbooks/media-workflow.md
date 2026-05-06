@@ -88,7 +88,7 @@ Prowlarr migration started on 2026-05-06:
 - Prowlarr is pinned to `ghcr.io/linuxserver/prowlarr:nightly-version-2.3.4.5307`.
 - The SQLite backup was loaded into `prowlarr_main` with `pgloader --with "quote identifiers" --with "data only"` after the app created its PostgreSQL schema.
 - PostgreSQL verification counts matched the backup: 6 applications, 3 indexers, 1 download client, and 0 tags.
-- Temporary validation route: `prowlarr-k8s.home.mcnees.me`
+- Routes: `prowlarr.home.mcnees.me`, with temporary alias `prowlarr-k8s.home.mcnees.me`
 
 Remaining cutover checks:
 

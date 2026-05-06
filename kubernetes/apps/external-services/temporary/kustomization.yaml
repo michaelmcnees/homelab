@@ -18,7 +18,6 @@ resources:
   - pelican.yaml
   - pelican-wings-public.yaml
   - portainer.yaml
-  - prowlarr.yaml
   - pterodactyl.yaml
   - pterodactyl-wings.yaml
   - readarr.yaml
