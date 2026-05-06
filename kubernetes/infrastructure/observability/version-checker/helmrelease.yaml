@@ -28,6 +28,8 @@ spec:
       testAllContainers: true
     serviceMonitor:
       enabled: true
+      additionalLabels:
+        release: kube-prometheus-stack
     dashboards:
       enabled: false
     resources:
