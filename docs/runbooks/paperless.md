@@ -11,7 +11,7 @@ Paperless-ngx runs in the `apps` namespace at `https://paperless.home.mcnees.me`
 - Consume PVC: `paperless-consume`, TrueNAS NFS, for the watched import directory.
 - Export PVC: `paperless-export`, TrueNAS NFS, for Paperless document exports.
 
-Create these TrueNAS datasets before first production use:
+Create these TrueNAS datasets before first production use. The preferred path is now `task ansible:truenas`; see [truenas.md](truenas.md).
 
 ```text
 data/apps/paperless/media

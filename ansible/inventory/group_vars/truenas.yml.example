@@ -1,0 +1,60 @@
+---
+# Copy to truenas.yml and adjust for local TrueNAS settings.
+# truenas.yml is intentionally gitignored.
+
+truenas_pool: data
+
+# Optional SSH overrides. The inventory defaults to root@10.0.1.1.
+# ansible_user: truenas_admin
+# ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+
+# Kubernetes pods use this identity through NFS mapall. Keep the UID/GID aligned
+# with Kubernetes app manifests that write to TrueNAS-backed volumes.
+truenas_k8s_user:
+  name: k8s-backup
+  full_name: Kubernetes NFS writer
+  uid: 2000
+  gid: 2000
+
+truenas_k8s_nfs_networks:
+  - 10.0.10.0/24
+
+truenas_datasets:
+  - name: data/backups/postgresql
+    comment: PostgreSQL logical backups from Kubernetes
+    mode: "0775"
+    owner: k8s-backup
+    group: k8s-backup
+  - name: data/apps/paperless/media
+    comment: Paperless-ngx document media
+    mode: "0775"
+    owner: k8s-backup
+    group: k8s-backup
+  - name: data/apps/paperless/consume
+    comment: Paperless-ngx consume directory
+    mode: "0775"
+    owner: k8s-backup
+    group: k8s-backup
+  - name: data/apps/paperless/export
+    comment: Paperless-ngx export directory
+    mode: "0775"
+    owner: k8s-backup
+    group: k8s-backup
+
+truenas_nfs_shares:
+  - path: /mnt/data/backups/postgresql
+    comment: PostgreSQL logical backups from Kubernetes
+    mapall_user: k8s-backup
+    mapall_group: k8s-backup
+  - path: /mnt/data/apps/paperless/media
+    comment: Paperless-ngx document media
+    mapall_user: k8s-backup
+    mapall_group: k8s-backup
+  - path: /mnt/data/apps/paperless/consume
+    comment: Paperless-ngx consume directory
+    mapall_user: k8s-backup
+    mapall_group: k8s-backup
+  - path: /mnt/data/apps/paperless/export
+    comment: Paperless-ngx export directory
+    mapall_user: k8s-backup
+    mapall_group: k8s-backup

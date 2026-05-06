@@ -59,6 +59,11 @@ tasks:
     dir: ansible
     cmd: ansible-playbook playbooks/postgresql-setup.yml
 
+  ansible:truenas:
+    desc: Configure TrueNAS datasets and NFS shares
+    dir: ansible
+    cmd: ansible-playbook playbooks/truenas-setup.yml
+
   talos:gen-config:
     desc: Generate Talos machine configs and talosconfig (writes ignored files)
     cmd: |

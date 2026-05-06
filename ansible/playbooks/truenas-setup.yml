@@ -1,0 +1,202 @@
+---
+- name: Configure TrueNAS datasets and NFS shares
+  hosts: truenas
+  gather_facts: false
+
+  vars:
+    truenas_pool: data
+    truenas_k8s_user:
+      name: k8s-backup
+      full_name: Kubernetes NFS writer
+      uid: 2000
+      gid: 2000
+    truenas_k8s_nfs_networks:
+      - 10.0.10.0/24
+    truenas_datasets: []
+    truenas_nfs_shares: []
+
+  tasks:
+    - name: Query Kubernetes NFS writer group
+      ansible.builtin.command:
+        argv:
+          - midclt
+          - call
+          - group.query
+          - "{{ [['group', '=', truenas_k8s_user.name]] | to_json }}"
+      register: truenas_k8s_group_query
+      changed_when: false
+
+    - name: Create Kubernetes NFS writer group
+      ansible.builtin.command:
+        argv:
+          - midclt
+          - call
+          - group.create
+          - "{{ {'name': truenas_k8s_user.name, 'gid': truenas_k8s_user.gid, 'smb': false} | to_json }}"
+      when: (truenas_k8s_group_query.stdout | from_json | length) == 0
+
+    - name: Query Kubernetes NFS writer group after create
+      ansible.builtin.command:
+        argv:
+          - midclt
+          - call
+          - group.query
+          - "{{ [['group', '=', truenas_k8s_user.name]] | to_json }}"
+      register: truenas_k8s_group_query_after
+      changed_when: false
+
+    - name: Set Kubernetes NFS writer group ID fact
+      ansible.builtin.set_fact:
+        truenas_k8s_group_id: "{{ (truenas_k8s_group_query_after.stdout | from_json | first).id }}"
+
+    - name: Query Kubernetes NFS writer user
+      ansible.builtin.command:
+        argv:
+          - midclt
+          - call
+          - user.query
+          - "{{ [['username', '=', truenas_k8s_user.name]] | to_json }}"
+      register: truenas_k8s_user_query
+      changed_when: false
+
+    - name: Create Kubernetes NFS writer user
+      ansible.builtin.command:
+        argv:
+          - midclt
+          - call
+          - user.create
+          - "{{ truenas_k8s_user_payload | to_json }}"
+      vars:
+        truenas_k8s_user_payload:
+          username: "{{ truenas_k8s_user.name }}"
+          full_name: "{{ truenas_k8s_user.full_name }}"
+          uid: "{{ truenas_k8s_user.uid }}"
+          group: "{{ truenas_k8s_group_id | int }}"
+          group_create: false
+          home: /var/empty
+          smb: false
+          password_disabled: true
+          locked: true
+          random_password: true
+      when: (truenas_k8s_user_query.stdout | from_json | length) == 0
+
+    - name: Query TrueNAS datasets
+      ansible.builtin.command:
+        argv:
+          - midclt
+          - call
+          - pool.dataset.query
+          - "{{ [['id', '=', item.name]] | to_json }}"
+      loop: "{{ truenas_datasets }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: truenas_dataset_queries
+      changed_when: false
+
+    - name: Create missing TrueNAS datasets
+      ansible.builtin.command:
+        argv:
+          - midclt
+          - call
+          - pool.dataset.create
+          - "{{ truenas_dataset_payload | to_json }}"
+      vars:
+        truenas_dataset_payload:
+          name: "{{ item.item.name }}"
+          type: FILESYSTEM
+          share_type: GENERIC
+          comments: "{{ item.item.comment | default('Managed by Ansible') }}"
+      loop: "{{ truenas_dataset_queries.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: (item.stdout | from_json | length) == 0
+
+    - name: Apply dataset ownership and mode
+      ansible.builtin.command:
+        argv:
+          - midclt
+          - call
+          - -job
+          - filesystem.setperm
+          - "{{ truenas_setperm_payload | to_json }}"
+      vars:
+        truenas_setperm_payload:
+          path: "/mnt/{{ item.name }}"
+          user: "{{ item.owner | default(truenas_k8s_user.name) }}"
+          group: "{{ item.group | default(truenas_k8s_user.name) }}"
+          mode: "{{ item.mode | default('0775') }}"
+          options:
+            recursive: false
+            traverse: false
+            stripacl: true
+      loop: "{{ truenas_datasets }}"
+      loop_control:
+        label: "/mnt/{{ item.name }}"
+
+    - name: Query TrueNAS NFS shares
+      ansible.builtin.command:
+        argv:
+          - midclt
+          - call
+          - sharing.nfs.query
+          - "{{ [['path', '=', item.path]] | to_json }}"
+      loop: "{{ truenas_nfs_shares }}"
+      loop_control:
+        label: "{{ item.path }}"
+      register: truenas_nfs_share_queries
+      changed_when: false
+
+    - name: Create missing TrueNAS NFS shares
+      ansible.builtin.command:
+        argv:
+          - midclt
+          - call
+          - sharing.nfs.create
+          - "{{ truenas_nfs_share_payload | to_json }}"
+      vars:
+        truenas_nfs_share_payload:
+          path: "{{ item.item.path }}"
+          comment: "{{ item.item.comment | default('Managed by Ansible') }}"
+          networks: "{{ item.item.networks | default(truenas_k8s_nfs_networks) }}"
+          hosts: "{{ item.item.hosts | default([]) }}"
+          ro: "{{ item.item.ro | default(false) }}"
+          mapall_user: "{{ item.item.mapall_user | default(truenas_k8s_user.name) }}"
+          mapall_group: "{{ item.item.mapall_group | default(truenas_k8s_user.name) }}"
+          enabled: "{{ item.item.enabled | default(true) }}"
+      loop: "{{ truenas_nfs_share_queries.results }}"
+      loop_control:
+        label: "{{ item.item.path }}"
+      when: (item.stdout | from_json | length) == 0
+
+    - name: Update existing TrueNAS NFS shares
+      ansible.builtin.command:
+        argv:
+          - midclt
+          - call
+          - sharing.nfs.update
+          - "{{ ((item.stdout | from_json | first).id) | string }}"
+          - "{{ truenas_nfs_share_payload | to_json }}"
+      vars:
+        truenas_current_nfs_share: "{{ item.stdout | from_json | first }}"
+        truenas_nfs_share_payload:
+          path: "{{ item.item.path }}"
+          comment: "{{ item.item.comment | default('Managed by Ansible') }}"
+          networks: "{{ item.item.networks | default(truenas_k8s_nfs_networks) }}"
+          hosts: "{{ item.item.hosts | default([]) }}"
+          ro: "{{ item.item.ro | default(false) }}"
+          mapall_user: "{{ item.item.mapall_user | default(truenas_k8s_user.name) }}"
+          mapall_group: "{{ item.item.mapall_group | default(truenas_k8s_user.name) }}"
+          enabled: "{{ item.item.enabled | default(true) }}"
+      loop: "{{ truenas_nfs_share_queries.results }}"
+      loop_control:
+        label: "{{ item.item.path }}"
+      when:
+        - (item.stdout | from_json | length) > 0
+        - >-
+          truenas_current_nfs_share.comment != truenas_nfs_share_payload.comment
+          or (truenas_current_nfs_share.networks | sort) != (truenas_nfs_share_payload.networks | sort)
+          or (truenas_current_nfs_share.hosts | sort) != (truenas_nfs_share_payload.hosts | sort)
+          or truenas_current_nfs_share.ro != truenas_nfs_share_payload.ro
+          or truenas_current_nfs_share.mapall_user != truenas_nfs_share_payload.mapall_user
+          or truenas_current_nfs_share.mapall_group != truenas_nfs_share_payload.mapall_group
+          or truenas_current_nfs_share.enabled != truenas_nfs_share_payload.enabled
