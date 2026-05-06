@@ -28,15 +28,13 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: metrics
+        - name: writer
           image: alpine:3.22
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
             - -ec
             - |
-              mkdir -p /www
-              busybox httpd -f -p 8080 -h /www &
               while true; do
                 latest="$(readlink /backups/latest 2>/dev/null || true)"
                 now="$(date +%s)"
@@ -83,10 +81,35 @@ spec:
                   printf "# HELP postgresql_backup_retention_days Configured logical backup retention window in days.\n"
                   printf "# TYPE postgresql_backup_retention_days gauge\n"
                   printf "postgresql_backup_retention_days 30\n"
-                } > /www/metrics.tmp
-                mv /www/metrics.tmp /www/metrics
+                } > /textfile/postgresql-backup.prom.tmp
+                mv /textfile/postgresql-backup.prom.tmp /textfile/postgresql-backup.prom
                 sleep 300
               done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: backups
+              mountPath: /backups
+              readOnly: true
+            - name: textfile
+              mountPath: /textfile
+        - name: metrics
+          image: quay.io/prometheus/node-exporter:v1.11.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - --web.listen-address=:8080
+            - --collector.disable-defaults
+            - --collector.textfile
+            - --collector.textfile.directory=/textfile
           ports:
             - name: metrics
               containerPort: 8080
@@ -115,14 +138,12 @@ spec:
               drop:
                 - ALL
           volumeMounts:
-            - name: backups
-              mountPath: /backups
+            - name: textfile
+              mountPath: /textfile
               readOnly: true
-            - name: www
-              mountPath: /www
       volumes:
         - name: backups
           persistentVolumeClaim:
             claimName: postgresql-logical-backups
-        - name: www
+        - name: textfile
           emptyDir: {}
