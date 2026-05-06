@@ -79,6 +79,10 @@ data:
             icon: grafana.png
             href: https://grafana.home.mcnees.me/d/homelab-app-versions/homelab-app-versions
             description: Deployed image updates
+        - Paperless Metrics:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-paperless/homelab-paperless
+            description: Documents and AI processing
     - Media Cabinet:
         - Plex:
             icon: plex.png
