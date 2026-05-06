@@ -9,7 +9,7 @@ The current media apps still run outside Kubernetes and are exposed through temp
 - Prowlarr: `https://prowlarr.home.mcnees.me`, internal service `http://prowlarr-external.apps.svc.cluster.local:30050`
 - SABnzbd: `https://sabnzbd.home.mcnees.me`, internal service `http://sabnzbd-external.apps.svc.cluster.local:30055`
 
-Sonarr and Radarr were verified reachable from inside the Kubernetes cluster on 2026-05-06.
+Sonarr and Radarr were verified reachable from inside the Kubernetes cluster on 2026-05-06. Movies and TV shows were confirmed flowing through the full stack on 2026-05-06: request/search, SABnzbd download, import, and Plex visibility.
 
 ## Profile Management
 

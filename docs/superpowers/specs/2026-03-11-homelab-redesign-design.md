@@ -328,7 +328,7 @@ Future consideration: evaluate Caddy as an alternative ingress controller once t
 - **Subnet router**: Runs as a K8s pod, advertises home subnets to the tailnet.
 - **Use case**: Access all internal services via `home.mcnees.me` names from anywhere.
 - **Tailscale SSH**: Bonus — SSH into Proxmox nodes from anywhere without port forwarding.
-- Publicly exposed services (Pocket ID, Wizarr, Pelican Panel, Pelican Wings, and selected HDF services) go through the external Traefik entrypoint via Cloudflare, not Tailscale. Local infrastructure UIs such as TrueNAS, Proxmox, Homebridge, SABnzbd, and Tdarr remain internal-only under `home.mcnees.me`.
+- Publicly exposed services (Pocket ID, Wizarr, Pelican Panel, Pelican Wings, and selected HDF services) go through the external Traefik entrypoint via Cloudflare, not Tailscale. Pelican Panel uses `games.mcnees.me`, Wings API/control uses `wings.games.mcnees.me`, and game allocations may use `games.mcnees.me:<port>` direct TCP/UDP exposure. Local infrastructure UIs such as TrueNAS, Proxmox, Homebridge, SABnzbd, and Tdarr remain internal-only under `home.mcnees.me`.
 
 ---
 

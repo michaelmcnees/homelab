@@ -357,8 +357,8 @@ Services needing temporary routes (update IPs from Mew LXC assignments):
 - `uptime-kuma.yaml` — Uptime Kuma LXC, port 3001, host `status.home.mcnees.me`, OAuth2-Proxy
 - `beszel.yaml` — Beszel LXC, port 8090, host `beszel.home.mcnees.me`, OAuth2-Proxy
 - `grafana.yaml` — Grafana LXC, port 3000, host `grafana.home.mcnees.me` (has own auth / will use Pocket ID)
-- `pelican-panel.yaml` — Pelican Panel LXC, port 443, host `pelican.mcnees.me` on the public entrypoint (has own auth)
-- `pelican-wings-public.yaml` — Pelican Wings backend, host `games.mcnees.me` on the public entrypoint. Create only after Panel is reachable and can manage the Wings node.
+- `pelican-panel.yaml` — Pelican Panel LXC, port 443, host `games.mcnees.me` on the public entrypoint (has own auth)
+- `pelican-wings-public.yaml` — Pelican Wings API backend, host `wings.games.mcnees.me` on the public entrypoint. Create only after Panel is reachable and can manage the Wings node. Game allocations may use `games.mcnees.me:<port>` directly where the game protocol expects raw TCP/UDP.
 - `romm.yaml` — TrueNAS app (until Wave 8 migration), snorlax IP, port 8080, host `romm.home.mcnees.me` (has own auth)
 - `lazylibrarian.yaml` — LazyLibrarian LXC, port 5299, host `books.home.mcnees.me`, OAuth2-Proxy
 - `stash.yaml` — TrueNAS app on snorlax, port 9999, host `stash.home.mcnees.me`, OAuth2-Proxy
@@ -2640,6 +2640,8 @@ After Mantle covers the needed workflow(s), remove `n8n.yaml` from `kubernetes/a
 
 Migrate Pelican Panel to K8s with PostgreSQL data migration, then configure and expose Pelican Wings. Panel comes first because Wings needs a reachable Panel to register with and receive configuration.
 
+**Domain model:** Use `https://games.mcnees.me` for the Panel. Do not mount Panel under a subdirectory such as `/panel`; Pelican expects a root `APP_URL`, and Wings stores that Panel URL in its `remote` configuration. Use `https://wings.games.mcnees.me` for the Wings HTTPS API/control endpoint. Game server allocations can use `games.mcnees.me:<port>` when the game protocol expects direct TCP/UDP traffic. TLS certificates are hostname-based, not path-based, so the Panel and Wings API can both use normal certificates on their own hostnames while allocation ports remain protocol-specific.
+
 ### Task 26: Deploy and migrate Pelican Panel
 
 **Files:**
@@ -2721,15 +2723,15 @@ spec:
             claimName: pelican-panel-data
 ```
 
-ConfigMap: `DB_HOST=metagross.internal.svc.cluster.local`, `DB_PORT=5432`, `DB_DATABASE=pelican`, `APP_URL=https://pelican.mcnees.me`
+ConfigMap: `DB_HOST=metagross.internal.svc.cluster.local`, `DB_PORT=5432`, `DB_DATABASE=pelican`, `APP_URL=https://games.mcnees.me`
 
 Secret (SOPS): `DB_USERNAME`, `DB_PASSWORD`, `APP_KEY`, `HASHIDS_SALT`
 
-IngressRoute on external entrypoint, host `pelican.mcnees.me`. Pelican has its own auth.
+IngressRoute on external entrypoint, host `games.mcnees.me`. Pelican has its own auth.
 
 - [ ] **Step 3: Update Wings configuration**
 
-After the Panel migrates, update the Wings LXC configuration to point at the new Panel URL if needed.
+After the Panel migrates, update the Wings configuration to point at the new Panel URL (`https://games.mcnees.me`) if needed.
 
 - [ ] **Step 4: Verify and commit**
 
@@ -2747,7 +2749,7 @@ Remove `pelican-panel.yaml` from temporary directory. Destroy old Pelican Panel 
 - Create or update: `kubernetes/apps/external-services/temporary/pelican-wings-public.yaml`
 - Modify: `kubernetes/apps/external-services/kustomization.yaml`
 
-**Context:** Wings is the daemon that runs game instances and should be configured only after Panel is migrated and reachable. Keep an internal route for admin/debug access if useful, but the game-server endpoint also needs a public route such as `games.mcnees.me` on the external Traefik entrypoint.
+**Context:** Wings is the daemon that runs game instances and should be configured only after Panel is migrated and reachable. Keep an internal route for admin/debug access if useful. Expose the Wings HTTPS API/control endpoint as `wings.games.mcnees.me` on the external Traefik entrypoint, and expose game allocations as direct `games.mcnees.me:<port>` TCP/UDP forwards where required by the game protocol.
 
 - [ ] **Step 1: Register/update Wings against the new Panel URL**
 
@@ -2755,7 +2757,7 @@ Update Wings configuration with the new Panel URL and credentials/token from the
 
 - [ ] **Step 2: Verify public reachability**
 
-Confirm `games.mcnees.me` reaches the Wings backend through the public Traefik entrypoint and that Panel can communicate with Wings.
+Confirm `wings.games.mcnees.me` reaches the Wings HTTPS API/control backend through the public Traefik entrypoint, that Panel can communicate with Wings, and that a test game allocation works at `games.mcnees.me:<port>`.
 
 - [ ] **Step 3: Remove old Wings temporary route after stability window**
 

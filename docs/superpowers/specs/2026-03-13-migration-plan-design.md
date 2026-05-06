@@ -108,7 +108,7 @@ This migration spec also supersedes the redesign spec on:
 - **Scrypted**: Removed.
 - **Outline, Linkwarden, Actual Budget, Booklore, Glances, InfluxDB, Portainer**: Removed.
 - **Paperless-ngx + Paperless-GPT**: Added to Phase 3 service deployments.
-- **Pelican Panel and Wings**: Panel must be migrated and publicly reachable before Wings is finalized. Wings is the daemon that runs game instances and remains outside K3s on the game-hosting backend, but it also needs public exposure for game traffic. Pelipper VM (on latias) hosts additional game server capacity.
+- **Pelican Panel and Wings**: Panel must be migrated and publicly reachable before Wings is finalized. Panel uses `games.mcnees.me`; Wings API/control uses `wings.games.mcnees.me`; game allocations may use `games.mcnees.me:<port>` direct TCP/UDP exposure. Wings is the daemon that runs game instances and remains outside K3s on the game-hosting backend. Pelipper VM (on latias) hosts additional game server capacity.
 - **Home Assistant**: Migrates from Mew to latios as a VM (6GB RAM, 2 cores).
 
 ### K3s Node Mapping
