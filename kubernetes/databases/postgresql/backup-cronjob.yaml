@@ -69,6 +69,14 @@ spec:
                   readOnly: true
                 - name: backups
                   mountPath: /backups
+                - name: identity
+                  mountPath: /etc/passwd
+                  subPath: passwd
+                  readOnly: true
+                - name: identity
+                  mountPath: /etc/group
+                  subPath: group
+                  readOnly: true
           volumes:
             - name: ssh
               secret:
@@ -77,3 +85,6 @@ spec:
             - name: backups
               persistentVolumeClaim:
                 claimName: postgresql-logical-backups
+            - name: identity
+              configMap:
+                name: postgresql-logical-backup-identity
