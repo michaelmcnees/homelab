@@ -133,6 +133,10 @@
       community.postgresql.postgresql_db:
         name: "{{ item.name }}"
         owner: "{{ item.owner }}"
+        encoding: UTF8
+        lc_collate: C
+        lc_ctype: C
+        template: template0
         state: present
       loop: "{{ postgresql_databases }}"
 

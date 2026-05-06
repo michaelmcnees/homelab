@@ -2,6 +2,8 @@
 
 `metagross` is the shared PostgreSQL LXC for homelab applications. Kubernetes reaches it through the `metagross` Service in the `internal` namespace.
 
+Application databases managed by Ansible are created with `UTF8` encoding and `C` collation/ctype from `template0`. This matters for OCR and document workloads: PostgreSQL databases created from the metagross default templates may otherwise inherit `SQL_ASCII`, which cannot store Unicode text such as smart quotes from Paperless OCR.
+
 ## Monitoring
 
 Prometheus scrapes PostgreSQL metrics from `postgres-exporter` in the `internal` namespace. The exporter connects to metagross with the `postgres_exporter` PostgreSQL role, which is managed by `task ansible:postgresql` and granted the built-in `pg_monitor` role.
