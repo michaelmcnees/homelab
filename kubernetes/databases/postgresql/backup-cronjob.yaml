@@ -16,7 +16,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: backup
-              image: alpine/git:2.51.1
+              image: alpine/git:2.52.0
               imagePullPolicy: IfNotPresent
               command:
                 - /bin/sh
