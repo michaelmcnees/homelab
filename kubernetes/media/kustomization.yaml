@@ -5,3 +5,4 @@ resources:
   - shared-media-pv.yaml
   - ./sonarr
   - ./radarr
+  - ./prowlarr
