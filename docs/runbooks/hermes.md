@@ -10,7 +10,8 @@ Hermes is deployed as an experimental in-cluster agent at `https://hermes.home.m
 - Dashboard: Traefik `IngressRoute` behind the shared `oauth2-proxy` middleware
 - Data PVC: `hermes-data` mounted at `/opt/data`
 - Workspace PVC: `hermes-workspace` mounted at `/workspace`
-- Ollama endpoint: `http://ollama.apps.svc.cluster.local:11434`
+- Ollama endpoint: `http://ollama.apps.svc.cluster.local:11434/v1`
+- Default model: `qwen3.5:9b`
 
 The Hermes Docker docs warn against exposing the dashboard directly. Keep it local-only and oauth-protected unless we intentionally design a safer public gateway.
 
@@ -31,7 +32,19 @@ Supported placeholders:
 - `OPENAI_API_KEY`
 - `XAI_API_KEY`
 - `OLLAMA_API_KEY`
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_ALLOWED_USERS`
+
+## Telegram
+
+Telegram uses the long-running Hermes gateway already started by the deployment.
+
+1. Create a bot with BotFather and save the bot token in `TELEGRAM_BOT_TOKEN`.
+2. Get your numeric Telegram user ID from `@userinfobot` and save it in `TELEGRAM_ALLOWED_USERS`.
+3. Reconcile `apps` or restart the `hermes` deployment.
+
+`TELEGRAM_ALLOWED_USERS` is comma-separated, so multiple user IDs can be added later.
 
 ## Gateways Later
 
-Hermes supports chat gateways such as Telegram and Discord. Add those as a follow-up once we decide which account should own the bot tokens and approved user list.
+Hermes supports additional chat gateways such as Discord and Slack. Add those as a follow-up once we decide which account should own the bot tokens and approved user lists.

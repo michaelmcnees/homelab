@@ -21,6 +21,25 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: seed-config
+          image: busybox:1.37
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - cp /config/config.yaml /opt/data/config.yaml
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: data
+              mountPath: /opt/data
       containers:
         - name: hermes
           image: nousresearch/hermes-agent:latest
@@ -73,6 +92,16 @@ spec:
                 secretKeyRef:
                   name: hermes-secret
                   key: OLLAMA_API_KEY
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: TELEGRAM_BOT_TOKEN
+            - name: TELEGRAM_ALLOWED_USERS
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: TELEGRAM_ALLOWED_USERS
           readinessProbe:
             tcpSocket:
               port: dashboard
@@ -95,6 +124,9 @@ spec:
             - name: workspace
               mountPath: /workspace
       volumes:
+        - name: config
+          configMap:
+            name: hermes-config
         - name: data
           persistentVolumeClaim:
             claimName: hermes-data
