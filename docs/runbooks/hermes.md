@@ -13,12 +13,15 @@ Hermes is deployed as an experimental in-cluster agent at `https://hermes.home.m
 - Workspace PVC: `hermes-workspace` mounted at `/workspace`
 - Ollama endpoint: `http://ollama.apps.svc.cluster.local:11434/v1`
 - Default model: `qwen3.5:9b`
+- Context length: `64000`
 
 The Hermes Docker docs warn against exposing the dashboard directly. Keep it local-only and oauth-protected unless we intentionally design a safer public gateway.
 
 ## Provider Keys
 
 Provider keys are optional for initial boot, but Hermes will need at least one usable model provider before it can do useful agent work.
+
+Hermes requires at least 64k context. Local Ollama is configured with `OLLAMA_CONTEXT_LENGTH=64000`, and Hermes declares the same value in `hermes-config`.
 
 Edit the SOPS secret:
 
