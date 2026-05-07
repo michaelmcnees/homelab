@@ -7,7 +7,7 @@ data:
   config.yaml: |
     model:
       provider: custom
-      default: qwen3.5:9b
+      default: granite4.1:3b
       base_url: http://ollama.apps.svc.cluster.local:11434/v1
       api_key: ""
       context_length: 64000
