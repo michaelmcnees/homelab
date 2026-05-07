@@ -9,6 +9,7 @@ Hermes is deployed as an experimental in-cluster agent at `https://hermes.home.m
 - Runtime: `hermes gateway run` with `HERMES_DASHBOARD=1`
 - Dashboard: Traefik `IngressRoute` behind the shared `oauth2-proxy` middleware
 - Data PVC: `hermes-data` mounted at `/opt/data`
+- Config: `hermes-config` mounted at `/opt/data/config.yaml`
 - Workspace PVC: `hermes-workspace` mounted at `/workspace`
 - Ollama endpoint: `http://ollama.apps.svc.cluster.local:11434/v1`
 - Default model: `qwen3.5:9b`

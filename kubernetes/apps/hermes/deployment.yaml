@@ -21,27 +21,6 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
-      initContainers:
-        - name: seed-config
-          image: busybox:1.37
-          imagePullPolicy: IfNotPresent
-          command:
-            - sh
-            - -c
-            - cp /config/config.yaml /opt/data/config.yaml
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            runAsGroup: 10000
-            runAsUser: 10000
-          volumeMounts:
-            - name: config
-              mountPath: /config
-              readOnly: true
-            - name: data
-              mountPath: /opt/data
       containers:
         - name: hermes
           image: nousresearch/hermes-agent:latest
@@ -123,6 +102,10 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /opt/data
+            - name: config
+              mountPath: /opt/data/config.yaml
+              subPath: config.yaml
+              readOnly: true
             - name: workspace
               mountPath: /workspace
       volumes:
