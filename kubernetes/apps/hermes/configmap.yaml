@@ -6,8 +6,5 @@ metadata:
 data:
   config.yaml: |
     model:
-      provider: custom
-      default: granite4.1:3b
-      base_url: http://ollama.apps.svc.cluster.local:11434/v1
-      api_key: ""
-      context_length: 64000
+      provider: openai-codex
+      default: gpt-5.3-codex

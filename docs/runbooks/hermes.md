@@ -11,9 +11,8 @@ Hermes is deployed as an experimental in-cluster agent at `https://hermes.home.m
 - Data PVC: `hermes-data` mounted at `/opt/data`
 - Config: `hermes-config` mounted at `/opt/data/config.yaml`
 - Workspace PVC: `hermes-workspace` mounted at `/workspace`
-- Ollama endpoint: `http://ollama.apps.svc.cluster.local:11434/v1`
-- Default model: `granite4.1:3b`
-- Context length: `64000`
+- Default provider: `openai-codex`
+- Default model: `gpt-5.3-codex`
 
 The Hermes Docker docs warn against exposing the dashboard directly. Keep it local-only and oauth-protected unless we intentionally design a safer public gateway.
 
@@ -21,9 +20,9 @@ The Hermes Docker docs warn against exposing the dashboard directly. Keep it loc
 
 Provider keys are optional for initial boot, but Hermes will need at least one usable model provider before it can do useful agent work.
 
-Hermes requires at least 64k context. Local Ollama is configured with `OLLAMA_CONTEXT_LENGTH=64000`, and Hermes declares the same value in `hermes-config`.
+Hermes requires at least 64k context. Local Ollama is configured with `OLLAMA_CONTEXT_LENGTH=64000`, but Telegram proved too slow through the local CPU path: even a small message can send a multi-thousand-token agent prompt and hit the 120 second client timeout.
 
-The default model is `granite4.1:3b` because it advertises 131k native context, supports tools, and is much more practical for Telegram on CPU than `qwen3.5:9b`. Keep `qwen3.5:9b` available for higher-quality local experiments where latency is less important.
+The default provider is `openai-codex` so Hermes can use the ChatGPT/Codex OAuth credential stored on the `hermes-data` PVC. Keep local Ollama available for private/offline experiments, not the default Telegram chat path.
 
 Edit the SOPS secret:
 
@@ -40,6 +39,13 @@ Supported placeholders:
 - `OLLAMA_API_KEY`
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_ALLOWED_USERS`
+
+Codex OAuth is not stored in SOPS. It is created inside the running Hermes pod and persisted on the `hermes-data` PVC:
+
+```sh
+kubectl --kubeconfig talos/kubeconfig exec -n apps deployment/hermes -- \
+  /opt/hermes/.venv/bin/hermes auth add openai-codex --type oauth --no-browser --timeout 300
+```
 
 ## Telegram
 
