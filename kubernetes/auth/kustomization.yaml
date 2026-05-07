@@ -4,3 +4,4 @@ resources:
   - lldap
   - pocket-id
   - oauth2-proxy
+  - oauth2-proxy-kenway-arr

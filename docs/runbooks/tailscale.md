@@ -119,6 +119,32 @@ Default rule:
 
 For services we want Kenway to use, create an explicit Tailscale service tag such as `tag:homelab-shared-service` and keep the tailnet ACL limited to `tcp:443`.
 
+### Kenway Arr Access
+
+Kenway gets Tailscale-only Arr access through dedicated OAuth2-Proxy reverse proxies in `kubernetes/auth/oauth2-proxy-kenway-arr`. These proxies only allow `mike@kenway.me` and forward to the in-cluster Arr services after Pocket ID login.
+
+Do not expose the Arr app services directly with Tailscale. The apps trust local cluster traffic, so direct exposure would bypass the auth layer.
+
+Add these redirect URLs to the Pocket ID OAuth client used by OAuth2-Proxy:
+
+- `https://kenway-sonarr.halfbeak-chimaera.ts.net/oauth2/callback`
+- `https://kenway-sonarr-anime.halfbeak-chimaera.ts.net/oauth2/callback`
+- `https://kenway-radarr.halfbeak-chimaera.ts.net/oauth2/callback`
+- `https://kenway-lidarr.halfbeak-chimaera.ts.net/oauth2/callback`
+- `https://kenway-lidarr-kids.halfbeak-chimaera.ts.net/oauth2/callback`
+- `https://kenway-bazarr.halfbeak-chimaera.ts.net/oauth2/callback`
+- `https://kenway-prowlarr.halfbeak-chimaera.ts.net/oauth2/callback`
+
+Shared URLs:
+
+- `https://kenway-sonarr.halfbeak-chimaera.ts.net`
+- `https://kenway-sonarr-anime.halfbeak-chimaera.ts.net`
+- `https://kenway-radarr.halfbeak-chimaera.ts.net`
+- `https://kenway-lidarr.halfbeak-chimaera.ts.net`
+- `https://kenway-lidarr-kids.halfbeak-chimaera.ts.net`
+- `https://kenway-bazarr.halfbeak-chimaera.ts.net`
+- `https://kenway-prowlarr.halfbeak-chimaera.ts.net`
+
 ## References
 
 - Tailscale Kubernetes Operator: https://tailscale.com/docs/features/kubernetes-operator/
