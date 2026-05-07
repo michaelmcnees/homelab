@@ -1,0 +1,61 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: homelab-ai-network-alerts
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: homelab-ai
+      rules:
+        - alert: AIWorkloadUnavailable
+          expr: kube_deployment_status_replicas_available{namespace="apps", deployment=~"ollama|open-webui|hermes|paperless-gpt"} < kube_deployment_spec_replicas{namespace="apps", deployment=~"ollama|open-webui|hermes|paperless-gpt"}
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "AI workload {{ $labels.deployment }} is unavailable"
+            description: "{{ $labels.deployment }} has fewer available replicas than desired for 10 minutes."
+        - alert: OllamaExporterDown
+          expr: ollama_exporter_up == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Ollama exporter cannot reach Ollama"
+            description: "The Ollama exporter has failed to scrape the Ollama API for 5 minutes."
+        - alert: OllamaModelHighMemory
+          expr: ollama_model_size_bytes > 16000000000
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Ollama model {{ $labels.model }} is using high memory"
+            description: "Loaded Ollama model memory footprint is above 16 GB."
+    - name: homelab-network
+      rules:
+        - alert: NetworkProbeDown
+          expr: probe_success{namespace="observability"} == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Network probe {{ $labels.probe }} is failing"
+            description: "Blackbox probe {{ $labels.probe }} has failed for 5 minutes."
+        - alert: WANProbeFlapping
+          expr: avg_over_time(probe_success{network_path="wan"}[15m]) < 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "WAN probe success is below 90%"
+            description: "External network probes are failing often enough to suggest ISP or upstream instability."
+        - alert: UniFiPollerDown
+          expr: up{namespace="observability", service="unpoller"} == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "UniFi poller is down"
+            description: "Prometheus cannot scrape Unpoller metrics."

@@ -87,6 +87,14 @@ data:
             icon: grafana.png
             href: https://grafana.home.mcnees.me/d/homelab-paperless/homelab-paperless
             description: Documents and AI processing
+        - AI Metrics:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-ai/homelab-ai
+            description: Ollama and AI workloads
+        - Network Metrics:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-network/homelab-network
+            description: UniFi and network probes
     - Media Cabinet:
         - Plex:
             icon: plex.png

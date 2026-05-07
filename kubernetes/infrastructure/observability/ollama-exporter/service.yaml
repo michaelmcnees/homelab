@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-exporter
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: ollama-exporter
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ollama-exporter
+  ports:
+    - name: http
+      port: 9394
+      targetPort: http
+      protocol: TCP

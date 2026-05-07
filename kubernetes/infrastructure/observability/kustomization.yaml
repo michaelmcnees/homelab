@@ -5,6 +5,9 @@ resources:
   - ./beszel
   - ./loki
   - ./alloy
+  - ./blackbox-exporter
+  - ./ollama-exporter
   - ./version-checker
   - ./proxmox-exporter
+  - ./unpoller
   - ./kube-prometheus-stack

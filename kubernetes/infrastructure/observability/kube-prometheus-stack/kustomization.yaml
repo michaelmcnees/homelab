@@ -10,6 +10,9 @@ resources:
   - homelab-databases-dashboard.yaml
   - homelab-app-versions-dashboard.yaml
   - homelab-paperless-dashboard.yaml
+  - homelab-ai-dashboard.yaml
+  - homelab-network-dashboard.yaml
   - homelab-pod-logs-dashboard.yaml
   - homelab-proxmox-dashboard.yaml
   - homelab-alerts.yaml
+  - homelab-ai-network-alerts.yaml
