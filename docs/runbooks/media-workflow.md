@@ -90,8 +90,27 @@ Prowlarr migration started on 2026-05-06:
 - PostgreSQL verification counts matched the backup: 6 applications, 3 indexers, 1 download client, and 0 tags.
 - Routes: `prowlarr.home.mcnees.me`, with temporary alias `prowlarr-k8s.home.mcnees.me`
 
+Sonarr Anime, Lidarr, Lidarr Kids, and Bazarr were migrated on 2026-05-06:
+
+- Backups:
+  - Sonarr Anime: `sonarr_backup_v4.0.16.2944_2026.05.06_18.38.24.zip`
+  - Lidarr: `lidarr_backup_v3.1.0.4875_2026.05.06_18.37.34.zip`
+  - Lidarr Kids: `lidarr_backup_v3.1.0.4875_2026.05.06_18.38.11.zip`
+  - Bazarr: `bazarr_backup_v1.5.5_2026.05.06_18.39.38.zip`
+- Kubernetes resources live under `kubernetes/media/{sonarr-anime,lidarr,lidarr-kids,bazarr}`.
+- The old temporary external routes for these four services were removed from `kubernetes/apps/external-services/temporary/kustomization.yaml`; the primary hostnames now route to the `media` namespace.
+- Bazarr requires a UTF-8 PostgreSQL database. If recreating it manually, use `TEMPLATE template0 ENCODING 'UTF8'`.
+- Sonarr Anime, Lidarr Kids, and Bazarr were imported with `pgloader --with "quote identifiers" --with "data only"` after the apps created PostgreSQL schemas.
+- Regular Lidarr's backup is large enough to exhaust the current pgloader image heap. It was imported by exporting the SQLite backup to CSV per table, loading those files into `lidarr_main` as the `postgres` user with `session_replication_role = replica`, and resetting sequences afterwards.
+- Verification counts after import:
+  - Sonarr Anime: 18 series, 4 indexers, 1 download client
+  - Lidarr: 297 artists, 15,304 albums, 473,940 tracks, 4 indexers, 1 download client
+  - Lidarr Kids: 8 artists, 210 albums, 4 indexers, 1 download client
+  - Bazarr: 293 shows, 943 movies, 25,115 episode rows
+- In-cluster smoke checks returned HTTP 200 for Sonarr Anime `/ping`, Lidarr `/ping`, Lidarr Kids `/ping`, and Bazarr `/`.
+
 Remaining cutover checks:
 
-1. Validate library data, root folders, download client, indexers, and Recyclarr profiles through `sonarr-k8s.home.mcnees.me` and `radarr-k8s.home.mcnees.me`.
-2. Update Recyclarr to target `http://sonarr.media.svc.cluster.local:8989` and `http://radarr.media.svc.cluster.local:7878`.
-3. Cut the primary `sonarr.home.mcnees.me` and `radarr.home.mcnees.me` routes over only after the k8s routes behave correctly.
+1. Validate Sonarr Anime, Lidarr, Lidarr Kids, and Bazarr from the browser through the primary hostnames.
+2. Confirm Bazarr can still talk to the in-cluster Sonarr/Radarr services and update any restored localhost app URLs if needed.
+3. Shut down the old Docker host only after browser checks pass for all migrated services.

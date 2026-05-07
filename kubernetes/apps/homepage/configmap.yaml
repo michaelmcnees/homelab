@@ -96,6 +96,10 @@ data:
             icon: sonarr.png
             href: https://sonarr.home.mcnees.me
             description: TV management
+        - Sonarr Anime:
+            icon: sonarr.png
+            href: https://sonarr-anime.home.mcnees.me
+            description: Anime tracking
         - Radarr:
             icon: radarr.png
             href: https://radarr.home.mcnees.me
@@ -112,6 +116,10 @@ data:
             icon: lidarr.png
             href: https://lidarr.home.mcnees.me
             description: Music management
+        - Lidarr Kids:
+            icon: lidarr.png
+            href: https://lidarr-kids.home.mcnees.me
+            description: Kids music
         - Tautulli:
             icon: tautulli.png
             href: https://tautulli.home.mcnees.me
