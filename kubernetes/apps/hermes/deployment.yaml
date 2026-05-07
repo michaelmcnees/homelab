@@ -73,11 +73,6 @@ spec:
                 secretKeyRef:
                   name: hermes-secret
                   key: OLLAMA_API_KEY
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
           readinessProbe:
             tcpSocket:
               port: dashboard
