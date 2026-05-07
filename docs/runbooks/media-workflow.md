@@ -102,6 +102,8 @@ Sonarr Anime, Lidarr, Lidarr Kids, and Bazarr were migrated on 2026-05-06:
 - Bazarr requires a UTF-8 PostgreSQL database. If recreating it manually, use `TEMPLATE template0 ENCODING 'UTF8'`.
 - Sonarr Anime, Lidarr Kids, and Bazarr were imported with `pgloader --with "quote identifiers" --with "data only"` after the apps created PostgreSQL schemas.
 - Regular Lidarr's backup is large enough to exhaust the current pgloader image heap. It was imported by exporting the SQLite backup to CSV per table, loading those files into `lidarr_main` as the `postgres` user with `session_replication_role = replica`, and resetting sequences afterwards.
+- After restoring Sonarr Anime and Lidarr Kids, update their SABnzbd download-client host from the raw endpoint IP to `sabnzbd-external.apps.svc.cluster.local` and clear stale `DownloadClientStatus` rows so health checks re-evaluate cleanly.
+- Sonarr Anime has one root folder under `/media/library/anime/` and two restored series still stored directly under `/media/`; both paths are backed by the shared `media-library` mount.
 - Verification counts after import:
   - Sonarr Anime: 18 series, 4 indexers, 1 download client
   - Lidarr: 297 artists, 15,304 albums, 473,940 tracks, 4 indexers, 1 download client
