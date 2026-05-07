@@ -1,0 +1,17 @@
+apiVersion: tailscale.com/v1alpha1
+kind: Connector
+metadata:
+  name: homelab-subnet-router
+spec:
+  replicas: 1
+  hostnamePrefix: homelab-subnet
+  tags:
+    - tag:homelab-admin-router
+  subnetRouter:
+    advertiseRoutes:
+      - "10.0.0.0/22"
+      - "10.0.10.0/24"
+      - "10.0.20.0/24"
+      - "10.0.30.0/24"
+      - "10.0.40.0/24"
+      - "10.0.50.0/24"

@@ -5,4 +5,5 @@ resources:
   - external-dns
   - local-path-provisioner
   - metallb
+  - tailscale-operator
   - traefik
