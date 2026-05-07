@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hermes
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: hermes
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: hermes
+  ports:
+    - name: dashboard
+      port: 9119
+      targetPort: dashboard
+      protocol: TCP
+    - name: gateway
+      port: 8642
+      targetPort: gateway
+      protocol: TCP

@@ -46,6 +46,10 @@ data:
             icon: open-webui.png
             href: https://ai.home.mcnees.me
             description: Local AI chat
+        - Hermes:
+            icon: mdi-robot
+            href: https://hermes.home.mcnees.me
+            description: Self-hosted AI agent
     - High Scores:
         - Grafana:
             icon: grafana.png
