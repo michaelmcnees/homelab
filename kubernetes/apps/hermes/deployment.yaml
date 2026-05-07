@@ -34,6 +34,8 @@ spec:
             capabilities:
               drop:
                 - ALL
+            runAsGroup: 10000
+            runAsUser: 10000
           volumeMounts:
             - name: config
               mountPath: /config
