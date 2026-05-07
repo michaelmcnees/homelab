@@ -90,7 +90,7 @@ spec:
             periodSeconds: 10
           livenessProbe:
             tcpSocket:
-              port: gateway
+              port: dashboard
             initialDelaySeconds: 90
             periodSeconds: 30
           resources:
