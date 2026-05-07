@@ -31,8 +31,58 @@ The homelab-specific dashboards are:
 
 - `homelab-k8s-overview`: cluster and node vitals backed by Prometheus.
 - `homelab-databases`: PostgreSQL, Redis, metagross LXC, and database backup health.
+- `homelab-ai`: Ollama, Open WebUI, Hermes, and Paperless-GPT workload health, resource usage, AI logs, and loaded Ollama model metadata.
+- `homelab-network`: blackbox network probes and UniFi metric ingestion status.
 - `homelab-pod-logs`: namespace-filtered Loki log volume and log search.
 - `homelab-proxmox`: Proxmox host and VM metrics from prometheus-pve-exporter.
+
+## AI Metrics
+
+AI service health is split between standard Kubernetes metrics, Loki logs, and a small custom `ollama-exporter` in the `observability` namespace.
+
+`ollama-exporter` polls `http://ollama.apps.svc.cluster.local:11434/api/ps` and `/api/tags`, then exposes:
+
+- whether Ollama is reachable.
+- the loaded model name, family, parameters, and quantization.
+- loaded model memory footprint.
+- loaded model context length.
+- model expiry timestamp.
+- available local models.
+
+The `homelab-ai` dashboard combines those exporter metrics with pod CPU, pod memory, restarts, and log warnings/errors for `ollama`, `open-webui`, `hermes`, and `paperless-gpt`.
+
+## Network Metrics
+
+Network trend monitoring has two layers:
+
+- `blackbox-exporter` probes known LAN and WAN targets every 30 seconds.
+- `unpoller` collects UniFi controller, gateway, switch, AP, and client metrics once UniFi credentials are configured.
+
+Blackbox probes currently cover:
+
+- Traefik internal HTTPS at `10.0.10.200:443`.
+- UniFi console HTTPS at `10.0.0.17:443`.
+- Cloudflare HTTPS at `1.1.1.1:443`.
+- Google DNS TCP at `8.8.8.8:53`.
+- AdGuard DNS at `10.0.0.18:53`.
+- Cloudflare DNS at `1.1.1.1:53`.
+
+Use these probes to distinguish local Traefik/LAN failures from WAN or upstream DNS instability. They are intentionally simple availability and latency checks; they do not replace full throughput tests.
+
+UniFi metrics require a local UniFi account that can read network data. Edit the SOPS secret after creating that account:
+
+```sh
+SOPS_AGE_KEY_FILE=homelab.age.key sops kubernetes/infrastructure/observability/unpoller/secret.sops.yaml
+```
+
+Set:
+
+- `UP_UNIFI_DEFAULT_USER`
+- `UP_UNIFI_DEFAULT_PASS`
+
+The controller URL is `https://10.0.0.17`, site is `default`, and TLS verification is disabled because the console uses an internal/self-signed certificate.
+
+The UniFi API key used by OpenTofu is not used here. `unpoller` authenticates with `UP_UNIFI_DEFAULT_USER` and `UP_UNIFI_DEFAULT_PASS`, so use a dedicated local read-only monitoring account instead of the OpenTofu API token or the K3s cluster token from Ansible.
 
 ## Proxmox Metrics
 
@@ -58,6 +108,15 @@ Homelab-specific alerts live in the `homelab-alerts` PrometheusRule:
 - Proxmox node down for `latios`, `latias`, and `rayquaza`.
 - Proxmox on-boot VM/LXC guests down.
 - Proxmox storage over 85% full.
+
+AI and network alerts live in `homelab-ai-network-alerts`:
+
+- AI workloads unavailable for 10 minutes.
+- Ollama exporter cannot reach Ollama.
+- loaded Ollama model memory above 16 GB.
+- network probe failures for 5 minutes.
+- WAN probe success below 90% over 15 minutes.
+- UniFi poller scrape failures.
 
 Database-specific alerts live in the `metagross-backups` PrometheusRule:
 
