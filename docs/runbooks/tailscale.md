@@ -99,6 +99,12 @@ The router advertises:
 
 If auto-approval is not active, approve the advertised routes in the Machines page. iOS and iPadOS clients accept subnet routes by default once the tailnet permits them.
 
+After changing tag ownership in the tailnet policy, the operator usually retries automatically. If a `Connector` remains stuck with `requested tags [...] are invalid or not permitted`, force a reconcile:
+
+```bash
+kubectl --kubeconfig talos/kubeconfig annotate connector homelab-subnet-router tailscale.mcnees.me/retry-at="$(date -u +%Y%m%d%H%M%S)" --overwrite
+```
+
 ## Shared Services
 
 Tailscale can expose individual Kubernetes workloads using a `tailscale` `Ingress` or `LoadBalancer` service. Use this only when the auth story is explicit.
