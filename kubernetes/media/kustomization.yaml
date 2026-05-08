@@ -10,6 +10,7 @@ resources:
   - ./lidarr
   - ./lidarr-kids
   - ./bazarr
+  - ./lazylibrarian
   - ./tautulli
   - ./overseerr
   - ./wizarr
