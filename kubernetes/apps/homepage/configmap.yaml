@@ -184,7 +184,7 @@ data:
             description: Document AI
         - RomM:
             icon: romm.png
-            href: https://romm.home.mcnees.me
+            href: https://arcade.mcnees.me/romm/
             description: Game library
         - Stash:
             icon: stash.png

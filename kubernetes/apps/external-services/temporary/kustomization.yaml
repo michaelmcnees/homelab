@@ -14,7 +14,6 @@ resources:
   - pterodactyl.yaml
   - pterodactyl-wings.yaml
   - readarr.yaml
-  - romm.yaml
   - stash.yaml
   - pxe-bulbasaur.yaml
   - pxe-charmander.yaml
