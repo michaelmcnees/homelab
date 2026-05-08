@@ -1,13 +1,13 @@
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: adguard-k8s
+  name: adguard
   namespace: apps
 spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`adguard-k8s.home.mcnees.me`)
+    - match: Host(`adguard.home.mcnees.me`) || Host(`adguard-k8s.home.mcnees.me`)
       kind: Rule
       services:
         - name: adguard
