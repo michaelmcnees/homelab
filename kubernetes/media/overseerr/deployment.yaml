@@ -5,6 +5,7 @@ metadata:
   namespace: media
   labels:
     app.kubernetes.io/name: overseerr
+    app.kubernetes.io/component: seerr
 spec:
   replicas: 1
   selector:
@@ -19,12 +20,26 @@ spec:
     spec:
       enableServiceLinks: false
       securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: overseerr
-          image: sctx/overseerr:1.35.0
+        - name: seerr
+          image: ghcr.io/seerr-team/seerr:v3
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
           ports:
             - name: http
               containerPort: 5055
@@ -34,16 +49,18 @@ spec:
               value: America/Detroit
             - name: LOG_LEVEL
               value: info
+            - name: PORT
+              value: "5055"
           readinessProbe:
             httpGet:
-              path: /api/v1/status
+              path: /api/v1/settings/public
               port: http
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
           livenessProbe:
             httpGet:
-              path: /api/v1/status
+              path: /api/v1/settings/public
               port: http
             initialDelaySeconds: 120
             periodSeconds: 30

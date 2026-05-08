@@ -100,8 +100,8 @@ data:
             icon: plex.png
             href: https://plex.home.mcnees.me
             description: Media server
-        - Overseerr:
-            icon: overseerr.png
+        - Seerr:
+            icon: seerr.png
             href: https://seer.home.mcnees.me
             description: Media requests
         - Sonarr:
