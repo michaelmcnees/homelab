@@ -75,6 +75,90 @@ spec:
       scrapeTimeout: 10s
       params:
         module:
+          - http_2xx
+        target:
+          - https://cloudflare.com
+      relabelings:
+        - targetLabel: probe
+          replacement: cloudflare-http
+        - targetLabel: network_path
+          replacement: wan
+    - port: http
+      path: /probe
+      interval: 30s
+      scrapeTimeout: 10s
+      params:
+        module:
+          - http_2xx
+        target:
+          - https://github.com
+      relabelings:
+        - targetLabel: probe
+          replacement: github-http
+        - targetLabel: network_path
+          replacement: wan
+    - port: http
+      path: /probe
+      interval: 30s
+      scrapeTimeout: 10s
+      params:
+        module:
+          - tcp_connect
+        target:
+          - 10.0.1.1:2049
+      relabelings:
+        - targetLabel: probe
+          replacement: truenas-nfs
+        - targetLabel: network_path
+          replacement: storage
+    - port: http
+      path: /probe
+      interval: 30s
+      scrapeTimeout: 10s
+      params:
+        module:
+          - tcp_connect
+        target:
+          - 10.0.3.196:8006
+      relabelings:
+        - targetLabel: probe
+          replacement: proxmox-latios
+        - targetLabel: network_path
+          replacement: management
+    - port: http
+      path: /probe
+      interval: 30s
+      scrapeTimeout: 10s
+      params:
+        module:
+          - tcp_connect
+        target:
+          - 10.0.3.40:8006
+      relabelings:
+        - targetLabel: probe
+          replacement: proxmox-latias
+        - targetLabel: network_path
+          replacement: management
+    - port: http
+      path: /probe
+      interval: 30s
+      scrapeTimeout: 10s
+      params:
+        module:
+          - tcp_connect
+        target:
+          - 10.0.1.100:8006
+      relabelings:
+        - targetLabel: probe
+          replacement: proxmox-rayquaza
+        - targetLabel: network_path
+          replacement: management
+    - port: http
+      path: /probe
+      interval: 30s
+      scrapeTimeout: 10s
+      params:
+        module:
           - tcp_connect
         target:
           - 8.8.8.8:53

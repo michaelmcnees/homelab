@@ -64,10 +64,22 @@ Blackbox probes currently cover:
 - UniFi console HTTPS at `10.0.0.17:443`.
 - Cloudflare HTTPS at `1.1.1.1:443`.
 - Google DNS TCP at `8.8.8.8:53`.
+- Cloudflare HTTP at `https://cloudflare.com`.
+- GitHub HTTP at `https://github.com`.
 - AdGuard DNS at `10.0.0.18:53`.
 - Cloudflare DNS at `1.1.1.1:53`.
+- TrueNAS NFS at `10.0.1.1:2049`.
+- Proxmox HTTPS on `latios`, `latias`, and `rayquaza`.
 
 Use these probes to distinguish local Traefik/LAN failures from WAN or upstream DNS instability. They are intentionally simple availability and latency checks; they do not replace full throughput tests.
+
+The `homelab-network` Grafana dashboard combines these probes with UniFi metrics:
+
+- Internet speed and quality: UniFi gateway speedtest, WAN throughput, WAN probe success, HTTP latency, DNS latency, and UniFi site/uplink latency.
+- Wi-Fi quality: average client satisfaction, AP/radio channel utilization, AP/SSID client counts, RSSI, link rates, retry/drop rates, and lowest-satisfaction clients.
+- LAN/storage quality: Traefik, UniFi console, Proxmox UI, and TrueNAS NFS probes.
+
+Use the dashboard from top to bottom when isolating performance issues. If WAN probes and gateway speedtest dip together, suspect ISP/upstream. If WAN is clean but Wi-Fi satisfaction, RSSI, retries, or AP channel utilization degrade, suspect RF/client/AP placement. If only LAN/storage probes fail, suspect internal routing, VLAN, switch, or service health.
 
 UniFi metrics require a local UniFi account that can read network data. Edit the SOPS secret after creating that account:
 
