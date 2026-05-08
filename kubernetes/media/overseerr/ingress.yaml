@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - websecure-external
   routes:
-    - match: Host(`requests-k8s.mcnees.me`)
+    - match: Host(`requests.mcnees.me`) || Host(`requests-k8s.mcnees.me`)
       kind: Rule
       services:
         - name: overseerr

@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - websecure-external
   routes:
-    - match: Host(`invitations-k8s.mcnees.me`)
+    - match: Host(`invitations.mcnees.me`) || Host(`invitations-k8s.mcnees.me`)
       kind: Rule
       services:
         - name: wizarr
