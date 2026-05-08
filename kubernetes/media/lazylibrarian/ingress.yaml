@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`lazylibrarian-k8s.home.mcnees.me`)
+    - match: Host(`lazylibrarian.home.mcnees.me`) || Host(`lazylibrarian-k8s.home.mcnees.me`)
       kind: Rule
       middlewares:
         - name: oauth2-proxy

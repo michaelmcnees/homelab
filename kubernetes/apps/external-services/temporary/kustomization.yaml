@@ -6,7 +6,6 @@ resources:
   - gramps.yaml
   - hass.yaml
   - homey-public.yaml
-  - lazylibrarian.yaml
   - n8n.yaml
   - outline.yaml
   - pelican.yaml
