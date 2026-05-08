@@ -11,3 +11,5 @@ resources:
   - ./lidarr-kids
   - ./bazarr
   - ./tautulli
+  - ./overseerr
+  - ./wizarr

@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: wizarr
+  namespace: media
+spec:
+  entryPoints:
+    - websecure-external
+  routes:
+    - match: Host(`invitations-k8s.mcnees.me`)
+      kind: Rule
+      services:
+        - name: wizarr
+          port: 5690
+  tls:
+    secretName: legacy-public-wildcard-tls
