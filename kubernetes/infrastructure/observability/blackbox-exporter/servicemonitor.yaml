@@ -175,7 +175,7 @@ spec:
         module:
           - dns_cloudflare
         target:
-          - 10.0.0.18:53
+          - 10.0.10.201:53
       relabelings:
         - targetLabel: probe
           replacement: adguard-dns

@@ -66,7 +66,7 @@ Blackbox probes currently cover:
 - Google DNS TCP at `8.8.8.8:53`.
 - Cloudflare HTTP at `https://cloudflare.com`.
 - GitHub HTTP at `https://github.com`.
-- AdGuard DNS at `10.0.0.18:53`.
+- AdGuard DNS at `10.0.10.201:53`.
 - Cloudflare DNS at `1.1.1.1:53`.
 - TrueNAS NFS at `10.0.1.1:2049`.
 - Proxmox HTTPS on `latios`, `latias`, and `rayquaza`.
