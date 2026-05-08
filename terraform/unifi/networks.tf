@@ -55,7 +55,7 @@ resource "unifi_network" "vlans" {
   dhcp_start   = each.value.dhcp_start
   dhcp_stop    = each.value.dhcp_stop
   dhcp_lease   = 86400
-  dhcp_dns     = ["10.0.0.18"]
+  dhcp_dns     = ["10.0.10.201"]
 
   multicast_dns = true
 
