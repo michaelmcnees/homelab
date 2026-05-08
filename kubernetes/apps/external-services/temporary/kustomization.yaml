@@ -20,7 +20,6 @@ resources:
   - readarr.yaml
   - romm.yaml
   - stash.yaml
-  - tautulli.yaml
   - wizarr.yaml
   - pxe-bulbasaur.yaml
   - pxe-charmander.yaml
