@@ -1,0 +1,17 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: romm
+  namespace: media
+spec:
+  entryPoints:
+    - websecure
+    - websecure-external
+  routes:
+    - match: Host(`arcade.mcnees.me`) || Host(`romm.home.mcnees.me`) || Host(`romm-k8s.home.mcnees.me`)
+      kind: Rule
+      services:
+        - name: romm
+          port: 8080
+  tls:
+    secretName: legacy-public-wildcard-tls

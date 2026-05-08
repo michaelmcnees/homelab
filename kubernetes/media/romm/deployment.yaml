@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: romm
+  namespace: media
+  labels:
+    app.kubernetes.io/name: romm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: romm
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: romm
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 568
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: wait-for-valkey
+          image: busybox:1.37.0
+          command:
+            - sh
+            - -c
+            - until nc -z romm-valkey 6379; do sleep 3; done
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      containers:
+        - name: romm
+          image: ghcr.io/rommapp/romm:4.7.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: romm-config
+            - secretRef:
+                name: romm-secrets
+          readinessProbe:
+            httpGet:
+              path: /romm/
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 18
+          livenessProbe:
+            httpGet:
+              path: /romm/
+              port: http
+            initialDelaySeconds: 180
+            periodSeconds: 30
+            timeoutSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 2Gi
+          volumeMounts:
+            - name: library
+              mountPath: /romm/library
+            - name: assets
+              mountPath: /romm/assets
+            - name: config
+              mountPath: /romm/config
+            - name: resources
+              mountPath: /romm/resources
+      volumes:
+        - name: library
+          persistentVolumeClaim:
+            claimName: romm-library
+        - name: assets
+          persistentVolumeClaim:
+            claimName: romm-assets
+        - name: config
+          persistentVolumeClaim:
+            claimName: romm-config
+        - name: resources
+          persistentVolumeClaim:
+            claimName: romm-resources

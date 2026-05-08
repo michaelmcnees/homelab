@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: romm-valkey
+  namespace: media
+  labels:
+    app.kubernetes.io/name: romm-valkey
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: romm-valkey
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: romm-valkey
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: valkey
+          image: valkey/valkey:9.0.3
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: romm-valkey-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: romm-valkey-data
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: romm-valkey
+  namespace: media
+  labels:
+    app.kubernetes.io/name: romm-valkey
+spec:
+  selector:
+    app.kubernetes.io/name: romm-valkey
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+      protocol: TCP

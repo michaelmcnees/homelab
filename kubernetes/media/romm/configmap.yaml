@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: romm-config
+  namespace: media
+data:
+  TZ: America/Detroit
+  ROMM_DB_DRIVER: postgresql
+  ROMM_BASE_PATH: /romm
+  DB_HOST: metagross.internal.svc.cluster.local
+  DB_PORT: "5432"
+  DB_NAME: romm
+  DB_USER: romm
+  REDIS_HOST: romm-valkey
+  REDIS_PORT: "6379"
+  HASHEOUS_API_ENABLED: "true"
+  OIDC_ENABLED: "true"
+  OIDC_PROVIDER: mcnees_id
+  OIDC_REDIRECT_URI: https://arcade.mcnees.me/api/oauth/openid
+  OIDC_SERVER_APPLICATION_URL: https://id.mcnees.me
+  PUID: "568"
+  PGID: "568"
+  UID: "568"
+  GID: "568"
+  USER_ID: "568"
+  GROUP_ID: "568"
+  UMASK: "002"
+  UMASK_SET: "002"

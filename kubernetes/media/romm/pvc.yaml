@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: romm-library
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.2
+    - noatime
+  nfs:
+    server: 10.0.1.1
+    path: /mnt/data/apps/romm/library
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: romm-library
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: romm-library
+  resources:
+    requests:
+      storage: 2Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: romm-assets
+spec:
+  capacity:
+    storage: 200Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.2
+    - noatime
+  nfs:
+    server: 10.0.1.1
+    path: /mnt/data/apps/romm/assets
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: romm-assets
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: romm-assets
+  resources:
+    requests:
+      storage: 200Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: romm-config
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.2
+    - noatime
+  nfs:
+    server: 10.0.1.1
+    path: /mnt/data/apps/romm/config
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: romm-config
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: romm-config
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: romm-resources
+spec:
+  capacity:
+    storage: 200Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.2
+    - noatime
+  nfs:
+    server: 10.0.1.1
+    path: /mnt/data/apps/romm/resources
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: romm-resources
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: romm-resources
+  resources:
+    requests:
+      storage: 200Gi
