@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grimmory-data
+  namespace: apps
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grimmory-books
+  namespace: apps
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: grimmory-books
+  resources:
+    requests:
+      storage: 2Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grimmory-books
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.2
+    - noatime
+  claimRef:
+    namespace: apps
+    name: grimmory-books
+  nfs:
+    server: 10.0.1.1
+    path: /mnt/data/media/library/books
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grimmory-bookdrop
+  namespace: apps
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: grimmory-bookdrop
+  resources:
+    requests:
+      storage: 250Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grimmory-bookdrop
+spec:
+  capacity:
+    storage: 250Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.2
+    - noatime
+  claimRef:
+    namespace: apps
+    name: grimmory-bookdrop
+  nfs:
+    server: 10.0.1.1
+    path: /mnt/data/media/bookdrop/grimmory
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grimmory-mariadb-config
+  namespace: apps
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi

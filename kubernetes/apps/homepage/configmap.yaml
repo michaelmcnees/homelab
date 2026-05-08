@@ -190,9 +190,9 @@ data:
             icon: stash.png
             href: https://stash.home.mcnees.me
             description: Media library
-        - BookLore:
-            icon: booklore.png
-            href: https://booklore.home.mcnees.me
+        - Grimmory:
+            icon: grimmory.png
+            href: https://grimmory.home.mcnees.me
             description: Books
         - n8n:
             icon: n8n.png

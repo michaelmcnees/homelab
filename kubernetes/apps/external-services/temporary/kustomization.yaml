@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - certificates.yaml
   - adguard.yaml
-  - booklore.yaml
   - gitea.yaml
   - gramps.yaml
   - hass.yaml
