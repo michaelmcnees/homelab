@@ -24,7 +24,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: stash
-          image: stashapp/stash:v0.28.1
+          image: stashapp/stash:v0.25.1
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
