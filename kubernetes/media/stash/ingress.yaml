@@ -1,0 +1,19 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: stash
+  namespace: media
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`stash.home.mcnees.me`) || Host(`stash-k8s.home.mcnees.me`)
+      kind: Rule
+      middlewares:
+        - name: oauth2-proxy-stash
+          namespace: auth
+      services:
+        - name: stash
+          port: 9999
+  tls:
+    secretName: legacy-home-wildcard-tls

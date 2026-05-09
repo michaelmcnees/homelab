@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stash
+  namespace: media
+  labels:
+    app.kubernetes.io/name: stash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: stash
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: stash
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 568
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: stash
+          image: stashapp/stash:v0.28.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 9999
+              protocol: TCP
+          env:
+            - name: STASH_STASH
+              value: /root/.stash/
+            - name: STASH_GENERATED
+              value: /root/.stash/generated/
+            - name: STASH_METADATA
+              value: /root/.stash/metadata/
+            - name: STASH_CACHE
+              value: /root/.stash/cache/
+            - name: TZ
+              value: America/Detroit
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 2Gi
+          volumeMounts:
+            - name: config
+              mountPath: /root/.stash
+            - name: media
+              mountPath: /media
+            - name: media
+              mountPath: /manual
+              subPath: library/stash/manual
+            - name: media
+              mountPath: /data
+              subPath: library/stash/data
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: stash-config
+        - name: media
+          persistentVolumeClaim:
+            claimName: media-library
