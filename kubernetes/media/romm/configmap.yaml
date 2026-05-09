@@ -6,7 +6,6 @@ metadata:
 data:
   TZ: America/Detroit
   ROMM_DB_DRIVER: postgresql
-  ROMM_BASE_PATH: /romm
   DB_HOST: metagross.internal.svc.cluster.local
   DB_PORT: "5432"
   DB_NAME: romm
