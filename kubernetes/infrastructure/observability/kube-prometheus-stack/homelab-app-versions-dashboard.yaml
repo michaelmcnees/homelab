@@ -34,7 +34,9 @@ data:
           "icon": "external link",
           "includeVars": false,
           "keepTime": true,
-          "tags": ["homelab"],
+          "tags": [
+            "homelab"
+          ],
           "targetBlank": false,
           "title": "Homelab dashboards",
           "type": "dashboards"
@@ -100,7 +102,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "count(max by (exported_namespace, exported_container, image, current_version, latest_version) (version_checker_is_latest_version) == 0)",
+              "expr": "count(max by (exported_namespace, exported_container, image, current_version, latest_version) (version_checker_is_latest_version{exported_namespace=~\"$exported_namespace\"}) == 0)",
               "legendFormat": "updates",
               "range": true,
               "refId": "A"
@@ -164,7 +166,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "count(max by (exported_namespace, exported_container, image, current_version, latest_version) (version_checker_is_latest_version))",
+              "expr": "count(max by (exported_namespace, exported_container, image, current_version, latest_version) (version_checker_is_latest_version{exported_namespace=~\"$exported_namespace\"}))",
               "legendFormat": "tracked",
               "range": true,
               "refId": "A"
@@ -232,7 +234,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(increase(version_checker_image_failures_total[1h]))",
+              "expr": "sum(increase(version_checker_image_failures_total{exported_namespace=~\"$exported_namespace\"}[1h]))",
               "legendFormat": "failures",
               "range": true,
               "refId": "A"
@@ -379,7 +381,7 @@ data:
             "h": 14,
             "w": 24,
             "x": 0,
-            "y": 4
+            "y": 8
           },
           "id": 5,
           "options": {
@@ -409,7 +411,7 @@ data:
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "max by (exported_namespace, exported_container, image, current_version, latest_version) (version_checker_is_latest_version)",
+              "expr": "max by (exported_namespace, exported_container, image, current_version, latest_version) (version_checker_is_latest_version{exported_namespace=~\"$exported_namespace\"})",
               "format": "table",
               "instant": true,
               "legendFormat": "__auto",
@@ -490,7 +492,7 @@ data:
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 18
+            "y": 22
           },
           "id": 6,
           "options": {
@@ -523,6 +525,78 @@ data:
           ],
           "title": "Kubernetes Version",
           "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 86400
+                  },
+                  {
+                    "color": "red",
+                    "value": 172800
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 24,
+            "x": 0,
+            "y": 4
+          },
+          "id": 7,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "time() - max(version_checker_last_checked{exported_namespace=~\"$exported_namespace\"})",
+              "legendFormat": "oldest lookup",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Latest Image Lookup Age",
+          "type": "stat"
         }
       ],
       "refresh": "30m",
@@ -533,7 +607,36 @@ data:
         "updates"
       ],
       "templating": {
-        "list": []
+        "list": [
+          {
+            "allValue": ".*",
+            "current": {
+              "selected": true,
+              "text": "All",
+              "value": "$__all"
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "definition": "label_values(version_checker_is_latest_version, exported_namespace)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Namespace",
+            "multi": true,
+            "name": "exported_namespace",
+            "options": [],
+            "query": {
+              "qryType": 1,
+              "query": "label_values(version_checker_is_latest_version, exported_namespace)",
+              "refId": "PrometheusVariableQueryEditor-VariableQuery"
+            },
+            "refresh": 1,
+            "regex": "",
+            "sort": 1,
+            "type": "query"
+          }
+        ]
       },
       "time": {
         "from": "now-24h",

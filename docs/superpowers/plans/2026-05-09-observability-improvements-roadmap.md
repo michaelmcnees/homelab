@@ -30,10 +30,9 @@ already scraped. Each item is one ConfigMap edit.
 - ✓ A3. **Capacity / headroom dashboard** (`homelab-capacity-dashboard.yaml`).
   Cluster-wide and per-node CPU/memory/pod-density headroom, root filesystem
   fill, 7-day `predict_linear` projection table.
-- ▣ A4. **K8s overview enhancements.** CPU formula → idle-based percentunit,
-  memory formula → utilisation percentunit. Still pending: `$node`/`$namespace`
-  variables, pending-pods/CrashLoopBackOff/node-pressure panels, PVC % full
-  table.
+- ✓ A4. **K8s overview enhancements.** CPU formula → idle-based percentunit,
+  memory formula → utilisation percentunit, `$node`/`$namespace` variables,
+  pending-pods/CrashLoopBackOff/node-pressure panels, PVC % full table.
 - ☐ A5. **Proxmox dashboard enhancements.** Edit `homelab-proxmox-dashboard.yaml`.
   Add `$proxmox_node` variable. Add storage panel (`pve_disk_usage_bytes /
   pve_disk_size_bytes`), ZFS pool health, swap. Replace "Down Scrape Targets"
@@ -44,9 +43,9 @@ already scraped. Each item is one ConfigMap edit.
   each workload row to pod logs filtered to that workload.
 - ☐ A7. **Network dashboard enhancements.** Edit `homelab-network-dashboard.yaml`.
   Add `$ap_name`, `$probe`, `$network_path` variables.
-- ☐ A8. **App-versions dashboard enhancement.** Edit `homelab-app-versions-dashboard.yaml`.
-  Add `$exported_namespace` filter and a "stalled exporter" stat
-  (`time() - max(version_checker_*_timestamp)`).
+- ✓ A8. **App-versions dashboard enhancement.** Edit `homelab-app-versions-dashboard.yaml`.
+  Added `$exported_namespace` filter and a "latest image lookup age" stat
+  (`time() - max(version_checker_last_checked)`).
 - ☐ A9. **Databases dashboard enhancements.** Edit `homelab-databases-dashboard.yaml`.
   Add `$datname` variable, clean threshold strings out of panel titles, merge
   Database Inventory into a single table via transformations.
