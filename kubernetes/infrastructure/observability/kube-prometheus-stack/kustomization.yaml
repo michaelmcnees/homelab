@@ -22,7 +22,6 @@ resources:
   - homelab-auth-dashboard.yaml
   - homelab-household-compute-dashboard.yaml
   - flux-podmonitor.yaml
-  - household-hosts-scrape.yaml
   - homelab-alerts.yaml
   - homelab-ai-network-alerts.yaml
   - homelab-platform-alerts.yaml

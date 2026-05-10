@@ -225,7 +225,9 @@ For each laptop / Mac Studio / kids' future PC:
           job: household_compute
           household_role: workstation
       ```
-      Commit, Flux reconciles.
+      Add `household-hosts-scrape.yaml` back to the kube-prometheus-stack
+      kustomization once at least one real target exists, then commit and let
+      Flux reconcile.
 
 - [ ] **Verify both targets**
       - Beszel hub UI: host shows green / connected
