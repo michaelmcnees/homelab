@@ -36,7 +36,9 @@ spec:
       - home.mcnees.me
       - dev.home.mcnees.me
     extraArgs:
+      - --cloudflare-proxied
       - --cloudflare-dns-records-per-page=5000
+      - --default-targets=104.14.105.18
     interval: 5m
     policy: upsert-only
     provider:
