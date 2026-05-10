@@ -25,3 +25,34 @@ data:
   AWS_USE_PATH_STYLE_ENDPOINT: "true"
   MAIL_MAILER: log
   IN_USER_EMAIL: michael@mcnees.me
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: invoice-ninja-nginx
+  namespace: hdf
+data:
+  default.conf: |
+    server {
+      listen 80;
+      server_name _;
+      root /var/www/html/public;
+      index index.php;
+      client_max_body_size 50m;
+
+      location / {
+        try_files $uri $uri/ /index.php?$query_string;
+      }
+
+      location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $realpath_root;
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_index index.php;
+      }
+
+      location ~ /\.(?!well-known).* {
+        deny all;
+      }
+    }

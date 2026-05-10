@@ -38,6 +38,9 @@ Database placement:
 Invoice Ninja uses in-process cache, signed-cookie sessions, and a sync queue
 because the shared Redis disables destructive commands such as `FLUSHDB`, and
 the upstream image expects writable app cache paths when file cache is enabled.
+The upstream Debian image runs PHP-FPM; Kubernetes pairs it with an nginx
+sidecar and shared `public`/`storage` PVCs, matching the upstream Docker Compose
+layout.
 
 The matching database passwords are sourced from local, gitignored Ansible vars
 files and copied into each app's SOPS secret. For Invoice Ninja, keep
