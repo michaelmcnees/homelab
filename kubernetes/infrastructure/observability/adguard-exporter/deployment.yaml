@@ -28,7 +28,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: exporter
-          image: ghcr.io/ebrianne/adguard-exporter:1.42
+          image: ebrianne/adguard_exporter:latest
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -41,26 +41,28 @@ spec:
               containerPort: 9617
               protocol: TCP
           env:
-            - name: ADGUARD_PROTOCOL
+            - name: adguard_protocol
               value: http
-            - name: ADGUARD_HOSTNAME
+            - name: adguard_hostname
               value: adguard-a.apps.svc.cluster.local
-            - name: ADGUARD_PORT
+            - name: adguard_port
               value: "80"
-            - name: ADGUARD_USERNAME
+            - name: adguard_username
               valueFrom:
                 secretKeyRef:
                   name: adguard-exporter-credentials
                   key: ADGUARD_USERNAME
-            - name: ADGUARD_PASSWORD
+            - name: adguard_password
               valueFrom:
                 secretKeyRef:
                   name: adguard-exporter-credentials
                   key: ADGUARD_PASSWORD
-            - name: INTERVAL
+            - name: interval
               value: 30s
-            - name: LOG_LIMIT
+            - name: log_limit
               value: "10000"
+            - name: server_port
+              value: "9617"
           resources:
             requests:
               cpu: 25m
@@ -98,7 +100,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: exporter
-          image: ghcr.io/ebrianne/adguard-exporter:1.42
+          image: ebrianne/adguard_exporter:latest
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -111,26 +113,28 @@ spec:
               containerPort: 9617
               protocol: TCP
           env:
-            - name: ADGUARD_PROTOCOL
+            - name: adguard_protocol
               value: http
-            - name: ADGUARD_HOSTNAME
+            - name: adguard_hostname
               value: adguard-b.apps.svc.cluster.local
-            - name: ADGUARD_PORT
+            - name: adguard_port
               value: "80"
-            - name: ADGUARD_USERNAME
+            - name: adguard_username
               valueFrom:
                 secretKeyRef:
                   name: adguard-exporter-credentials
                   key: ADGUARD_USERNAME
-            - name: ADGUARD_PASSWORD
+            - name: adguard_password
               valueFrom:
                 secretKeyRef:
                   name: adguard-exporter-credentials
                   key: ADGUARD_PASSWORD
-            - name: INTERVAL
+            - name: interval
               value: 30s
-            - name: LOG_LIMIT
+            - name: log_limit
               value: "10000"
+            - name: server_port
+              value: "9617"
           resources:
             requests:
               cpu: 25m

@@ -138,9 +138,6 @@ spec:
       enableServiceLinks: false
       priorityClassName: standard
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
@@ -153,7 +150,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-            readOnlyRootFilesystem: true
+            readOnlyRootFilesystem: false
           command:
             - /bin/sh
             - -ec
