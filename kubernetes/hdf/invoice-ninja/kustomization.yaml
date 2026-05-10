@@ -5,6 +5,5 @@ resources:
   - secret.sops.yaml
   - deployment.yaml
   - cronjob.yaml
-  - job-migrate.yaml
   - service.yaml
   - ingress.yaml
