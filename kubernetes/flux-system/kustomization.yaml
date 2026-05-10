@@ -7,11 +7,13 @@ resources:
 - databases.yaml
 - gotk-components.yaml
 - gotk-sync.yaml
+- hdf.yaml
 - infrastructure-configs.yaml
 - infrastructure.yaml
 - media.yaml
 - observability.yaml
 - smart-home.yaml
+- storage.yaml
 patches:
 - path: patches/sops-decryption.yaml
   target:

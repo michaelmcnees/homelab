@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: invoice-ninja-config
+  namespace: hdf
+data:
+  APP_ENV: production
+  APP_URL: https://portal.hudsonvilledigital.com
+  REQUIRE_HTTPS: "true"
+  TRUSTED_PROXIES: "*"
+  LOG_CHANNEL: stderr
+  DB_TYPE: pgsql
+  DB_HOST: metagross.internal.svc.cluster.local
+  DB_PORT: "5432"
+  DB_DATABASE: invoice_ninja
+  DB_USERNAME: invoice_ninja
+  REDIS_HOST: redis-master.databases.svc.cluster.local
+  REDIS_PORT: "6379"
+  REDIS_DB: "1"
+  CACHE_DRIVER: redis
+  SESSION_DRIVER: redis
+  QUEUE_CONNECTION: redis
+  FILESYSTEM_DISK: s3
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_BUCKET: invoice-ninja
+  AWS_ENDPOINT: http://rustfs.storage.svc.cluster.local:9000
+  AWS_USE_PATH_STYLE_ENDPOINT: "true"
+  MAIL_MAILER: log
+  IN_USER_EMAIL: michael@mcnees.me

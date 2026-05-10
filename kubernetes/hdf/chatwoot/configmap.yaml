@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chatwoot-config
+  namespace: hdf
+data:
+  RAILS_ENV: production
+  NODE_ENV: production
+  INSTALLATION_ENV: docker
+  FRONTEND_URL: https://support.hudsonvilledigital.com
+  FORCE_SSL: "true"
+  RAILS_LOG_TO_STDOUT: "true"
+  LOG_LEVEL: info
+  ENABLE_ACCOUNT_SIGNUP: "true"
+  REDIS_URL: redis://redis-master.databases.svc.cluster.local:6379/2
+  POSTGRES_HOST: metagross.internal.svc.cluster.local
+  POSTGRES_PORT: "5432"
+  POSTGRES_DATABASE: chatwoot
+  POSTGRES_USERNAME: chatwoot
+  ACTIVE_STORAGE_SERVICE: amazon
+  S3_BUCKET_NAME: chatwoot
+  AWS_REGION: us-east-1
+  AWS_ENDPOINT: http://rustfs.storage.svc.cluster.local:9000
+  S3_ENDPOINT: http://rustfs.storage.svc.cluster.local:9000
+  S3_FORCE_PATH_STYLE: "true"
+  MAILER_SENDER_EMAIL: support@hudsonvilledigital.com
+  SMTP_ADDRESS: ""
+  SMTP_PORT: "587"
+  SMTP_AUTHENTICATION: plain
+  SMTP_ENABLE_STARTTLS_AUTO: "true"
+  SMTP_OPENSSL_VERIFY_MODE: peer
