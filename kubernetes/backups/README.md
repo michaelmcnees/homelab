@@ -36,10 +36,10 @@ Copy `mariadb-grimmory-cronjob.yaml`. The shape is: dump first to `/tmp/dump`, t
 ```sh
 # List snapshots
 kubectl run -it --rm restic-shell \
-  --image=restic/restic:0.17.4 --restart=Never \
+  --image=restic/restic:0.18.1 --restart=Never \
   --env=RESTIC_REPOSITORY=/mnt/restic \
   --env=RESTIC_PASSWORD=$(kubectl get secret restic-password -n internal -o jsonpath='{.data.RESTIC_PASSWORD}' | base64 -d) \
-  --overrides='{"spec":{"volumes":[{"name":"restic","nfs":{"server":"10.0.1.1","path":"/mnt/data/backups/restic-homelab"}}],"containers":[{"name":"restic-shell","image":"restic/restic:0.17.4","stdin":true,"tty":true,"command":["sh"],"volumeMounts":[{"name":"restic","mountPath":"/mnt/restic"}]}]}}' \
+  --overrides='{"spec":{"volumes":[{"name":"restic","nfs":{"server":"10.0.1.1","path":"/mnt/data/backups/restic-homelab"}}],"containers":[{"name":"restic-shell","image":"restic/restic:0.18.1","stdin":true,"tty":true,"command":["sh"],"volumeMounts":[{"name":"restic","mountPath":"/mnt/restic"}]}]}}' \
   -n internal -- sh
 
 # Inside:

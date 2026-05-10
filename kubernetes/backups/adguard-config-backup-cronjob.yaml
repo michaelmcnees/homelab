@@ -27,7 +27,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: backup
-              image: restic/restic:0.17.4
+              image: restic/restic:0.18.1
               imagePullPolicy: IfNotPresent
               securityContext:
                 allowPrivilegeEscalation: false
