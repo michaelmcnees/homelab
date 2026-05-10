@@ -38,10 +38,12 @@ already scraped. Each item is one ConfigMap edit.
   inventory panels, VM/LXC CPU and memory panels, and replaced "Down Scrape
   Targets" with a table that names each target. Still pending: direct swap and
   ZFS pool health panels if/when those metrics are exposed by the PVE exporter.
-- ☐ A6. **AI dashboard enhancements.** Edit `homelab-ai-dashboard.yaml`. Convert
-  Ollama Model RAM stat to a multi-model table. Replace hardcoded 4-workload
-  ready stat with `replicas_available / replicas_desired` ratio. Add link from
-  each workload row to pod logs filtered to that workload.
+- ✓ A6. **AI dashboard enhancements.** Edit `homelab-ai-dashboard.yaml`. Added
+  `$ai_workload` / `$ollama_model` filters, converted Ollama model RAM and
+  context stats to multi-model tables, replaced hardcoded ready count with a
+  `replicas_available / replicas_desired` readiness ratio, and added workload
+  log links into the Pod Logs dashboard. Also added a `$pod` filter to
+  `homelab-pod-logs-dashboard.yaml` so linked workload logs are pre-filtered.
 - ✓ A7. **Network dashboard enhancements.** Edit `homelab-network-dashboard.yaml`.
   Added `$network_path`, `$probe`, `$ap_name`, and `$essid` variables and wired
   existing blackbox / UniFi panels through them.

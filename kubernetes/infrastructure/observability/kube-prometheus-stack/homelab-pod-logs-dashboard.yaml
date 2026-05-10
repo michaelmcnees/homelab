@@ -34,7 +34,9 @@ data:
           "icon": "external link",
           "includeVars": false,
           "keepTime": true,
-          "tags": ["homelab"],
+          "tags": [
+            "homelab"
+          ],
           "targetBlank": false,
           "title": "Homelab dashboards",
           "type": "dashboards"
@@ -127,7 +129,7 @@ data:
                 "uid": "loki"
               },
               "editorMode": "code",
-              "expr": "sum by (namespace) (count_over_time({namespace=~\"$namespace\"}[$__interval]))",
+              "expr": "sum by (namespace) (count_over_time({namespace=~\"$namespace\", pod=~\"$pod\"}[$__interval]))",
               "legendFormat": "{{namespace}}",
               "queryType": "range",
               "refId": "A"
@@ -200,7 +202,7 @@ data:
                 "uid": "loki"
               },
               "editorMode": "code",
-              "expr": "topk(20, sum by (namespace, pod) (rate({namespace=~\"$namespace\"}[5m])))",
+              "expr": "topk(20, sum by (namespace, pod) (rate({namespace=~\"$namespace\", pod=~\"$pod\"}[5m])))",
               "format": "table",
               "instant": true,
               "queryType": "instant",
@@ -255,7 +257,7 @@ data:
                 "uid": "loki"
               },
               "editorMode": "code",
-              "expr": "{namespace=~\"$namespace\"}",
+              "expr": "{namespace=~\"$namespace\", pod=~\"$pod\"}",
               "queryType": "range",
               "refId": "A"
             }
@@ -290,6 +292,27 @@ data:
             "query": "label_values(namespace)",
             "refresh": 1,
             "sort": 1,
+            "type": "query",
+            "allValue": ".*"
+          },
+          {
+            "current": {
+              "selected": true,
+              "text": "All",
+              "value": "$__all"
+            },
+            "datasource": {
+              "type": "loki",
+              "uid": "loki"
+            },
+            "definition": "label_values({namespace=~\"$namespace\"}, pod)",
+            "includeAll": true,
+            "allValue": ".*",
+            "multi": true,
+            "name": "pod",
+            "query": "label_values({namespace=~\"$namespace\"}, pod)",
+            "refresh": 1,
+            "sort": 1,
             "type": "query"
           }
         ]
@@ -302,5 +325,5 @@ data:
       "timezone": "browser",
       "title": "Homelab / Pod Logs",
       "uid": "homelab-pod-logs",
-      "version": 1
+      "version": 2
     }
