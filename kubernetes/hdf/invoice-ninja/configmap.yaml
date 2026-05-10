@@ -11,7 +11,7 @@ data:
   LOG_CHANNEL: stderr
   DB_CONNECTION: mysql
   DB_TYPE: mysql
-  DB_HOST: mariadb.internal.svc.cluster.local
+  DB_HOST: registeel.internal.svc.cluster.local
   DB_PORT: "3306"
   DB_DATABASE: invoice_ninja
   DB_USERNAME: invoice_ninja

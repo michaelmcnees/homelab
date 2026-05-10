@@ -1,7 +1,7 @@
-module "mariadb" {
+module "registeel" {
   source = "./modules/lxc"
 
-  lxc_hostname     = "mariadb"
+  lxc_hostname     = "registeel"
   target_node      = "rayquaza"
   lxc_id           = 201
   cores            = 2
@@ -15,6 +15,6 @@ module "mariadb" {
   ssh_public_key   = trimspace(file(pathexpand(var.lxc_ssh_public_key_path)))
   template_file_id = var.lxc_template_file_id
   vlan_tag         = var.kubernetes_vlan_tag
-  tags             = ["mariadb", "database", "terraform", "ha"]
+  tags             = ["registeel", "mariadb", "database", "terraform", "ha"]
   ha_enabled       = true
 }

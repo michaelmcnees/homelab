@@ -31,7 +31,7 @@ once RustFS IAM management is wired into the cluster.
 Database placement:
 
 - `invoice_ninja` lives on the MariaDB LXC at
-  `mariadb.internal.svc.cluster.local:3306`.
+  `registeel.internal.svc.cluster.local:3306`.
 - `chatwoot` lives on the PostgreSQL LXC at
   `metagross.internal.svc.cluster.local:5432`.
 

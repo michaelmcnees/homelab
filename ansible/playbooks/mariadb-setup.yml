@@ -1,9 +1,10 @@
 ---
 - name: Configure MariaDB LXC
-  hosts: mariadb_servers
+  hosts: mariadb
   become: true
 
   vars:
+    mariadb_hostname: registeel
     mariadb_bind_address: "0.0.0.0"
     mariadb_databases:
       - name: invoice_ninja
@@ -21,6 +22,10 @@
         privileges: "SELECT,INSERT,UPDATE,DELETE,CREATE,ALTER,INDEX,DROP,REFERENCES,TRIGGER,CREATE VIEW,SHOW VIEW,EVENT,EXECUTE"
 
   tasks:
+    - name: Configure host name
+      ansible.builtin.hostname:
+        name: "{{ mariadb_hostname }}"
+
     - name: Install MariaDB
       ansible.builtin.apt:
         name:

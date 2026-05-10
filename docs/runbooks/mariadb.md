@@ -1,10 +1,10 @@
 # MariaDB
 
-MariaDB runs as a dedicated Proxmox LXC named `mariadb`.
+MariaDB runs as a dedicated Proxmox LXC named `registeel`.
 
-- OpenTofu module: `terraform/proxmox/mariadb.tf`
+- OpenTofu module: `terraform/proxmox/registeel.tf`
 - IP address: `10.0.10.91`
-- Kubernetes service: `mariadb.internal.svc.cluster.local:3306`
+- Kubernetes service: `registeel.internal.svc.cluster.local:3306`
 - Ansible playbook: `ansible/playbooks/mariadb-setup.yml`
 - Local secret vars: `ansible/inventory/group_vars/mariadb.yml`
 
@@ -59,13 +59,13 @@ kubectl --kubeconfig talos/kubeconfig -n apps run mariadb-client \
   --rm -i --restart=Never --image=mariadb:11.4 \
   --env MARIADB_PWD='<grimmory-db-password>' \
   -- mariadb \
-    --host=mariadb.internal.svc.cluster.local \
+    --host=registeel.internal.svc.cluster.local \
     --port=3306 \
     --user=grimmory \
     grimmory < /tmp/grimmory.sql
 ```
 
 Once the restore is verified, update Grimmory to use
-`jdbc:mariadb://mariadb.internal.svc.cluster.local:3306/grimmory`, remove the
+`jdbc:mariadb://registeel.internal.svc.cluster.local:3306/grimmory`, remove the
 in-cluster MariaDB deployment from its kustomization, and delete the old PVC
 only after a successful backup exists.
