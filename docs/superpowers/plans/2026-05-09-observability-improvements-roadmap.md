@@ -83,9 +83,11 @@ dashboard work.
 - ✓ B4. **Loki ServiceMonitor.** Added an explicit `ServiceMonitor` for the
   Loki `http-metrics` service port with the `release: kube-prometheus-stack`
   selector label. Prereq for C4.
-- ☐ B5. **Controller plane ServiceMonitors.** Audit `external-dns`, `metallb`,
-  `tailscale-operator`, `local-path-provisioner` for a `/metrics` endpoint.
-  Add ServiceMonitor for each one that exposes metrics. Skip the rest.
+- ✓ B5. **Controller plane ServiceMonitors.** Audited `external-dns`, `metallb`,
+  `tailscale-operator`, and `local-path-provisioner` for `/metrics` endpoints.
+  Added an `external-dns` `ServiceMonitor` plus MetalLB controller/speaker
+  `PodMonitor`s for `monitoring` and `frrmetrics`. Skipped Tailscale operator
+  and local-path-provisioner because their deployed pods expose no metrics port.
 
 ## Phase C — New dashboards/alerts that depend on Phase B
 
