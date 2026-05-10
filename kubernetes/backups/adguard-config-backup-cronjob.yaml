@@ -19,9 +19,7 @@ spec:
         spec:
           restartPolicy: Never
           securityContext:
-            runAsNonRoot: true
-            runAsUser: 1000
-            runAsGroup: 1000
+            runAsNonRoot: false
             fsGroup: 1000
             seccompProfile:
               type: RuntimeDefault
@@ -36,6 +34,7 @@ spec:
                   cp /source/AdGuardHome.yaml /backup-data/AdGuardHome.yaml
                   chown 1000:1000 /backup-data/AdGuardHome.yaml
               securityContext:
+                runAsNonRoot: false
                 runAsUser: 0
                 runAsGroup: 0
                 allowPrivilegeEscalation: false
@@ -53,6 +52,9 @@ spec:
               image: restic/restic:0.18.1
               imagePullPolicy: IfNotPresent
               securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                runAsGroup: 1000
                 allowPrivilegeEscalation: false
                 capabilities:
                   drop:

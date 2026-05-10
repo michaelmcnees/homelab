@@ -82,15 +82,12 @@ spec:
                 - name: MARIADB_PORT
                   value: "3306"
                 - name: MARIADB_USER
-                  valueFrom:
-                    secretKeyRef:
-                      name: mariadb-grimmory-backup-credentials
-                      key: USERNAME
+                  value: grimmory
                 - name: MARIADB_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: mariadb-grimmory-backup-credentials
-                      key: PASSWORD
+                      name: grimmory-secret
+                      key: DB_PASSWORD
                 - name: HOME
                   value: /tmp
                 - name: XDG_CACHE_HOME
