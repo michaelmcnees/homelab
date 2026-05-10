@@ -80,8 +80,9 @@ dashboard work.
   - ⏸ lldap: no native Prometheus endpoint. Same approach.
   - ⏸ kenway-arr oauth2-proxies: scope deferred (Tailscale-only ingress;
     not on the home network critical path).
-- ☐ B4. **Loki ServiceMonitor.** Confirm the Loki Helm chart's
-  `serviceMonitor.enabled` is on. If not, enable. Prereq for C4.
+- ✓ B4. **Loki ServiceMonitor.** Added an explicit `ServiceMonitor` for the
+  Loki `http-metrics` service port with the `release: kube-prometheus-stack`
+  selector label. Prereq for C4.
 - ☐ B5. **Controller plane ServiceMonitors.** Audit `external-dns`, `metallb`,
   `tailscale-operator`, `local-path-provisioner` for a `/metrics` endpoint.
   Add ServiceMonitor for each one that exposes metrics. Skip the rest.
