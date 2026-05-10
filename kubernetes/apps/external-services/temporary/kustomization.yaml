@@ -5,7 +5,6 @@ resources:
   - gitea.yaml
   - gramps.yaml
   - hass.yaml
-  - homey-public.yaml
   - n8n.yaml
   - outline.yaml
   - pelican.yaml

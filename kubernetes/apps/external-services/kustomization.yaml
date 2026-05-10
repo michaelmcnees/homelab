@@ -5,8 +5,6 @@ resources:
   - plex.yaml
   - tdarr.yaml
   - sabnzbd.yaml
-  - homebridge.yaml
-  - homey.yaml
   - pelican-wings.yaml
   - truenas.yaml
   - proxmox-transport.yaml

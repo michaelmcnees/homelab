@@ -3,6 +3,8 @@ kind: Service
 metadata:
   name: oauth2-proxy
   namespace: auth
+  labels:
+    app.kubernetes.io/name: oauth2-proxy
 spec:
   selector:
     app.kubernetes.io/name: oauth2-proxy
@@ -10,4 +12,8 @@ spec:
     - name: http
       port: 4180
       targetPort: http
+      protocol: TCP
+    - name: metrics
+      port: 44180
+      targetPort: metrics
       protocol: TCP

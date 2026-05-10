@@ -8,6 +8,7 @@ resources:
   - jetstack.yaml
   - local-path-provisioner.yaml
   - metallb.yaml
+  - metrics-server.yaml
   - prometheus-community.yaml
   - tailscale.yaml
   - traefik.yaml

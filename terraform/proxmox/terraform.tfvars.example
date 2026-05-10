@@ -9,5 +9,5 @@ talos_iso_datastore   = "nfs-isos"
 talos_iso_file_id     = "nfs-isos:iso/talos-1.12.6-metal-amd64.iso"
 lxc_template_file_id  = "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst"
 lxc_default_gateway   = "10.0.10.1"
-lxc_dns_servers       = ["10.0.0.18"]
+lxc_dns_servers       = ["10.0.10.201"]
 lxc_ssh_public_key_path = "~/.ssh/id_ed25519.pub"

@@ -9,6 +9,9 @@ spec:
   routes:
     - match: Host(`games.mcnees.me`)
       kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
       services:
         - name: pelican-wings-external
           port: 8080

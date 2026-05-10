@@ -15,6 +15,18 @@ data:
       "version": 2,
       "refresh": "30s",
       "tags": ["homelab", "network", "wifi", "internet"],
+      "links": [
+        {
+          "asDropdown": true,
+          "icon": "external link",
+          "includeVars": false,
+          "keepTime": true,
+          "tags": ["homelab"],
+          "targetBlank": false,
+          "title": "Homelab dashboards",
+          "type": "dashboards"
+        }
+      ],
       "time": {"from": "now-24h", "to": "now"},
       "panels": [
         {

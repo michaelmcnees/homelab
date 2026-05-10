@@ -1,0 +1,68 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: restic-init
+  namespace: internal
+  labels:
+    app.kubernetes.io/name: restic-init
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: restic-init
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: init
+          image: restic/restic:0.17.4
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              if restic snapshots > /dev/null 2>&1; then
+                echo "Repository already initialized at $RESTIC_REPOSITORY"
+              else
+                echo "Initializing restic repository at $RESTIC_REPOSITORY"
+                restic init
+                restic cache --cleanup
+              fi
+          env:
+            - name: RESTIC_REPOSITORY
+              value: /mnt/restic
+            - name: RESTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: restic-password
+                  key: RESTIC_PASSWORD
+            - name: HOME
+              value: /tmp
+            - name: XDG_CACHE_HOME
+              value: /tmp/cache
+          volumeMounts:
+            - name: restic
+              mountPath: /mnt/restic
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: restic
+          nfs:
+            server: 10.0.1.1
+            path: /mnt/data/backups/restic-homelab
+        - name: tmp
+          emptyDir: {}

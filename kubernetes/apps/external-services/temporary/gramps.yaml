@@ -32,6 +32,9 @@ spec:
   routes:
     - match: Host(`family.mcnees.me`)
       kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
       services:
         - name: gramps-external
           port: 5000

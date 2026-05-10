@@ -1,0 +1,254 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-metrics-exporter-script
+  namespace: observability
+data:
+  exporter.py: |
+    #!/usr/bin/env python3
+    """
+    Polls restic for snapshot + stats info and exposes Prometheus metrics.
+    Reads RESTIC_REPOSITORY + RESTIC_PASSWORD from env.
+    """
+    import json
+    import os
+    import subprocess
+    import time
+    from datetime import datetime, timezone
+    from prometheus_client import start_http_server, Gauge, Counter
+
+    INTERVAL = int(os.environ.get("INTERVAL_SECONDS", "300"))
+    PORT = int(os.environ.get("PORT", "9618"))
+
+    g_latest = Gauge(
+        "homelab_backup_latest_timestamp_seconds",
+        "Unix timestamp of the latest restic snapshot per tag",
+        ["tag", "host"],
+    )
+    g_age = Gauge(
+        "homelab_backup_age_seconds",
+        "Age (now - latest snapshot) per tag, in seconds",
+        ["tag", "host"],
+    )
+    g_count = Gauge(
+        "homelab_backup_snapshot_count",
+        "Number of restic snapshots retained per tag",
+        ["tag"],
+    )
+    g_size_logical = Gauge(
+        "homelab_backup_repo_logical_bytes",
+        "Logical (pre-deduplication) total size restic would store as raw data",
+    )
+    g_size_physical = Gauge(
+        "homelab_backup_repo_physical_bytes",
+        "Physical on-disk size of the restic repository",
+    )
+    g_files_count = Gauge(
+        "homelab_backup_repo_file_count",
+        "Total file count tracked by restic across all snapshots",
+    )
+    c_collect_errors = Counter(
+        "homelab_backup_metrics_collect_errors_total",
+        "Errors encountered collecting backup metrics",
+    )
+    g_last_success = Gauge(
+        "homelab_backup_metrics_last_success_timestamp_seconds",
+        "Unix timestamp of last successful collection cycle",
+    )
+
+    def run(args):
+        return subprocess.run(
+            ["restic"] + args,
+            check=True,
+            stdout=subprocess.PIPE,
+            text=True,
+        ).stdout
+
+    def parse_iso(ts):
+        if ts.endswith("Z"):
+            ts = ts[:-1] + "+00:00"
+        return datetime.fromisoformat(ts)
+
+    def collect():
+        now = time.time()
+
+        snapshots = json.loads(run(["snapshots", "--json"]))
+        # Group by tag (snapshots can have multiple tags; we record latest per tag)
+        latest_by_tag = {}
+        count_by_tag = {}
+        for s in snapshots:
+            tags = s.get("tags") or ["_untagged"]
+            ts = parse_iso(s["time"]).timestamp()
+            host = s.get("hostname") or "unknown"
+            for tag in tags:
+                prev = latest_by_tag.get(tag, (0, host))
+                if ts > prev[0]:
+                    latest_by_tag[tag] = (ts, host)
+                count_by_tag[tag] = count_by_tag.get(tag, 0) + 1
+
+        g_latest.clear()
+        g_age.clear()
+        g_count.clear()
+        for tag, (ts, host) in latest_by_tag.items():
+            g_latest.labels(tag=tag, host=host).set(ts)
+            g_age.labels(tag=tag, host=host).set(now - ts)
+        for tag, n in count_by_tag.items():
+            g_count.labels(tag=tag).set(n)
+
+        raw = json.loads(run(["stats", "--mode=raw-data", "--json"]))
+        g_size_physical.set(raw.get("total_size", 0))
+        g_files_count.set(raw.get("total_file_count", raw.get("file_count", 0)))
+
+        restored = json.loads(run(["stats", "--mode=restore-size", "--json"]))
+        g_size_logical.set(restored.get("total_size", 0))
+
+        g_last_success.set(now)
+
+    def main():
+        start_http_server(PORT)
+        print(f"backup-metrics-exporter listening on :{PORT}", flush=True)
+        while True:
+            try:
+                collect()
+            except Exception as e:
+                print(f"collect error: {e}", flush=True)
+                c_collect_errors.inc()
+            time.sleep(INTERVAL)
+
+    if __name__ == "__main__":
+        main()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backup-metrics-exporter
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: backup-metrics-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backup-metrics-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: backup-metrics-exporter
+    spec:
+      enableServiceLinks: false
+      priorityClassName: standard
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: exporter
+          image: python:3.13.3-alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              apk add --no-cache restic > /dev/null
+              pip install --quiet --no-cache-dir prometheus_client
+              exec python3 /scripts/exporter.py
+          env:
+            - name: RESTIC_REPOSITORY
+              value: /mnt/restic
+            - name: RESTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: restic-password
+                  key: RESTIC_PASSWORD
+            - name: INTERVAL_SECONDS
+              value: "300"
+            - name: PORT
+              value: "9618"
+            - name: HOME
+              value: /tmp
+            - name: XDG_CACHE_HOME
+              value: /tmp/cache
+          ports:
+            - name: http
+              containerPort: 9618
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 60
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+            - name: restic
+              mountPath: /mnt/restic
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: scripts
+          configMap:
+            name: backup-metrics-exporter-script
+        - name: restic
+          nfs:
+            server: 10.0.1.1
+            path: /mnt/data/backups/restic-homelab
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backup-metrics-exporter
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: backup-metrics-exporter
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: backup-metrics-exporter
+  ports:
+    - name: http
+      port: 9618
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backup-metrics-exporter
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backup-metrics-exporter
+  endpoints:
+    - port: http
+      interval: 60s
+      scrapeTimeout: 30s
+      path: /metrics

@@ -4,6 +4,10 @@
 
 truenas_pool: data
 
+truenas_nameservers:
+  - 10.0.10.201
+  - 1.1.1.1
+
 # Optional SSH overrides. The inventory defaults to root@10.0.1.1.
 # ansible_user: truenas_admin
 # ansible_ssh_private_key_file: ~/.ssh/id_ed25519
@@ -22,6 +26,11 @@ truenas_k8s_nfs_networks:
 truenas_datasets:
   - name: data/backups/postgresql
     comment: PostgreSQL logical backups from Kubernetes
+    mode: "0775"
+    owner: k8s-backup
+    group: k8s-backup
+  - name: data/backups/restic-homelab
+    comment: Restic repositories for Kubernetes backup jobs
     mode: "0775"
     owner: k8s-backup
     group: k8s-backup
@@ -59,6 +68,10 @@ truenas_datasets:
 truenas_nfs_shares:
   - path: /mnt/data/backups/postgresql
     comment: PostgreSQL logical backups from Kubernetes
+    mapall_user: k8s-backup
+    mapall_group: k8s-backup
+  - path: /mnt/data/backups/restic-homelab
+    comment: Restic repositories for Kubernetes backup jobs
     mapall_user: k8s-backup
     mapall_group: k8s-backup
   - path: /mnt/data/k8s/apps/paperless/media

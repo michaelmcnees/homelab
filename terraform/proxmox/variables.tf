@@ -73,7 +73,7 @@ variable "lxc_default_gateway" {
 variable "lxc_dns_servers" {
   description = "DNS servers for service LXCs."
   type        = list(string)
-  default     = ["10.0.0.18"]
+  default     = ["10.0.10.201"]
 }
 
 variable "lxc_ssh_public_key_path" {

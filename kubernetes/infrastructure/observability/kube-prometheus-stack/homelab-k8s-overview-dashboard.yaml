@@ -28,7 +28,18 @@ data:
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
       "id": null,
-      "links": [],
+      "links": [
+        {
+          "asDropdown": true,
+          "icon": "external link",
+          "includeVars": false,
+          "keepTime": true,
+          "tags": ["homelab"],
+          "targetBlank": false,
+          "title": "Homelab dashboards",
+          "type": "dashboards"
+        }
+      ],
       "panels": [
         {
           "datasource": {
@@ -49,8 +60,12 @@ data:
                     "value": null
                   },
                   {
+                    "color": "orange",
+                    "value": 2
+                  },
+                  {
                     "color": "green",
-                    "value": 1
+                    "value": 3
                   }
                 ]
               },
@@ -291,7 +306,9 @@ data:
                   }
                 ]
               },
-              "unit": "cores"
+              "max": 1,
+              "min": 0,
+              "unit": "percentunit"
             },
             "overrides": []
           },
@@ -324,13 +341,13 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum by (instance) (rate(node_cpu_seconds_total{mode!=\"idle\"}[5m]))",
+              "expr": "1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))",
               "legendFormat": "{{instance}}",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "CPU Used By Node",
+          "title": "CPU Utilisation By Node",
           "type": "timeseries"
         },
         {
@@ -386,7 +403,9 @@ data:
                   }
                 ]
               },
-              "unit": "bytes"
+              "max": 1,
+              "min": 0,
+              "unit": "percentunit"
             },
             "overrides": []
           },
@@ -419,13 +438,13 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "node_memory_MemAvailable_bytes",
+              "expr": "1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)",
               "legendFormat": "{{instance}}",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Memory Available By Node",
+          "title": "Memory Utilisation By Node",
           "type": "timeseries"
         },
         {

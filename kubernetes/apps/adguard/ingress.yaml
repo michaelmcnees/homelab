@@ -10,7 +10,7 @@ spec:
     - match: Host(`adguard.home.mcnees.me`) || Host(`adguard-k8s.home.mcnees.me`)
       kind: Rule
       services:
-        - name: adguard
+        - name: adguard-a
           port: 80
   tls:
     secretName: legacy-home-wildcard-tls

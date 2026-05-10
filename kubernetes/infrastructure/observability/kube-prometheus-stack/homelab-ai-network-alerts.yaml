@@ -17,6 +17,7 @@ spec:
           annotations:
             summary: "AI workload {{ $labels.deployment }} is unavailable"
             description: "{{ $labels.deployment }} has fewer available replicas than desired for 10 minutes."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#ai-metrics"
         - alert: OllamaExporterDown
           expr: ollama_exporter_up == 0
           for: 5m
@@ -25,6 +26,7 @@ spec:
           annotations:
             summary: "Ollama exporter cannot reach Ollama"
             description: "The Ollama exporter has failed to scrape the Ollama API for 5 minutes."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#ai-metrics"
         - alert: OllamaModelHighMemory
           expr: ollama_model_size_bytes > 16000000000
           for: 15m
@@ -33,6 +35,7 @@ spec:
           annotations:
             summary: "Ollama model {{ $labels.model }} is using high memory"
             description: "Loaded Ollama model memory footprint is above 16 GB."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#ai-metrics"
     - name: homelab-network
       rules:
         - alert: NetworkProbeDown
@@ -43,6 +46,7 @@ spec:
           annotations:
             summary: "Network probe {{ $labels.probe }} is failing"
             description: "Blackbox probe {{ $labels.probe }} has failed for 5 minutes."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#network-metrics"
         - alert: WANProbeFlapping
           expr: avg_over_time(probe_success{network_path="wan"}[15m]) < 0.9
           for: 5m
@@ -51,6 +55,7 @@ spec:
           annotations:
             summary: "WAN probe success is below 90%"
             description: "External network probes are failing often enough to suggest ISP or upstream instability."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#network-metrics"
         - alert: UniFiPollerDown
           expr: up{namespace="observability", service="unpoller"} == 0
           for: 10m
@@ -59,3 +64,4 @@ spec:
           annotations:
             summary: "UniFi poller is down"
             description: "Prometheus cannot scrape Unpoller metrics."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#network-metrics"

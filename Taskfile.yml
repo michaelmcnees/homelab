@@ -64,9 +64,16 @@ tasks:
     dir: ansible
     cmd: ansible-playbook playbooks/truenas-setup.yml
 
-  talos:gen-config:
-    desc: Generate Talos machine configs and talosconfig (writes ignored files)
+  talos:gen-secrets:
+    desc: Generate a new Talos secrets bundle for a fresh cluster only
     cmd: |
+      test ! -f talos/secrets.yaml || (echo "talos/secrets.yaml already exists; refusing to overwrite cluster identity" && exit 1)
+      talosctl gen secrets --output-file talos/secrets.yaml
+
+  talos:gen-config:
+    desc: Generate Talos machine configs and talosconfig from the existing secrets bundle
+    cmd: |
+      test -f talos/secrets.yaml || (echo "talos/secrets.yaml is required. Restore the live cluster secrets first, or run task talos:gen-secrets only for a brand-new cluster." && exit 1)
       mkdir -p talos/generated
       talosctl gen config homelab https://10.0.10.11:6443 \
         --output talos/generated \
@@ -75,6 +82,7 @@ tasks:
         --kubernetes-version 1.35.2 \
         --install-disk /dev/sda \
         --install-image ghcr.io/siderolabs/installer:v1.12.6 \
+        --with-secrets talos/secrets.yaml \
         --config-patch @talos/patches/common.yaml
       cp talos/generated/talosconfig talos/talosconfig
 

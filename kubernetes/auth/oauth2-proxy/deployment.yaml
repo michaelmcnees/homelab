@@ -27,6 +27,7 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - --http-address=0.0.0.0:4180
+            - --metrics-address=0.0.0.0:44180
             - --provider=oidc
             - --oidc-issuer-url=https://id.mcnees.me
             - --redirect-url=https://auth.home.mcnees.me/oauth2/callback
@@ -53,6 +54,9 @@ spec:
           ports:
             - name: http
               containerPort: 4180
+              protocol: TCP
+            - name: metrics
+              containerPort: 44180
               protocol: TCP
           env:
             - name: OAUTH2_PROXY_CLIENT_ID

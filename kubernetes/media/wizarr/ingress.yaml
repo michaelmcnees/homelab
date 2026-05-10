@@ -9,6 +9,9 @@ spec:
   routes:
     - match: Host(`invitations.mcnees.me`) || Host(`invitations-k8s.mcnees.me`)
       kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
       services:
         - name: wizarr
           port: 5690

@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: household-hosts
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  jobName: household-hosts
+  scrapeInterval: 30s
+  scrapeTimeout: 15s
+  metricsPath: /metrics
+  staticConfigs:
+    # Add a target per host onboarded by the ansible host-monitoring role.
+    # Use the host's tailnet hostname (MagicDNS) so the cluster can reach it
+    # over Tailscale regardless of where the host is.
+    # Example:
+    # - targets:
+    #     - "michael-mbp.tail-scale.ts.net:9100"
+    #     - "mac-studio.tail-scale.ts.net:9100"
+    #   labels:
+    #     job: household_compute
+    #     household_role: workstation
+    - targets: []
+      labels:
+        job: household_compute
+  relabelings:
+    - sourceLabels: [__address__]
+      targetLabel: instance
+      regex: '([^.]+).*'
+      replacement: '$1'

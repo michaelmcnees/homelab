@@ -7,6 +7,8 @@ resources:
   - ./alloy
   - ./blackbox-exporter
   - ./ollama-exporter
+  - ./adguard-exporter
+  - ./tailscale-exporter
   - ./version-checker
   - ./proxmox-exporter
   - ./unpoller

@@ -32,6 +32,9 @@ spec:
   routes:
     - match: Host(`gaming.mcnees.me`)
       kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
       services:
         - name: pterodactyl-wings-external
           port: 443

@@ -40,7 +40,27 @@ spec:
         level: INFO
       access:
         enabled: true
+    metrics:
+      prometheus:
+        addEntryPointsLabels: true
+        addRoutersLabels: true
+        addServicesLabels: true
+        entryPoint: metrics
+        service:
+          enabled: true
+        serviceMonitor:
+          enabled: true
+          interval: 30s
+          scrapeTimeout: 10s
+          additionalLabels:
+            release: kube-prometheus-stack
     ports:
+      metrics:
+        port: 9100
+        expose:
+          default: false
+        exposedPort: 9100
+        protocol: TCP
       web:
         port: 8000
         expose:

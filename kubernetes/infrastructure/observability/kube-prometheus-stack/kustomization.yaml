@@ -14,5 +14,15 @@ resources:
   - homelab-network-dashboard.yaml
   - homelab-pod-logs-dashboard.yaml
   - homelab-proxmox-dashboard.yaml
+  - homelab-storage-dashboard.yaml
+  - homelab-certmanager-dashboard.yaml
+  - homelab-capacity-dashboard.yaml
+  - homelab-traefik-dashboard.yaml
+  - homelab-flux-dashboard.yaml
+  - homelab-auth-dashboard.yaml
+  - homelab-household-compute-dashboard.yaml
+  - flux-podmonitor.yaml
+  - household-hosts-scrape.yaml
   - homelab-alerts.yaml
   - homelab-ai-network-alerts.yaml
+  - homelab-platform-alerts.yaml

@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homey
+  namespace: smart-home
+  labels:
+    app.kubernetes.io/name: homey
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: homey
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: homey
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      enableServiceLinks: false
+      nodeSelector:
+        kubernetes.io/hostname: ho-oh
+      containers:
+        - name: homey
+          image: ghcr.io/athombv/homey-shs:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          env:
+            - name: HOMEY_LOCAL_ADDRESS
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+          ports:
+            - name: http
+              containerPort: 4859
+              protocol: TCP
+            - name: https
+              containerPort: 4860
+              protocol: TCP
+            - name: bridge-v1
+              containerPort: 4861
+              protocol: TCP
+            - name: bridge-v2
+              containerPort: 4862
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /web
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /web
+              port: http
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 2Gi
+          volumeMounts:
+            - name: data
+              mountPath: /homey/user
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: homey-data

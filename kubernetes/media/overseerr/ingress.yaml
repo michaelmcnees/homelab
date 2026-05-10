@@ -9,6 +9,9 @@ spec:
   routes:
     - match: Host(`requests.mcnees.me`) || Host(`requests-k8s.mcnees.me`)
       kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
       services:
         - name: overseerr
           port: 5055

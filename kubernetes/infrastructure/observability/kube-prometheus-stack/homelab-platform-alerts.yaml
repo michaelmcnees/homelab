@@ -1,0 +1,140 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: homelab-platform-alerts
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: homelab.traefik
+      rules:
+        - alert: TraefikServiceErrorRateHigh
+          expr: |
+            sum by (service) (rate(traefik_service_requests_total{code=~"5.."}[5m]))
+              /
+            sum by (service) (rate(traefik_service_requests_total[5m])) > 0.01
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Traefik service {{ $labels.service }} 5xx rate above 1%"
+            description: "Traefik service {{ $labels.service }} has been returning 5xx for more than 1% of requests over the last 10 minutes."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#alerts"
+        - alert: TraefikServiceLatencyHigh
+          expr: histogram_quantile(0.95, sum by (le, service) (rate(traefik_service_request_duration_seconds_bucket[5m]))) > 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Traefik service {{ $labels.service }} p95 latency above 1s"
+            description: "Traefik service {{ $labels.service }} p95 request duration has been above 1s for 10 minutes."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#alerts"
+        - alert: TraefikDown
+          expr: absent_over_time(up{job=~"traefik.*"}[15m]) == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Traefik scrape target absent"
+            description: "No Traefik scrape targets have reported in 15 minutes. Ingress observability is broken."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#alerts"
+    - name: homelab.flux
+      rules:
+        - alert: FluxKustomizationFailing
+          expr: gotk_reconcile_condition{type="Ready", status="False", kind="Kustomization"} == 1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Flux Kustomization {{ $labels.namespace }}/{{ $labels.name }} is failing"
+            description: "Kustomization {{ $labels.namespace }}/{{ $labels.name }} has been Ready=False for 15 minutes."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#alerts"
+        - alert: FluxHelmReleaseFailing
+          expr: gotk_reconcile_condition{type="Ready", status="False", kind="HelmRelease"} == 1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Flux HelmRelease {{ $labels.namespace }}/{{ $labels.name }} is failing"
+            description: "HelmRelease {{ $labels.namespace }}/{{ $labels.name }} has been Ready=False for 15 minutes."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#alerts"
+        - alert: FluxResourceSuspended
+          expr: gotk_suspend_status == 1
+          for: 24h
+          labels:
+            severity: info
+          annotations:
+            summary: "Flux {{ $labels.kind }} {{ $labels.namespace }}/{{ $labels.name }} suspended"
+            description: "{{ $labels.kind }} {{ $labels.namespace }}/{{ $labels.name }} has been manually suspended for 24h. Forgotten suspend?"
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#alerts"
+        - alert: FluxControllerDown
+          expr: absent_over_time(gotk_reconcile_condition[15m]) == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Flux controllers not reporting metrics"
+            description: "No Flux reconcile metrics have been ingested in 15 minutes. The GitOps feedback loop is broken."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#alerts"
+    - name: homelab.auth
+      rules:
+        - alert: OAuth2ProxyErrorRateHigh
+          expr: |
+            sum(rate(oauth2_proxy_requests_total{code=~"5.."}[5m]))
+              /
+            sum(rate(oauth2_proxy_requests_total[5m])) > 0.01
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "oauth2-proxy 5xx rate above 1%"
+            description: "oauth2-proxy is returning 5xx for more than 1% of requests over the last 5 minutes. Logins may be failing."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#alerts"
+        - alert: AuthDeploymentUnavailable
+          expr: kube_deployment_status_replicas_available{namespace="auth"} < kube_deployment_spec_replicas{namespace="auth"}
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Auth deployment {{ $labels.deployment }} has unavailable replicas"
+            description: "auth/{{ $labels.deployment }} has had fewer available replicas than desired for 5 minutes. Logins are likely broken."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#alerts"
+    - name: homelab.media
+      rules:
+        - alert: MediaArrUnhealthy
+          expr: sonarr_system_health_issues > 0 or radarr_system_health_issues > 0 or lidarr_system_health_issues > 0 or prowlarr_system_health_issues > 0
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "*arr instance reporting health issues"
+            description: "An *arr instance has reported one or more system health issues for 30 minutes. Check the application UI."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/media-workflow.md"
+        - alert: MediaIndexerDown
+          expr: prowlarr_indexer_enabled - prowlarr_indexer_average_response_time_milliseconds > 0 and prowlarr_indexer_average_response_time_milliseconds < 0
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Prowlarr indexer {{ $labels.indexer }} is unresponsive"
+            description: "Indexer {{ $labels.indexer }} has not responded recently. Check Prowlarr."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/media-workflow.md"
+        - alert: MediaQueueStalled
+          expr: max_over_time(sonarr_queue_total[2h]) == min_over_time(sonarr_queue_total[2h]) and sonarr_queue_total > 0
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Sonarr download queue is stalled"
+            description: "Sonarr's queue ({{ $value }} items) has not changed for 2 hours. Possible download client or indexer issue."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/media-workflow.md"
+        - alert: MediaExportarrDown
+          expr: up{namespace="media", service=~"exportarr-.*"} == 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "exportarr {{ $labels.service }} scrape failing"
+            description: "exportarr instance {{ $labels.service }} has been down for 15 minutes. App-level metrics are missing."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/media-workflow.md"

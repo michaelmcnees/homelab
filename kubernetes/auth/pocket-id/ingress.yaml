@@ -10,6 +10,9 @@ spec:
   routes:
     - match: Host(`id.mcnees.me`)
       kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
       services:
         - name: pocket-id
           port: 80

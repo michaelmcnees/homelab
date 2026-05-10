@@ -14,6 +14,37 @@
       - 10.0.10.0/24
 
   tasks:
+    - name: Query TrueNAS network configuration
+      ansible.builtin.command:
+        argv:
+          - midclt
+          - call
+          - network.configuration.config
+      register: truenas_network_configuration_query
+      changed_when: false
+      when: (truenas_nameservers | default([]) | length) > 0
+
+    - name: Configure TrueNAS DNS resolvers
+      ansible.builtin.command:
+        argv:
+          - midclt
+          - call
+          - network.configuration.update
+          - "{{ truenas_network_configuration_payload | to_json }}"
+      vars:
+        truenas_nameservers_padded: "{{ (truenas_nameservers | default([])) + ['', '', ''] }}"
+        truenas_current_network_configuration: "{{ truenas_network_configuration_query.stdout | from_json }}"
+        truenas_network_configuration_payload:
+          nameserver1: "{{ truenas_nameservers_padded[0] }}"
+          nameserver2: "{{ truenas_nameservers_padded[1] }}"
+          nameserver3: "{{ truenas_nameservers_padded[2] }}"
+      when:
+        - (truenas_nameservers | default([]) | length) > 0
+        - >-
+          truenas_current_network_configuration.nameserver1 != truenas_network_configuration_payload.nameserver1
+          or truenas_current_network_configuration.nameserver2 != truenas_network_configuration_payload.nameserver2
+          or truenas_current_network_configuration.nameserver3 != truenas_network_configuration_payload.nameserver3
+
     - name: Query Kubernetes NFS writer group
       ansible.builtin.command:
         argv:

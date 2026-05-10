@@ -10,6 +10,9 @@ spec:
   routes:
     - match: Host(`arcade.mcnees.me`) || Host(`romm.home.mcnees.me`) || Host(`romm-k8s.home.mcnees.me`)
       kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
       services:
         - name: romm
           port: 8080

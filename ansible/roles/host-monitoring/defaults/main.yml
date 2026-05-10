@@ -1,0 +1,9 @@
+---
+host_monitoring_beszel_hub_url: ""
+host_monitoring_beszel_agent_key: ""
+host_monitoring_beszel_agent_port: 45876
+
+host_monitoring_node_exporter_listen: "0.0.0.0:9100"
+host_monitoring_node_exporter_collectors_extra: []
+
+host_monitoring_node_exporter_version_linux: "1.8.2"

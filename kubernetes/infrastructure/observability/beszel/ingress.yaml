@@ -7,18 +7,8 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`beszel.home.mcnees.me`) && PathPrefix(`/api`)
-      kind: Rule
-      priority: 20
-      services:
-        - name: beszel
-          port: 8090
     - match: Host(`beszel.home.mcnees.me`)
       kind: Rule
-      priority: 10
-      middlewares:
-        - name: oauth2-proxy
-          namespace: auth
       services:
         - name: beszel
           port: 8090

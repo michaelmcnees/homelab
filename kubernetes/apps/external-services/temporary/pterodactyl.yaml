@@ -32,6 +32,9 @@ spec:
   routes:
     - match: Host(`pterodactyl.mcnees.me`)
       kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
       services:
         - name: pterodactyl-external
           port: 80

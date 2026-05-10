@@ -1,0 +1,20 @@
+---
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - host_monitoring_beszel_hub_url | length > 0
+      - host_monitoring_beszel_agent_key | length > 0
+    fail_msg: "host_monitoring_beszel_hub_url and host_monitoring_beszel_agent_key must be set per host."
+
+- name: Detect platform family
+  ansible.builtin.set_fact:
+    _hm_is_macos: "{{ ansible_facts['os_family'] == 'Darwin' }}"
+    _hm_is_linux: "{{ ansible_facts['system'] == 'Linux' }}"
+
+- name: macOS install
+  when: _hm_is_macos
+  ansible.builtin.include_tasks: macos.yml
+
+- name: Linux install
+  when: _hm_is_linux
+  ansible.builtin.include_tasks: linux.yml

@@ -1,0 +1,28 @@
+# This file is managed by Ansible. Manual edits may be overwritten.
+
+auto lo
+iface lo inet loopback
+
+{% for interface in proxmox_manual_interfaces | default([proxmox_management_bridge_ports]) %}
+iface {{ interface }} inet manual
+
+{% endfor %}
+auto {{ proxmox_management_bridge }}
+iface {{ proxmox_management_bridge }} inet static
+    address {{ proxmox_management_address }}
+    gateway {{ proxmox_management_gateway }}
+    bridge-ports {{ proxmox_management_bridge_ports }}
+    bridge-stp off
+    bridge-fd 0
+{% if proxmox_management_bridge_vlan_aware | default(false) %}
+    bridge-vlan-aware yes
+    bridge-vids {{ proxmox_management_bridge_vids | join(' ') }}
+{% endif %}
+{% if proxmox_dns_servers | default([]) | length > 0 %}
+    dns-nameservers {{ proxmox_dns_servers | join(' ') }}
+{% endif %}
+{% if proxmox_dns_search | default([]) | length > 0 %}
+    dns-search {{ proxmox_dns_search | join(' ') }}
+{% endif %}
+
+source /etc/network/interfaces.d/*

@@ -29,6 +29,9 @@ spec:
   routes:
     - match: Host(`library.mcnees.me`)
       kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
       services:
         - name: grimmory
           port: 6060

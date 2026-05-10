@@ -28,7 +28,18 @@ data:
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
       "id": null,
-      "links": [],
+      "links": [
+        {
+          "asDropdown": true,
+          "icon": "external link",
+          "includeVars": false,
+          "keepTime": true,
+          "tags": ["homelab"],
+          "targetBlank": false,
+          "title": "Homelab dashboards",
+          "type": "dashboards"
+        }
+      ],
       "panels": [
         {
           "collapsed": false,
@@ -2266,19 +2277,6 @@ data:
           "type": "timeseries"
         },
         {
-          "collapsed": false,
-          "gridPos": {
-            "h": 1,
-            "w": 24,
-            "x": 0,
-            "y": 73
-          },
-          "id": 32,
-          "panels": [],
-          "title": "Future Databases",
-          "type": "row"
-        },
-        {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -2309,7 +2307,7 @@ data:
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 74
+            "y": 73
           },
           "id": 33,
           "options": {

@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
 - apps.yaml
 - auth.yaml
+- backups.yaml
 - databases.yaml
 - gotk-components.yaml
 - gotk-sync.yaml
@@ -10,6 +11,7 @@ resources:
 - infrastructure.yaml
 - media.yaml
 - observability.yaml
+- smart-home.yaml
 patches:
 - path: patches/sops-decryption.yaml
   target:

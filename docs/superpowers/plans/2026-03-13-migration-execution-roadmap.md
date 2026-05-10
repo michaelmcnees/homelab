@@ -117,10 +117,10 @@ Each wave follows: export data → deploy to K3s → import data → verify → 
 
 | Step | Type | Task | Status |
 |------|------|------|--------|
-| 5.1 | 🔀 Both | Move WiFi clients to VLAN 20 (trusted) — update McNet SSID VLAN | ⬜ |
-| 5.2 | 🔀 Both | Move IoT devices to VLAN 30 — update McNet_IoT SSID VLAN | ⬜ |
-| 5.3 | 🔀 Both | Create guest WiFi on VLAN 50 (McNet Guest, internet-only) | ⬜ |
-| 5.4 | 💻 Software | Import DHCP reservations into OpenTofu (`terraform/unifi/`) | ⬜ |
+| 5.1 | 🔀 Both | Move WiFi clients to VLAN 20 (trusted) — update McNet SSID VLAN | ✅ |
+| 5.2 | 🔀 Both | Move IoT devices to VLAN 30 — update McNet_IoT SSID VLAN | ✅ |
+| 5.3 | 🔀 Both | Create guest WiFi on VLAN 50 (McNet Guest, internet-only) | ✅ |
+| 5.4 | 💻 Software | Import DHCP reservations into OpenTofu (`terraform/unifi/`) | ✅ |
 | 5.5 | 🔀 Both | Decommission flat /22 — verify everything works on VLANs first | ⬜ |
 | 5.6 | 🖥️ Physical | Clean up Mew — destroy remaining LXCs, repurpose or decommission | ⬜ |
 | 5.7 | 🔀 Both | Create deoxys (PBS LXC), configure backup jobs | ⬜ |
@@ -128,6 +128,8 @@ Each wave follows: export data → deploy to K3s → import data → verify → 
 | 5.9 | 💻 Software | Write documentation: break-glass guide, in-case-of-death plan, runbooks | ⬜ |
 
 **Gate:** All VLANs active, flat /22 gone, PBS running, docs complete. **Migration done.**
+
+McLan decommission blockers are tracked in `docs/runbooks/networking.md`.
 
 ---
 

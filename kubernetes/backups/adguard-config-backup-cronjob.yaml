@@ -1,0 +1,85 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: adguard-a-config-backup
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: backup
+    app.kubernetes.io/component: adguard-a-config
+    homelab.mcnees.me/backup-tag: adguard-a-config
+spec:
+  schedule: "5 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backup
+              image: restic/restic:0.17.4
+              imagePullPolicy: IfNotPresent
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) restic backup"
+                  restic backup /data \
+                    --tag adguard-a-config \
+                    --tag homelab \
+                    --host adguard-a
+
+                  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) restic forget+prune"
+                  restic forget \
+                    --tag adguard-a-config \
+                    --keep-daily 7 \
+                    --keep-weekly 4 \
+                    --keep-monthly 6 \
+                    --prune
+              env:
+                - name: RESTIC_REPOSITORY
+                  value: /mnt/restic
+                - name: RESTIC_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: restic-password
+                      key: RESTIC_PASSWORD
+                - name: HOME
+                  value: /tmp
+                - name: XDG_CACHE_HOME
+                  value: /tmp/cache
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+                  readOnly: true
+                - name: restic
+                  mountPath: /mnt/restic
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: adguard-config
+                readOnly: true
+            - name: restic
+              nfs:
+                server: 10.0.1.1
+                path: /mnt/data/backups/restic-homelab
+            - name: tmp
+              emptyDir: {}

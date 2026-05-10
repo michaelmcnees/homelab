@@ -1,0 +1,528 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-homelab-household-compute-dashboard
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  homelab-household-compute.json: |
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [
+        {
+          "asDropdown": true,
+          "icon": "external link",
+          "includeVars": false,
+          "keepTime": true,
+          "tags": ["homelab"],
+          "targetBlank": false,
+          "title": "Homelab dashboards",
+          "type": "dashboards"
+        },
+        {
+          "icon": "external link",
+          "tags": [],
+          "targetBlank": true,
+          "title": "Beszel hub",
+          "type": "link",
+          "url": "https://beszel.home.mcnees.me"
+        }
+      ],
+      "panels": [
+        {
+          "collapsed": false,
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+          "id": 100,
+          "panels": [],
+          "title": "Workstations (Beszel agent + node_exporter via Tailscale)",
+          "type": "row"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 1},
+          "id": 1,
+          "options": {
+            "colorMode": "value", "graphMode": "area", "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "showPercentChange": false, "textMode": "auto", "wideLayout": true
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "count(up{job=\"household_compute\"} == 1)",
+              "legendFormat": "online",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Workstations Online",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "orange", "value": 1}
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 1},
+          "id": 2,
+          "options": {
+            "colorMode": "background", "graphMode": "none", "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "showPercentChange": false, "textMode": "auto", "wideLayout": true
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "count(up{job=\"household_compute\"} == 0)",
+              "legendFormat": "offline",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Workstations Offline",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 1},
+          "id": 3,
+          "options": {
+            "colorMode": "value", "graphMode": "area", "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "showPercentChange": false, "textMode": "auto", "wideLayout": true
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "sum(tailscale_device_online) or vector(0)",
+              "legendFormat": "tailnet online",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Tailnet Devices Online",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 1},
+          "id": 4,
+          "options": {
+            "colorMode": "value", "graphMode": "area", "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "showPercentChange": false, "textMode": "auto", "wideLayout": true
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "count(unifi_client_signal_dbm) or vector(0)",
+              "legendFormat": "wifi clients",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Devices On Home Wi-Fi",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "custom": {
+                "align": "auto",
+                "cellOptions": {"type": "auto"},
+                "inspect": false,
+                "filterable": true
+              },
+              "mappings": [
+                {"options": {"0": {"color": "red", "index": 0, "text": "Offline"}}, "type": "value"},
+                {"options": {"1": {"color": "green", "index": 1, "text": "Online"}}, "type": "value"}
+              ],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+            },
+            "overrides": [
+              {
+                "matcher": {"id": "byName", "options": "status"},
+                "properties": [
+                  {"id": "custom.cellOptions", "value": {"type": "color-background"}},
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {"color": "red", "value": null},
+                        {"color": "green", "value": 1}
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {"id": "byName", "options": "cpu %"},
+                "properties": [{"id": "unit", "value": "percentunit"}]
+              },
+              {
+                "matcher": {"id": "byName", "options": "mem %"},
+                "properties": [{"id": "unit", "value": "percentunit"}]
+              }
+            ]
+          },
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 5},
+          "id": 5,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+            "showHeader": true
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "up{job=\"household_compute\"}",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "status",
+              "range": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "1 - avg by (instance) (rate(node_cpu_seconds_total{job=\"household_compute\", mode=\"idle\"}[5m]))",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "cpu",
+              "range": false,
+              "refId": "B"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "1 - (node_memory_MemAvailable_bytes{job=\"household_compute\"} / node_memory_MemTotal_bytes{job=\"household_compute\"})",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "mem",
+              "range": false,
+              "refId": "C"
+            }
+          ],
+          "title": "Workstation Health",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {"byField": "instance", "mode": "outer"}
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time 1": true, "Time 2": true, "Time 3": true,
+                  "__name__": true, "namespace": true, "endpoint": true,
+                  "service": true, "container": true, "pod": true,
+                  "job 1": true, "job 2": true, "job 3": true
+                },
+                "indexByName": {
+                  "instance": 0,
+                  "Value #A": 1,
+                  "Value #B": 2,
+                  "Value #C": 3
+                },
+                "renameByName": {
+                  "Value #A": "status",
+                  "Value #B": "cpu %",
+                  "Value #C": "mem %"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "collapsed": false,
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 13},
+          "id": 200,
+          "panels": [],
+          "title": "Tailnet devices (workstations + phones + tablets)",
+          "type": "row"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "custom": {
+                "align": "auto",
+                "cellOptions": {"type": "auto"},
+                "inspect": false,
+                "filterable": true
+              },
+              "mappings": [
+                {"options": {"0": {"color": "red", "index": 0, "text": "Offline"}}, "type": "value"},
+                {"options": {"1": {"color": "green", "index": 1, "text": "Online"}}, "type": "value"}
+              ],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+            },
+            "overrides": [
+              {
+                "matcher": {"id": "byName", "options": "online"},
+                "properties": [
+                  {"id": "custom.cellOptions", "value": {"type": "color-background"}},
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {"color": "red", "value": null},
+                        {"color": "green", "value": 1}
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {"id": "byName", "options": "age"},
+                "properties": [
+                  {"id": "unit", "value": "s"},
+                  {"id": "custom.cellOptions", "value": {"type": "color-text"}},
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {"color": "green", "value": null},
+                        {"color": "yellow", "value": 600},
+                        {"color": "orange", "value": 86400},
+                        {"color": "red", "value": 604800}
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {"h": 12, "w": 24, "x": 0, "y": 14},
+          "id": 6,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+            "showHeader": true,
+            "sortBy": [{"desc": false, "displayName": "age"}]
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "tailscale_device_online",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "online",
+              "range": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "tailscale_device_age_seconds",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "age",
+              "range": false,
+              "refId": "B"
+            }
+          ],
+          "title": "Tailnet Devices",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {"byField": "device", "mode": "outer"}
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time 1": true, "Time 2": true,
+                  "__name__": true, "namespace": true, "endpoint": true,
+                  "service": true, "container": true, "pod": true, "instance": true, "job": true,
+                  "hostname 2": true, "os 2": true, "user 2": true
+                },
+                "indexByName": {
+                  "device": 0,
+                  "hostname 1": 1,
+                  "os 1": 2,
+                  "user 1": 3,
+                  "Value #A": 4,
+                  "Value #B": 5
+                },
+                "renameByName": {
+                  "hostname 1": "hostname",
+                  "os 1": "os",
+                  "user 1": "user",
+                  "Value #A": "online",
+                  "Value #B": "age"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "collapsed": false,
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 26},
+          "id": 300,
+          "panels": [],
+          "title": "Devices on home Wi-Fi (UniFi)",
+          "type": "row"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "custom": {
+                "align": "auto",
+                "cellOptions": {"type": "auto"},
+                "inspect": false,
+                "filterable": true
+              },
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+            },
+            "overrides": [
+              {
+                "matcher": {"id": "byName", "options": "rssi"},
+                "properties": [{"id": "unit", "value": "dB"}]
+              }
+            ]
+          },
+          "gridPos": {"h": 10, "w": 24, "x": 0, "y": 27},
+          "id": 7,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+            "showHeader": true,
+            "sortBy": [{"desc": true, "displayName": "rssi"}]
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "unifi_client_signal_dbm",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "rssi",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Wi-Fi Clients",
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true, "__name__": true, "endpoint": true, "instance": true,
+                  "job": true, "namespace": true, "pod": true, "service": true,
+                  "container": true
+                },
+                "indexByName": {
+                  "name": 0,
+                  "ap_name": 1,
+                  "essid": 2,
+                  "Value": 3
+                },
+                "renameByName": {
+                  "Value": "rssi",
+                  "name": "device",
+                  "ap_name": "ap",
+                  "essid": "ssid"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        }
+      ],
+      "preload": false,
+      "refresh": "30s",
+      "schemaVersion": 42,
+      "tags": ["homelab", "household", "physical-hosts"],
+      "templating": {"list": []},
+      "time": {"from": "now-6h", "to": "now"},
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Homelab / Household Compute",
+      "uid": "homelab-household-compute",
+      "version": 1
+    }

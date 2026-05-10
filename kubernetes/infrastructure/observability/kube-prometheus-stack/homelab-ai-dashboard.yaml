@@ -15,6 +15,18 @@ data:
       "version": 1,
       "refresh": "30s",
       "tags": ["homelab", "ai"],
+      "links": [
+        {
+          "asDropdown": true,
+          "icon": "external link",
+          "includeVars": false,
+          "keepTime": true,
+          "tags": ["homelab"],
+          "targetBlank": false,
+          "title": "Homelab dashboards",
+          "type": "dashboards"
+        }
+      ],
       "time": {"from": "now-6h", "to": "now"},
       "panels": [
         {

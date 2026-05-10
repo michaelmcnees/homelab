@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adguard-b
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: adguard
+    app.kubernetes.io/instance: adguard-b
+    app.kubernetes.io/component: dns
+    adguard.homelab.mcnees.me/role: replica
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: adguard
+      app.kubernetes.io/instance: adguard-b
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: adguard
+        app.kubernetes.io/instance: adguard-b
+        app.kubernetes.io/component: dns
+        adguard.homelab.mcnees.me/role: replica
+    spec:
+      enableServiceLinks: false
+      priorityClassName: critical
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: adguard
+      containers:
+        - name: adguard
+          image: adguard/adguardhome:v0.107.74
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+            - name: dns-tcp
+              containerPort: 53
+              protocol: TCP
+            - name: dns-udp
+              containerPort: 53
+              protocol: UDP
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /opt/adguardhome/conf
+            - name: work
+              mountPath: /opt/adguardhome/work
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: adguard-b-config
+        - name: work
+          persistentVolumeClaim:
+            claimName: adguard-b-work

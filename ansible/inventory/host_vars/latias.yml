@@ -1,0 +1,7 @@
+---
+proxmox_management_address: 10.0.3.40/22
+proxmox_management_bridge_ports: enp1s0f0
+proxmox_manual_interfaces:
+  - enp12s0
+  - enp1s0f0
+  - enp1s0f1

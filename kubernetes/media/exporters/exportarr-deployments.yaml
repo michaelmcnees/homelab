@@ -1,0 +1,513 @@
+# onedr0p/exportarr Deployments per *arr instance.
+# Each Deployment+Service has labels:
+#   app.kubernetes.io/name: exportarr
+#   app.kubernetes.io/component: exportarr           # used by the ServiceMonitor selector
+#   app.kubernetes.io/instance: <unique>             # per-app
+#   app.kubernetes.io/part-of: <upstream-arr>        # for dashboard grouping
+
+# ---------------- sonarr ----------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exportarr-sonarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-sonarr
+    app.kubernetes.io/part-of: sonarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: exportarr-sonarr
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exportarr
+        app.kubernetes.io/component: exportarr
+        app.kubernetes.io/instance: exportarr-sonarr
+        app.kubernetes.io/part-of: sonarr
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: exportarr
+          image: ghcr.io/onedr0p/exportarr:v2.2.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          args: ["sonarr"]
+          env:
+            - { name: PORT, value: "9707" }
+            - { name: URL, value: "http://sonarr.media.svc.cluster.local:8989" }
+            - { name: ENABLE_ADDITIONAL_METRICS, value: "true" }
+            - { name: ENABLE_UNKNOWN_QUEUE_ITEMS, value: "true" }
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: media-exporter-keys
+                  key: SONARR_API_KEY
+          ports:
+            - { name: http, containerPort: 9707 }
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { memory: 96Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: exportarr-sonarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-sonarr
+    app.kubernetes.io/part-of: sonarr
+spec:
+  selector:
+    app.kubernetes.io/instance: exportarr-sonarr
+  ports:
+    - { name: http, port: 9707, targetPort: http }
+# ---------------- sonarr-anime ----------------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exportarr-sonarr-anime
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-sonarr-anime
+    app.kubernetes.io/part-of: sonarr-anime
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: exportarr-sonarr-anime
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exportarr
+        app.kubernetes.io/component: exportarr
+        app.kubernetes.io/instance: exportarr-sonarr-anime
+        app.kubernetes.io/part-of: sonarr-anime
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: exportarr
+          image: ghcr.io/onedr0p/exportarr:v2.2.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          args: ["sonarr"]
+          env:
+            - { name: PORT, value: "9707" }
+            - { name: URL, value: "http://sonarr-anime.media.svc.cluster.local:8989" }
+            - { name: ENABLE_ADDITIONAL_METRICS, value: "true" }
+            - { name: ENABLE_UNKNOWN_QUEUE_ITEMS, value: "true" }
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: media-exporter-keys
+                  key: SONARR_ANIME_API_KEY
+          ports:
+            - { name: http, containerPort: 9707 }
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { memory: 96Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: exportarr-sonarr-anime
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-sonarr-anime
+    app.kubernetes.io/part-of: sonarr-anime
+spec:
+  selector:
+    app.kubernetes.io/instance: exportarr-sonarr-anime
+  ports:
+    - { name: http, port: 9707, targetPort: http }
+# ---------------- radarr ----------------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exportarr-radarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-radarr
+    app.kubernetes.io/part-of: radarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: exportarr-radarr
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exportarr
+        app.kubernetes.io/component: exportarr
+        app.kubernetes.io/instance: exportarr-radarr
+        app.kubernetes.io/part-of: radarr
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: exportarr
+          image: ghcr.io/onedr0p/exportarr:v2.2.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          args: ["radarr"]
+          env:
+            - { name: PORT, value: "9708" }
+            - { name: URL, value: "http://radarr.media.svc.cluster.local:7878" }
+            - { name: ENABLE_ADDITIONAL_METRICS, value: "true" }
+            - { name: ENABLE_UNKNOWN_QUEUE_ITEMS, value: "true" }
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: media-exporter-keys
+                  key: RADARR_API_KEY
+          ports:
+            - { name: http, containerPort: 9708 }
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { memory: 96Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: exportarr-radarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-radarr
+    app.kubernetes.io/part-of: radarr
+spec:
+  selector:
+    app.kubernetes.io/instance: exportarr-radarr
+  ports:
+    - { name: http, port: 9708, targetPort: http }
+# ---------------- prowlarr ----------------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exportarr-prowlarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-prowlarr
+    app.kubernetes.io/part-of: prowlarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: exportarr-prowlarr
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exportarr
+        app.kubernetes.io/component: exportarr
+        app.kubernetes.io/instance: exportarr-prowlarr
+        app.kubernetes.io/part-of: prowlarr
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: exportarr
+          image: ghcr.io/onedr0p/exportarr:v2.2.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          args: ["prowlarr"]
+          env:
+            - { name: PORT, value: "9709" }
+            - { name: URL, value: "http://prowlarr.media.svc.cluster.local:9696" }
+            - { name: ENABLE_ADDITIONAL_METRICS, value: "true" }
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: media-exporter-keys
+                  key: PROWLARR_API_KEY
+          ports:
+            - { name: http, containerPort: 9709 }
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { memory: 96Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: exportarr-prowlarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-prowlarr
+    app.kubernetes.io/part-of: prowlarr
+spec:
+  selector:
+    app.kubernetes.io/instance: exportarr-prowlarr
+  ports:
+    - { name: http, port: 9709, targetPort: http }
+# ---------------- lidarr ----------------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exportarr-lidarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-lidarr
+    app.kubernetes.io/part-of: lidarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: exportarr-lidarr
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exportarr
+        app.kubernetes.io/component: exportarr
+        app.kubernetes.io/instance: exportarr-lidarr
+        app.kubernetes.io/part-of: lidarr
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: exportarr
+          image: ghcr.io/onedr0p/exportarr:v2.2.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          args: ["lidarr"]
+          env:
+            - { name: PORT, value: "9710" }
+            - { name: URL, value: "http://lidarr.media.svc.cluster.local:8686" }
+            - { name: ENABLE_ADDITIONAL_METRICS, value: "true" }
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: media-exporter-keys
+                  key: LIDARR_API_KEY
+          ports:
+            - { name: http, containerPort: 9710 }
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { memory: 96Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: exportarr-lidarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-lidarr
+    app.kubernetes.io/part-of: lidarr
+spec:
+  selector:
+    app.kubernetes.io/instance: exportarr-lidarr
+  ports:
+    - { name: http, port: 9710, targetPort: http }
+# ---------------- lidarr-kids ----------------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exportarr-lidarr-kids
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-lidarr-kids
+    app.kubernetes.io/part-of: lidarr-kids
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: exportarr-lidarr-kids
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exportarr
+        app.kubernetes.io/component: exportarr
+        app.kubernetes.io/instance: exportarr-lidarr-kids
+        app.kubernetes.io/part-of: lidarr-kids
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: exportarr
+          image: ghcr.io/onedr0p/exportarr:v2.2.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          args: ["lidarr"]
+          env:
+            - { name: PORT, value: "9711" }
+            - { name: URL, value: "http://lidarr-kids.media.svc.cluster.local:8686" }
+            - { name: ENABLE_ADDITIONAL_METRICS, value: "true" }
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: media-exporter-keys
+                  key: LIDARR_KIDS_API_KEY
+          ports:
+            - { name: http, containerPort: 9711 }
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { memory: 96Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: exportarr-lidarr-kids
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-lidarr-kids
+    app.kubernetes.io/part-of: lidarr-kids
+spec:
+  selector:
+    app.kubernetes.io/instance: exportarr-lidarr-kids
+  ports:
+    - { name: http, port: 9711, targetPort: http }
+# ---------------- bazarr ----------------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exportarr-bazarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-bazarr
+    app.kubernetes.io/part-of: bazarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: exportarr-bazarr
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exportarr
+        app.kubernetes.io/component: exportarr
+        app.kubernetes.io/instance: exportarr-bazarr
+        app.kubernetes.io/part-of: bazarr
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: exportarr
+          image: ghcr.io/onedr0p/exportarr:v2.2.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          args: ["bazarr"]
+          env:
+            - { name: PORT, value: "9712" }
+            - { name: URL, value: "http://bazarr.media.svc.cluster.local:6767" }
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: media-exporter-keys
+                  key: BAZARR_API_KEY
+          ports:
+            - { name: http, containerPort: 9712 }
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { memory: 96Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: exportarr-bazarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: exportarr
+    app.kubernetes.io/component: exportarr
+    app.kubernetes.io/instance: exportarr-bazarr
+    app.kubernetes.io/part-of: bazarr
+spec:
+  selector:
+    app.kubernetes.io/instance: exportarr-bazarr
+  ports:
+    - { name: http, port: 9712, targetPort: http }
