@@ -35,8 +35,9 @@ Database placement:
 - `chatwoot` lives on the PostgreSQL LXC at
   `metagross.internal.svc.cluster.local:5432`.
 
-Invoice Ninja uses file-backed cache/session state and a sync queue because the
-shared Redis disables destructive commands such as `FLUSHDB`.
+Invoice Ninja uses in-process cache, signed-cookie sessions, and a sync queue
+because the shared Redis disables destructive commands such as `FLUSHDB`, and
+the upstream image expects writable app cache paths when file cache is enabled.
 
 The matching database passwords are sourced from local, gitignored Ansible vars
 files and copied into each app's SOPS secret. For Invoice Ninja, keep

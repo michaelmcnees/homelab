@@ -15,8 +15,8 @@ data:
   DB_PORT: "3306"
   DB_DATABASE: invoice_ninja
   DB_USERNAME: invoice_ninja
-  CACHE_DRIVER: file
-  SESSION_DRIVER: file
+  CACHE_DRIVER: array
+  SESSION_DRIVER: cookie
   QUEUE_CONNECTION: sync
   FILESYSTEM_DISK: s3
   AWS_DEFAULT_REGION: us-east-1
