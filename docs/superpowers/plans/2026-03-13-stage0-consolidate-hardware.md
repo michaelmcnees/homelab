@@ -721,31 +721,18 @@ Record planned allocations so Stage 2 can reference them.
 
 ---
 
-### Task 14: Migrate LXCs to new nodes
+### Task 14: Migrate smart-home services
 
-- [ ] **Step 1: Migrate Homey LXC to latios**
+- [x] **Step 1: Migrate Homey to Kubernetes**
 
-Homey requires host networking. Migrate from pikachu/mew to latios:
+Homey was migrated into the `smart-home` namespace and verified stable
+overnight. The public route remains `homey.mcnees.me`; local access remains
+`homey.home.mcnees.me`.
 
-```bash
-# If Ceph-backed:
-pct migrate <CTID> latios --online
+- [x] **Step 2: Migrate Homebridge to Kubernetes**
 
-# If local-storage, use backup/restore method (Task 3)
-```
-
-Verify Homey app on phone — devices responding after migration.
-
-- [ ] **Step 2: Migrate Homebridge LXC to latias**
-
-Homebridge requires host networking + USB access. Ensure any required USB devices are connected to latias.
-
-```bash
-pct migrate <CTID> latias --online
-# Or backup/restore if local-storage
-```
-
-Verify Homebridge — all accessories responding.
+Homebridge was migrated into the `smart-home` namespace and verified stable
+overnight at `homebridge.home.mcnees.me`.
 
 ---
 
@@ -787,8 +774,8 @@ Refer to `docs/superpowers/specs/2026-03-14-storage-tiering-design.md` for the f
 - [ ] latias assembled, Proxmox installed, joined to cluster
 - [ ] VLAN-aware bridges configured on both nodes
 - [ ] Ceph OSDs added on both nodes
-- [ ] Homey LXC running on latios
-- [ ] Homebridge LXC running on latias
+- [x] Homey running in Kubernetes and verified stable
+- [x] Homebridge running in Kubernetes and verified stable
 - [ ] K3s VM allocations documented for Stage 2
 
 - [ ] **Step 2: Commit any changes**

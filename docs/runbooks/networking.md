@@ -113,8 +113,8 @@ Last audit found 33 live clients still in `10.0.0.0/22`. Do not disable McLan DH
 | `10.0.2.0` | pxe-bulbasaur | Retire old node or move if still needed. |
 | `10.0.2.2` | pxe-charmander | Retire old node or move if still needed. |
 | `10.0.2.3` | pxe-pikachu | Retire old node or move if still needed. |
-| `10.0.2.5` | Homebridge | Move to final Homebridge plan. |
-| `10.0.2.8` | Homey Server | Move to final Homey plan. |
+| `10.0.2.5` | Homebridge | Migrated to Kubernetes; retire old endpoint after final scream test. |
+| `10.0.2.8` | Homey Server | Migrated to Kubernetes; retire old endpoint after final scream test. |
 | `10.0.2.9` | Uptime Kuma | Retire if Kubernetes observability replaces it. |
 
 ### Wired Devices To Classify
