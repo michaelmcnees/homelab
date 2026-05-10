@@ -25,6 +25,29 @@ spec:
             fsGroup: 1000
             seccompProfile:
               type: RuntimeDefault
+          initContainers:
+            - name: stage-config
+              image: busybox:1.37.0
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  cp /source/AdGuardHome.yaml /backup-data/AdGuardHome.yaml
+                  chown 1000:1000 /backup-data/AdGuardHome.yaml
+              securityContext:
+                runAsUser: 0
+                runAsGroup: 0
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: data
+                  mountPath: /source
+                  readOnly: true
+                - name: backup-data
+                  mountPath: /backup-data
           containers:
             - name: backup
               image: restic/restic:0.18.1
@@ -40,7 +63,7 @@ spec:
                 - -ec
                 - |
                   echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) restic backup"
-                  restic backup /data \
+                  restic backup /backup-data \
                     --tag adguard-a-config \
                     --tag homelab \
                     --host adguard-a
@@ -65,8 +88,8 @@ spec:
                 - name: XDG_CACHE_HOME
                   value: /tmp/cache
               volumeMounts:
-                - name: data
-                  mountPath: /data
+                - name: backup-data
+                  mountPath: /backup-data
                   readOnly: true
                 - name: restic
                   mountPath: /mnt/restic
@@ -81,5 +104,7 @@ spec:
               nfs:
                 server: 10.0.1.1
                 path: /mnt/data/backups/restic-homelab
+            - name: backup-data
+              emptyDir: {}
             - name: tmp
               emptyDir: {}

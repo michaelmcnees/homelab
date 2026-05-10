@@ -29,7 +29,7 @@ spec:
           command:
             - sh
             - -c
-            - until nc -z grimmory-mariadb 3306; do sleep 3; done
+            - until nc -z registeel.internal.svc.cluster.local 3306; do sleep 3; done
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -51,7 +51,7 @@ spec:
             - name: TZ
               value: America/Detroit
             - name: DATABASE_URL
-              value: jdbc:mariadb://grimmory-mariadb:3306/grimmory
+              value: jdbc:mariadb://registeel.internal.svc.cluster.local:3306/grimmory
             - name: DATABASE_USERNAME
               value: grimmory
             - name: DATABASE_PASSWORD

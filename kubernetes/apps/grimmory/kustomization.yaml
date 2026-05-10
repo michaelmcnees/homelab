@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - pvc.yaml
   - secret.sops.yaml
-  - mariadb.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
