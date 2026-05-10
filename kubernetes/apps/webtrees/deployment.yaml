@@ -102,6 +102,8 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/www/webtrees/data
+            - name: modules
+              mountPath: /var/www/webtrees/modules_v4
             - name: secrets
               mountPath: /run/secrets/webtrees
               readOnly: true
@@ -109,6 +111,9 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: webtrees-data
+        - name: modules
+          persistentVolumeClaim:
+            claimName: webtrees-modules
         - name: secrets
           secret:
             secretName: webtrees-secrets

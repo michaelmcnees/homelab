@@ -7,6 +7,8 @@ webtrees runs in the `apps` namespace at `https://family.mcnees.me`.
 - App: `ghcr.io/nathanvaughn/webtrees:2.2.6`
 - Database: `webtrees` on `registeel.internal.svc.cluster.local`
 - Storage: `webtrees-data` local-path PVC mounted at `/var/www/webtrees/data`
+- Themes/modules: `webtrees-modules` local-path PVC mounted at
+  `/var/www/webtrees/modules_v4`
 - Exposure: public Traefik entrypoint with the shared `public-chain` middleware
 - Auth: webtrees built-in users and privacy controls
 
@@ -35,6 +37,19 @@ SOPS_AGE_KEY_FILE=homelab.age.key sops -d kubernetes/apps/webtrees/secret.sops.y
 4. Confirm the site is not exposing living-person details publicly.
 5. Create family member accounts manually until we decide on the invitation
    model.
+
+## Themes
+
+Custom themes live in `/var/www/webtrees/modules_v4` and persist on the
+`webtrees-modules` PVC.
+
+The Argon theme was installed from `~/Downloads/argon-2023.3.7.zip` into:
+
+```text
+/var/www/webtrees/modules_v4/argon
+```
+
+Enable it in the webtrees control panel after signing in as an administrator.
 
 ## Database
 
