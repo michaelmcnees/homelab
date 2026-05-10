@@ -9,6 +9,7 @@ data:
   REQUIRE_HTTPS: "true"
   TRUSTED_PROXIES: "*"
   LOG_CHANNEL: stderr
+  DB_CONNECTION: pgsql
   DB_TYPE: pgsql
   DB_HOST: metagross.internal.svc.cluster.local
   DB_PORT: "5432"

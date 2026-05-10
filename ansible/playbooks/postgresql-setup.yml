@@ -56,6 +56,11 @@
         owner: bazarr
       - name: openwebui
         owner: openwebui
+    postgresql_extensions:
+      - database: chatwoot
+        extension: pg_stat_statements
+      - database: chatwoot
+        extension: vector
     postgresql_human_users:
       - name: mmcnees-readonly
         password_var: pg_password_mmcnees_readonly
@@ -95,6 +100,7 @@
         name:
           - "postgresql-{{ postgresql_version }}"
           - "postgresql-client-{{ postgresql_version }}"
+          - "postgresql-{{ postgresql_version }}-pgvector"
         state: present
         update_cache: true
 
@@ -168,6 +174,14 @@
         query: ALTER DATABASE "{{ item.name }}" OWNER TO "{{ item.owner }}";
       loop: "{{ postgresql_databases }}"
       changed_when: false
+
+    - name: Create required PostgreSQL extensions
+      become_user: postgres
+      community.postgresql.postgresql_ext:
+        db: "{{ item.database }}"
+        name: "{{ item.extension }}"
+        state: present
+      loop: "{{ postgresql_extensions }}"
 
     - name: Create shared PostgreSQL users
       become_user: postgres
