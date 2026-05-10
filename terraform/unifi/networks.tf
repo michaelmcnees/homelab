@@ -1,5 +1,8 @@
 locals {
-  adguard_dns_vip = "10.0.10.201"
+  adguard_dns_vips = [
+    "10.0.10.201",
+    "10.0.10.202",
+  ]
 
   vlan_networks = {
     k8s = {
@@ -57,7 +60,7 @@ resource "unifi_network" "vlans" {
   dhcp_start   = each.value.dhcp_start
   dhcp_stop    = each.value.dhcp_stop
   dhcp_lease   = 86400
-  dhcp_dns     = [local.adguard_dns_vip]
+  dhcp_dns     = local.adguard_dns_vips
 
   multicast_dns = true
 
@@ -74,7 +77,7 @@ resource "unifi_network" "mclan" {
   subnet  = "10.0.0.1/22"
 
   dhcp_enabled = true
-  dhcp_dns     = [local.adguard_dns_vip]
+  dhcp_dns     = local.adguard_dns_vips
 
   lifecycle {
     ignore_changes = [
