@@ -28,13 +28,17 @@ once RustFS IAM management is wired into the cluster.
 
 ## Databases
 
-PostgreSQL databases live on metagross:
+Database placement:
 
-- `invoice_ninja`
-- `chatwoot`
+- `invoice_ninja` lives on the MariaDB LXC at
+  `mariadb.internal.svc.cluster.local:3306`.
+- `chatwoot` lives on the PostgreSQL LXC at
+  `metagross.internal.svc.cluster.local:5432`.
 
-The matching database passwords are sourced from the local, gitignored Ansible
-PostgreSQL vars file and copied into each app's SOPS secret.
+The matching database passwords are sourced from local, gitignored Ansible vars
+files and copied into each app's SOPS secret. For Invoice Ninja, keep
+`ansible/inventory/group_vars/mariadb.yml` and
+`kubernetes/hdf/invoice-ninja/secret.sops.yaml` in sync for `DB_PASSWORD`.
 
 ## Bootstrap
 

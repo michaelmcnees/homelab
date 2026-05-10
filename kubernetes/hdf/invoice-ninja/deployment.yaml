@@ -30,7 +30,7 @@ spec:
             - sh
             - -c
             - |
-              until nc -z metagross.internal.svc.cluster.local 5432; do sleep 3; done
+              until nc -z mariadb.internal.svc.cluster.local 3306; do sleep 3; done
               until nc -z redis-master.databases.svc.cluster.local 6379; do sleep 3; done
               until nc -z rustfs.object-storage.svc.cluster.local 9000; do sleep 3; done
           securityContext:

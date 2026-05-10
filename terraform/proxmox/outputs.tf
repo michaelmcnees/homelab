@@ -19,3 +19,8 @@ output "postgresql_lxc_ip" {
   description = "PostgreSQL LXC IP address"
   value       = module.metagross.ip_address
 }
+
+output "mariadb_lxc_ip" {
+  description = "MariaDB LXC IP address"
+  value       = module.mariadb.ip_address
+}

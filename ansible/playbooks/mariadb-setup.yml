@@ -1,0 +1,104 @@
+---
+- name: Configure MariaDB LXC
+  hosts: mariadb_servers
+  become: true
+
+  vars:
+    mariadb_bind_address: "0.0.0.0"
+    mariadb_databases:
+      - name: invoice_ninja
+        owner: invoice_ninja
+        password_var: mariadb_password_invoice_ninja
+      - name: grimmory
+        owner: grimmory
+        password_var: mariadb_password_grimmory
+    mariadb_human_users:
+      - name: mmcnees-readonly
+        password_var: mariadb_password_mmcnees_readonly
+        privileges: "SELECT"
+      - name: mmcnees-readwrite
+        password_var: mariadb_password_mmcnees_readwrite
+        privileges: "SELECT,INSERT,UPDATE,DELETE,CREATE,ALTER,INDEX,DROP,REFERENCES,TRIGGER,CREATE VIEW,SHOW VIEW,EVENT,EXECUTE"
+
+  tasks:
+    - name: Install MariaDB
+      ansible.builtin.apt:
+        name:
+          - acl
+          - ca-certificates
+          - mariadb-client
+          - mariadb-server
+          - python3-pymysql
+          - sudo
+        state: present
+        update_cache: true
+
+    - name: Configure MariaDB for homelab clients
+      ansible.builtin.copy:
+        dest: /etc/mysql/mariadb.conf.d/60-homelab.cnf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [mysqld]
+          bind-address = {{ mariadb_bind_address }}
+          skip-name-resolve
+          character-set-server = utf8mb4
+          collation-server = utf8mb4_unicode_ci
+      notify: Restart MariaDB
+
+    - name: Ensure MariaDB is started and enabled
+      ansible.builtin.systemd:
+        name: mariadb
+        state: started
+        enabled: true
+
+    - name: Flush MariaDB config changes before database creation
+      ansible.builtin.meta: flush_handlers
+
+    - name: Create MariaDB databases
+      community.mysql.mysql_db:
+        name: "{{ item.name }}"
+        encoding: utf8mb4
+        collation: utf8mb4_unicode_ci
+        login_unix_socket: /run/mysqld/mysqld.sock
+        state: present
+      loop: "{{ mariadb_databases }}"
+
+    - name: Create MariaDB application users
+      community.mysql.mysql_user:
+        name: "{{ item.owner }}"
+        host: "%"
+        password: "{{ lookup('vars', item.password_var) }}"
+        priv: "{{ item.name }}.*:ALL"
+        login_unix_socket: /run/mysqld/mysqld.sock
+        state: present
+      loop: "{{ mariadb_databases }}"
+      no_log: true
+
+    - name: Create shared MariaDB users
+      community.mysql.mysql_user:
+        name: "{{ item.name }}"
+        host: "%"
+        password: "{{ lookup('vars', item.password_var) }}"
+        login_unix_socket: /run/mysqld/mysqld.sock
+        state: present
+      loop: "{{ mariadb_human_users }}"
+      no_log: true
+
+    - name: Grant shared MariaDB user privileges
+      community.mysql.mysql_user:
+        name: "{{ item.0.name }}"
+        host: "%"
+        priv: "{{ item.1.name }}.*:{{ item.0.privileges }}"
+        append_privs: true
+        login_unix_socket: /run/mysqld/mysqld.sock
+        state: present
+      loop: "{{ mariadb_human_users | product(mariadb_databases) | list }}"
+      no_log: true
+
+  handlers:
+    - name: Restart MariaDB
+      ansible.builtin.systemd:
+        name: mariadb
+        state: restarted

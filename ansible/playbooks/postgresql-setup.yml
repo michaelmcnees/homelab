@@ -22,8 +22,6 @@
         owner: gramps
       - name: pelican
         owner: pelican
-      - name: invoice_ninja
-        owner: invoice_ninja
       - name: chatwoot
         owner: chatwoot
       - name: romm

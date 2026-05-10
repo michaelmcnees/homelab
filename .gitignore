@@ -13,6 +13,7 @@ ansible/.ansible/
 ansible/collections/ansible_collections/
 ansible/kubeconfig.yaml
 ansible/inventory/group_vars/k3s_cluster.yml
+ansible/inventory/group_vars/mariadb.yml
 ansible/inventory/group_vars/postgresql.yml
 ansible/inventory/group_vars/truenas.yml
 ansible/inventory/host_vars/truenas.yml

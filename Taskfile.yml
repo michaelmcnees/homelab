@@ -59,6 +59,11 @@ tasks:
     dir: ansible
     cmd: ansible-playbook playbooks/postgresql-setup.yml
 
+  ansible:mariadb:
+    desc: Configure MariaDB LXC (install, databases, users)
+    dir: ansible
+    cmd: ansible-playbook playbooks/mariadb-setup.yml
+
   ansible:truenas:
     desc: Configure TrueNAS datasets and NFS shares
     dir: ansible

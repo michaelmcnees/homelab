@@ -9,10 +9,10 @@ data:
   REQUIRE_HTTPS: "true"
   TRUSTED_PROXIES: "*"
   LOG_CHANNEL: stderr
-  DB_CONNECTION: pgsql
-  DB_TYPE: pgsql
-  DB_HOST: metagross.internal.svc.cluster.local
-  DB_PORT: "5432"
+  DB_CONNECTION: mysql
+  DB_TYPE: mysql
+  DB_HOST: mariadb.internal.svc.cluster.local
+  DB_PORT: "3306"
   DB_DATABASE: invoice_ninja
   DB_USERNAME: invoice_ninja
   REDIS_HOST: redis-master.databases.svc.cluster.local

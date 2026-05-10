@@ -59,6 +59,7 @@ resource "proxmox_virtual_environment_container" "lxc" {
   lifecycle {
     ignore_changes = [
       node_name,
+      features[0].mount,
     ]
   }
 }

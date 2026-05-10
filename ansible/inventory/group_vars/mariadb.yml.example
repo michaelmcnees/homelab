@@ -1,0 +1,14 @@
+---
+# Copy to mariadb.yml and replace each value with the matching app password.
+# mariadb.yml is intentionally gitignored.
+#
+# For existing Kubernetes apps, copy these from the matching SOPS secret so the
+# app can move databases without also rotating credentials.
+#
+# Generate new values with:
+# openssl rand -base64 24
+
+mariadb_password_invoice_ninja: "CHANGE_ME"
+mariadb_password_grimmory: "CHANGE_ME"
+mariadb_password_mmcnees_readonly: "CHANGE_ME"
+mariadb_password_mmcnees_readwrite: "CHANGE_ME"
