@@ -51,7 +51,7 @@ The existing `adguard` Deployment will be deleted; `adguard-a` is created in its
 
       Then port-forward to `adguard-b` and complete the first-run wizard with **the same admin email and password**:
       ```sh
-      kubectl -n apps port-forward deploy/adguard-b 8080:80
+      kubectl -n apps port-forward deploy/adguard-b 8080:3000
       # Open http://localhost:8080 → first-run wizard, set same admin user
       ```
 

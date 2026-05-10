@@ -74,14 +74,12 @@ spec:
               containerPort: 8080
               protocol: TCP
           readinessProbe:
-            httpGet:
-              path: /api/v1/health
+            tcpSocket:
               port: http
             initialDelaySeconds: 10
             periodSeconds: 30
           livenessProbe:
-            httpGet:
-              path: /api/v1/health
+            tcpSocket:
               port: http
             initialDelaySeconds: 60
             periodSeconds: 60

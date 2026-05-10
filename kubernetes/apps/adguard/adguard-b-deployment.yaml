@@ -41,6 +41,9 @@ spec:
             - name: http
               containerPort: 80
               protocol: TCP
+            - name: install
+              containerPort: 3000
+              protocol: TCP
             - name: dns-tcp
               containerPort: 53
               protocol: TCP
@@ -49,14 +52,14 @@ spec:
               protocol: UDP
           readinessProbe:
             tcpSocket:
-              port: http
+              port: dns-tcp
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 12
           livenessProbe:
             tcpSocket:
-              port: http
+              port: dns-tcp
             initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 3
