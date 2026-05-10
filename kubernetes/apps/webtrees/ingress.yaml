@@ -1,0 +1,19 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: webtrees
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure-external
+  routes:
+    - match: Host(`family.mcnees.me`)
+      kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
+      services:
+        - name: webtrees
+          port: 80
+  tls:
+    secretName: legacy-public-wildcard-tls

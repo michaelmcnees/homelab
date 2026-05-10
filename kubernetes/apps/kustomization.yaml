@@ -13,3 +13,4 @@ resources:
   - ./paperless-ngx
   - ./recyclarr
   - ./uptime-kuma
+  - ./webtrees

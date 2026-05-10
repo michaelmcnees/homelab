@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webtrees
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: webtrees
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: webtrees
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: webtrees
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: wait-for-mariadb
+          image: busybox:1.37.0
+          command:
+            - sh
+            - -c
+            - until nc -z registeel.internal.svc.cluster.local 3306; do sleep 3; done
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      containers:
+        - name: webtrees
+          image: ghcr.io/nathanvaughn/webtrees:2.2.6
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          env:
+            - name: TZ
+              value: America/Detroit
+            - name: PRETTY_URLS
+              value: "True"
+            - name: BASE_URL
+              value: https://family.mcnees.me
+            - name: DB_TYPE
+              value: mysql
+            - name: DB_HOST
+              value: registeel.internal.svc.cluster.local
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_NAME
+              value: webtrees
+            - name: DB_USER
+              value: webtrees
+            - name: DB_PASS_FILE
+              value: /run/secrets/webtrees/DB_PASS
+            - name: DB_PREFIX
+              value: wt_
+            - name: WT_USER
+              value: admin
+            - name: WT_NAME
+              value: Michael McNees
+            - name: WT_EMAIL
+              value: michael@mcnees.me
+            - name: WT_PASS_FILE
+              value: /run/secrets/webtrees/WT_PASS
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: family.mcnees.me
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: family.mcnees.me
+            initialDelaySeconds: 180
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 768Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/www/webtrees/data
+            - name: secrets
+              mountPath: /run/secrets/webtrees
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: webtrees-data
+        - name: secrets
+          secret:
+            secretName: webtrees-secrets

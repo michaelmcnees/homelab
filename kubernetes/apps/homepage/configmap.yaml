@@ -198,6 +198,10 @@ data:
             icon: grimmory.png
             href: https://grimmory.home.mcnees.me
             description: Books
+        - webtrees:
+            icon: mdi-family-tree
+            href: https://family.mcnees.me
+            description: Family tree
         - n8n:
             icon: n8n.png
             href: https://n8n.home.mcnees.me

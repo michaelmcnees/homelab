@@ -13,6 +13,9 @@
       - name: grimmory
         owner: grimmory
         password_var: mariadb_password_grimmory
+      - name: webtrees
+        owner: webtrees
+        password_var: mariadb_password_webtrees
     mariadb_human_users:
       - name: mmcnees-readonly
         password_var: mariadb_password_mmcnees_readonly

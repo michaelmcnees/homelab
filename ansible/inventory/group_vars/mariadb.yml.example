@@ -10,5 +10,6 @@
 
 mariadb_password_invoice_ninja: "CHANGE_ME"
 mariadb_password_grimmory: "CHANGE_ME"
+mariadb_password_webtrees: "CHANGE_ME"
 mariadb_password_mmcnees_readonly: "CHANGE_ME"
 mariadb_password_mmcnees_readwrite: "CHANGE_ME"

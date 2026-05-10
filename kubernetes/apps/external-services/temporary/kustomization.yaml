@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - certificates.yaml
   - gitea.yaml
-  - gramps.yaml
   - hass.yaml
   - n8n.yaml
   - outline.yaml

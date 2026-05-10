@@ -8,21 +8,22 @@ public exposure behind Traefik, and portable through GEDCOM export.
 
 ## Recommendation
 
-Start with **webtrees** as the primary candidate.
+Deploy **webtrees** as the primary candidate.
 
 webtrees is web-native, actively maintained, collaborative, GEDCOM-oriented, and
 has fine-grained privacy controls for living people and sensitive facts. It fits
 the desired user experience better than Gramps Web if the goal is a family
 portal rather than a researcher-first Gramps database UI.
 
-Keep **Gramps Web** as the fallback if the existing Gramps tree has import
-details that do not survive GEDCOM export/import cleanly.
+No Gramps migration is needed because there is no useful legacy genealogy data.
+Keep **Gramps Web** only as a fallback if webtrees proves unpleasant in daily
+use.
 
 ## Candidates
 
 | Tool | Fit | Notes |
 | --- | --- | --- |
-| webtrees | Primary candidate | Mature web genealogy app, strong collaboration/privacy model, GEDCOM compatible, works with MariaDB/PostgreSQL/SQLite. Official distribution is a PHP app; Docker images are community-maintained, so we may build our own image or pin a maintained community image. |
+| webtrees | Selected | Mature web genealogy app, strong collaboration/privacy model, GEDCOM compatible, works with MariaDB/PostgreSQL/SQLite. Deployed with the maintained `ghcr.io/nathanvaughn/webtrees` image. |
 | Gramps Web | Fallback | Best continuity with the existing Gramps data model. More complex runtime and more researcher-oriented. Good if GEDCOM import into webtrees loses too much structure. |
 | GeneWeb | Maybe later | Lightweight and self-hostable, but older UX and smaller ecosystem. |
 | Genea.app | Not a service replacement | Excellent local-first GEDCOM editor/viewer, but browser/local-file/Git oriented rather than a shared server-side family portal. |
@@ -38,15 +39,12 @@ details that do not survive GEDCOM export/import cleanly.
 - Storage:
   - PVC for app-local data/cache.
   - NFS-backed media directory if imported records reference many files.
-- Migration:
-  1. Export GEDCOM from the existing Gramps instance.
-  2. Copy media/artifacts from the Gramps Docker volume.
-  3. Deploy webtrees empty.
-  4. Import GEDCOM.
-  5. Verify people count, family count, media links, privacy behavior, and a few
-     known relationships.
-  6. Keep the Gramps export and Docker volume backup until webtrees has been
-     used successfully for a confidence window.
+- Initial bring-up:
+  1. Create the `webtrees` database and user on `registeel`.
+  2. Deploy webtrees empty at `family.mcnees.me`.
+  3. Sign in with the bootstrap admin.
+  4. Create a fresh tree from the web UI.
+  5. Verify public/private visibility for living people before inviting anyone.
 
 ## Open Questions
 
@@ -54,8 +52,8 @@ details that do not survive GEDCOM export/import cleanly.
   admin-created only?
 - Should living-person data be private to logged-in family only, or should the
   whole tree require login?
-- Where should genealogy media live long-term: a dedicated TrueNAS dataset or a
-  K8s PVC backed by Ceph VM disks?
+- If this becomes media-heavy, should genealogy media move to a dedicated
+  TrueNAS dataset instead of the current local-path PVC?
 
 ## Sources
 
