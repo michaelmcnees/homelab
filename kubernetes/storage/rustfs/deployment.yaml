@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: rustfs
-  namespace: storage
+  namespace: object-storage
   labels:
     app.kubernetes.io/name: rustfs
 spec:

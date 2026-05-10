@@ -13,8 +13,9 @@ login flows.
 
 ## Storage
 
-RustFS runs in the `storage` namespace as the internal S3-compatible object
-store for HDF app uploads.
+RustFS runs in the `object-storage` namespace as the internal S3-compatible
+object store for HDF app uploads. The Flux root is still named `storage`, but
+the Kubernetes namespace `storage` is reserved for `local-path-provisioner`.
 
 Buckets:
 

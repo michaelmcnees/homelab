@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: rustfs-create-buckets
-  namespace: storage
+  namespace: object-storage
 spec:
   backoffLimit: 12
   template:
@@ -16,7 +16,7 @@ spec:
             - /bin/sh
             - -c
             - |
-              until mc alias set rustfs http://rustfs.storage.svc.cluster.local:9000 "$RUSTFS_ACCESS_KEY" "$RUSTFS_SECRET_KEY"; do
+              until mc alias set rustfs http://rustfs.object-storage.svc.cluster.local:9000 "$RUSTFS_ACCESS_KEY" "$RUSTFS_SECRET_KEY"; do
                 sleep 5
               done
               mc mb --ignore-existing rustfs/invoice-ninja

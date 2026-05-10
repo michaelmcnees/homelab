@@ -32,7 +32,7 @@ spec:
             - |
               until nc -z metagross.internal.svc.cluster.local 5432; do sleep 3; done
               until nc -z redis-master.databases.svc.cluster.local 6379; do sleep 3; done
-              until nc -z rustfs.storage.svc.cluster.local 9000; do sleep 3; done
+              until nc -z rustfs.object-storage.svc.cluster.local 9000; do sleep 3; done
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
