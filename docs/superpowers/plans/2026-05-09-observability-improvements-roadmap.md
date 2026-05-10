@@ -42,8 +42,9 @@ already scraped. Each item is one ConfigMap edit.
   Ollama Model RAM stat to a multi-model table. Replace hardcoded 4-workload
   ready stat with `replicas_available / replicas_desired` ratio. Add link from
   each workload row to pod logs filtered to that workload.
-- ☐ A7. **Network dashboard enhancements.** Edit `homelab-network-dashboard.yaml`.
-  Add `$ap_name`, `$probe`, `$network_path` variables.
+- ✓ A7. **Network dashboard enhancements.** Edit `homelab-network-dashboard.yaml`.
+  Added `$network_path`, `$probe`, `$ap_name`, and `$essid` variables and wired
+  existing blackbox / UniFi panels through them.
 - ✓ A8. **App-versions dashboard enhancement.** Edit `homelab-app-versions-dashboard.yaml`.
   Added `$exported_namespace` filter and a "latest image lookup age" stat
   (`time() - max(version_checker_last_checked)`).
