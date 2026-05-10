@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - websecure-external
   routes:
-    - match: Host(`portal.hudsonvilledigital.com`)
+    - match: Host(`portal.mcnees.me`)
       kind: Rule
       middlewares:
         - name: public-chain
@@ -29,4 +29,4 @@ spec:
     name: letsencrypt-production
     kind: ClusterIssuer
   dnsNames:
-    - portal.hudsonvilledigital.com
+    - portal.mcnees.me

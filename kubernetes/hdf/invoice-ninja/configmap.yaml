@@ -5,7 +5,7 @@ metadata:
   namespace: hdf
 data:
   APP_ENV: production
-  APP_URL: https://portal.hudsonvilledigital.com
+  APP_URL: https://portal.mcnees.me
   REQUIRE_HTTPS: "true"
   TRUSTED_PROXIES: "*"
   LOG_CHANNEL: stderr

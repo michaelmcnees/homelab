@@ -7,7 +7,7 @@ data:
   RAILS_ENV: production
   NODE_ENV: production
   INSTALLATION_ENV: docker
-  FRONTEND_URL: https://support.hudsonvilledigital.com
+  FRONTEND_URL: https://support.mcnees.me
   FORCE_SSL: "true"
   RAILS_LOG_TO_STDOUT: "true"
   LOG_LEVEL: info
@@ -23,7 +23,7 @@ data:
   AWS_ENDPOINT: http://rustfs.object-storage.svc.cluster.local:9000
   S3_ENDPOINT: http://rustfs.object-storage.svc.cluster.local:9000
   S3_FORCE_PATH_STYLE: "true"
-  MAILER_SENDER_EMAIL: support@hudsonvilledigital.com
+  MAILER_SENDER_EMAIL: support@mcnees.me
   SMTP_ADDRESS: ""
   SMTP_PORT: "587"
   SMTP_AUTHENTICATION: plain

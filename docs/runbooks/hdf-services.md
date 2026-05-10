@@ -4,8 +4,8 @@ Hudsonville Digital Foundry business services run in the `hdf` namespace.
 
 | Service | Domain | Auth |
 | --- | --- | --- |
-| Invoice Ninja | `https://portal.hudsonvilledigital.com` | Built-in Invoice Ninja auth |
-| Chatwoot | `https://support.hudsonvilledigital.com` | Built-in Chatwoot auth |
+| Invoice Ninja | `https://portal.mcnees.me` | Built-in Invoice Ninja auth |
+| Chatwoot | `https://support.mcnees.me` | Built-in Chatwoot auth |
 
 Both public routes use the shared Traefik `public-chain` middleware. They are
 not behind OAuth2-Proxy because clients and support users need the apps' native
