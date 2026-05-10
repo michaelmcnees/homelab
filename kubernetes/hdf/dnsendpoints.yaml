@@ -1,0 +1,15 @@
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: hdf-public
+  namespace: hdf
+spec:
+  endpoints:
+    - dnsName: portal.mcnees.me
+      recordType: A
+      targets:
+        - 104.14.105.18
+    - dnsName: support.mcnees.me
+      recordType: A
+      targets:
+        - 104.14.105.18

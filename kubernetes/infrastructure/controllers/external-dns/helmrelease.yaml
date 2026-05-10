@@ -45,6 +45,7 @@ spec:
       name: cloudflare
     registry: txt
     sources:
+      - crd
       - traefik-proxy
     txtOwnerId: homelab
     txtPrefix: external-dns-
