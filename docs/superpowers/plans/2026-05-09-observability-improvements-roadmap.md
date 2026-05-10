@@ -50,9 +50,11 @@ already scraped. Each item is one ConfigMap edit.
 - ✓ A8. **App-versions dashboard enhancement.** Edit `homelab-app-versions-dashboard.yaml`.
   Added `$exported_namespace` filter and a "latest image lookup age" stat
   (`time() - max(version_checker_last_checked)`).
-- ☐ A9. **Databases dashboard enhancements.** Edit `homelab-databases-dashboard.yaml`.
-  Add `$datname` variable, clean threshold strings out of panel titles, merge
-  Database Inventory into a single table via transformations.
+- ✓ A9. **Databases dashboard enhancements.** Edit `homelab-databases-dashboard.yaml`.
+  Added `$datname`, wired Postgres size / connection / transaction / cache
+  panels through it, cleaned threshold details out of stat titles, and rebuilt
+  Database Inventory as a joined table with size, connections, deadlocks, and
+  cache-hit columns.
 
 ## Phase B — Enable scraping of unscraped components
 

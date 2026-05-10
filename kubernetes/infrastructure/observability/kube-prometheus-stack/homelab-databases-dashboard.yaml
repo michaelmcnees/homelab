@@ -34,7 +34,9 @@ data:
           "icon": "external link",
           "includeVars": false,
           "keepTime": true,
-          "tags": ["homelab"],
+          "tags": [
+            "homelab"
+          ],
           "targetBlank": false,
           "title": "Homelab dashboards",
           "type": "dashboards"
@@ -191,7 +193,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(pg_database_size_bytes{datname!~\"template.*\"})",
+              "expr": "sum(pg_database_size_bytes{datname=~\"$datname\", datname!~\"template.*\"})",
               "legendFormat": "",
               "range": true,
               "refId": "A"
@@ -255,7 +257,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(pg_stat_database_numbackends{datname!~\"template.*\"})",
+              "expr": "sum(pg_stat_database_numbackends{datname=~\"$datname\", datname!~\"template.*\"})",
               "legendFormat": "",
               "range": true,
               "refId": "A"
@@ -415,7 +417,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "Latest Backup Age (warn >26h, crit >36h)",
+          "title": "Latest Backup Age",
           "type": "stat"
         },
         {
@@ -517,7 +519,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "pg_database_size_bytes{datname!~\"template.*\"}",
+              "expr": "pg_database_size_bytes{datname=~\"$datname\", datname!~\"template.*\"}",
               "legendFormat": "{{datname}}",
               "range": true,
               "refId": "A"
@@ -612,7 +614,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "pg_stat_database_numbackends{datname!~\"template.*\"}",
+              "expr": "pg_stat_database_numbackends{datname=~\"$datname\", datname!~\"template.*\"}",
               "legendFormat": "{{datname}}",
               "range": true,
               "refId": "A"
@@ -707,7 +709,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum by (datname) (rate(pg_stat_database_xact_commit{datname!~\"template.*\"}[5m]))",
+              "expr": "sum by (datname) (rate(pg_stat_database_xact_commit{datname=~\"$datname\", datname!~\"template.*\"}[5m]))",
               "legendFormat": "{{datname}} commits",
               "range": true,
               "refId": "A"
@@ -718,7 +720,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum by (datname) (rate(pg_stat_database_xact_rollback{datname!~\"template.*\"}[5m]))",
+              "expr": "sum by (datname) (rate(pg_stat_database_xact_rollback{datname=~\"$datname\", datname!~\"template.*\"}[5m]))",
               "legendFormat": "{{datname}} rollbacks",
               "range": true,
               "refId": "B"
@@ -813,7 +815,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum by (datname) (rate(pg_stat_database_blks_hit{datname!~\"template.*\"}[5m])) / (sum by (datname) (rate(pg_stat_database_blks_hit{datname!~\"template.*\"}[5m])) + sum by (datname) (rate(pg_stat_database_blks_read{datname!~\"template.*\"}[5m])))",
+              "expr": "sum by (datname) (rate(pg_stat_database_blks_hit{datname=~\"$datname\", datname!~\"template.*\"}[5m])) / (sum by (datname) (rate(pg_stat_database_blks_hit{datname=~\"$datname\", datname!~\"template.*\"}[5m])) + sum by (datname) (rate(pg_stat_database_blks_read{datname=~\"$datname\", datname!~\"template.*\"}[5m])))",
               "legendFormat": "{{datname}}",
               "range": true,
               "refId": "A"
@@ -845,9 +847,59 @@ data:
                     "value": null
                   }
                 ]
-              }
+              },
+              "unit": "short"
             },
-            "overrides": []
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "size"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "bytes"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "connections"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "short"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "deadlocks"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "short"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "cache hit"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percentunit"
+                  }
+                ]
+              }
+            ]
           },
           "gridPos": {
             "h": 8,
@@ -876,7 +928,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "pg_database_size_bytes{datname!~\"template.*\"}",
+              "expr": "pg_database_size_bytes{datname=~\"$datname\", datname!~\"template.*\"}",
               "format": "table",
               "instant": true,
               "legendFormat": "size",
@@ -889,7 +941,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "pg_stat_database_numbackends{datname!~\"template.*\"}",
+              "expr": "pg_stat_database_numbackends{datname=~\"$datname\", datname!~\"template.*\"}",
               "format": "table",
               "instant": true,
               "legendFormat": "connections",
@@ -902,19 +954,71 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "pg_stat_database_deadlocks{datname!~\"template.*\"}",
+              "expr": "pg_stat_database_deadlocks{datname=~\"$datname\", datname!~\"template.*\"}",
               "format": "table",
               "instant": true,
               "legendFormat": "deadlocks",
               "range": false,
               "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum by (datname) (rate(pg_stat_database_blks_hit{datname=~\"$datname\", datname!~\"template.*\"}[5m])) / (sum by (datname) (rate(pg_stat_database_blks_hit{datname=~\"$datname\", datname!~\"template.*\"}[5m])) + sum by (datname) (rate(pg_stat_database_blks_read{datname=~\"$datname\", datname!~\"template.*\"}[5m])))",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "cache hit",
+              "range": false,
+              "refId": "D"
             }
           ],
           "title": "Database Inventory",
           "transformations": [
             {
-              "id": "merge",
-              "options": {}
+              "id": "joinByField",
+              "options": {
+                "byField": "datname",
+                "mode": "outer"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time 1": true,
+                  "Time 2": true,
+                  "Time 3": true,
+                  "Time 4": true,
+                  "__name__ 1": true,
+                  "__name__ 2": true,
+                  "__name__ 3": true,
+                  "instance 1": true,
+                  "instance 2": true,
+                  "instance 3": true,
+                  "job 1": true,
+                  "job 2": true,
+                  "job 3": true,
+                  "server 1": true,
+                  "server 2": true,
+                  "server 3": true
+                },
+                "indexByName": {
+                  "datname": 0,
+                  "Value #A": 1,
+                  "Value #B": 2,
+                  "Value #C": 3,
+                  "Value #D": 4
+                },
+                "renameByName": {
+                  "Value #A": "size",
+                  "Value #B": "connections",
+                  "Value #C": "deadlocks",
+                  "Value #D": "cache hit"
+                }
+              }
             }
           ],
           "type": "table"
@@ -1403,7 +1507,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "LXC CPU Usage (warn >80%, crit >95%)",
+          "title": "LXC CPU Usage",
           "type": "stat"
         },
         {
@@ -1475,7 +1579,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "LXC Memory Used % (warn >80%, crit >95%)",
+          "title": "LXC Memory Used",
           "type": "stat"
         },
         {
@@ -1611,7 +1715,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "LXC Disk Used % (warn >80%, crit >95%)",
+          "title": "LXC Disk Used",
           "type": "stat"
         },
         {
@@ -2355,7 +2459,28 @@ data:
         "databases"
       ],
       "templating": {
-        "list": []
+        "list": [
+          {
+            "current": {
+              "selected": true,
+              "text": "All",
+              "value": "$__all"
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "definition": "label_values(pg_database_size_bytes{datname!~\"template.*\"}, datname)",
+            "includeAll": true,
+            "allValue": ".*",
+            "multi": true,
+            "name": "datname",
+            "query": "label_values(pg_database_size_bytes{datname!~\"template.*\"}, datname)",
+            "refresh": 1,
+            "sort": 1,
+            "type": "query"
+          }
+        ]
       },
       "time": {
         "from": "now-24h",
@@ -2365,6 +2490,6 @@ data:
       "timezone": "browser",
       "title": "Homelab Databases",
       "uid": "homelab-databases",
-      "version": 1,
+      "version": 2,
       "weekStart": ""
     }
