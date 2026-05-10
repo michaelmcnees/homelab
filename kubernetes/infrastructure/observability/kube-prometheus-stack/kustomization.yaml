@@ -21,6 +21,7 @@ resources:
   - homelab-flux-dashboard.yaml
   - homelab-auth-dashboard.yaml
   - homelab-household-compute-dashboard.yaml
+  - homelab-loki-dashboard.yaml
   - flux-podmonitor.yaml
   - homelab-alerts.yaml
   - homelab-ai-network-alerts.yaml

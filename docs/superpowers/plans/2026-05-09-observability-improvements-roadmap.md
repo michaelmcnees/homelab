@@ -105,10 +105,14 @@ Each item is one new ConfigMap dashboard plus PrometheusRule additions.
   combines oauth2-proxy native metrics with kube-state-metrics for pocket-id /
   lldap and Loki error counts. Alerts: `OAuth2ProxyErrorRateHigh`,
   `AuthDeploymentUnavailable`.
-- ☐ C4. **Loki health dashboard + LogQL alerts.** Depends on B4. Ingester /
-  distributor health, chunks ingested, ingestion errors, query latency.
-  LogQL alerts: postgres `FATAL`/`ERROR` rate, repeated oauth2-proxy failed
-  login, Flux controller `level=error` rate.
+- ▣ C4. **Loki health dashboard + LogQL alerts.** Added
+  `homelab-loki-dashboard.yaml` covering Loki scrape status, ingestion rate,
+  bytes received, request/query latency, storage failures, memberlist health,
+  memory, and log-pattern panels for Postgres, oauth2-proxy, and Flux errors.
+  Added Prometheus-side Loki health alerts for target down, stopped ingestion,
+  high latency, storage failures, and memberlist health. Still pending: true
+  LogQL alerts, which need Loki Ruler or Grafana-managed alerting wired in
+  because `PrometheusRule` cannot evaluate LogQL.
 
 ## Phase D — Decisions made (2026-05-09 grilling session)
 

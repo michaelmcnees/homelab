@@ -138,3 +138,50 @@ spec:
             summary: "exportarr {{ $labels.service }} scrape failing"
             description: "exportarr instance {{ $labels.service }} has been down for 15 minutes. App-level metrics are missing."
             runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/media-workflow.md"
+    - name: homelab.loki
+      rules:
+        - alert: LokiTargetDown
+          expr: up{namespace="observability", job="loki"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Loki scrape target is down"
+            description: "Prometheus cannot scrape the Loki metrics endpoint for 5 minutes. Log ingestion/query observability may be blind."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#loki"
+        - alert: LokiIngestionStopped
+          expr: sum(rate(loki_distributor_lines_received_total{namespace="observability", job="loki"}[10m])) == 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki is not receiving log lines"
+            description: "Loki has reported zero received log lines for 15 minutes. Check Alloy and Loki ingestion."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#loki"
+        - alert: LokiHighRequestLatency
+          expr: histogram_quantile(0.95, sum by (le) (rate(loki_request_duration_seconds_bucket{namespace="observability", job="loki"}[5m]))) > 2
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki request latency is high"
+            description: "Loki p95 request latency has been above 2 seconds for 10 minutes."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#loki"
+        - alert: LokiStorageFailures
+          expr: sum(increase(loki_ingester_chunks_flush_failures_total{namespace="observability", job="loki"}[15m])) + sum(increase(loki_ingester_wal_disk_full_failures_total{namespace="observability", job="loki"}[15m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki storage failures detected"
+            description: "Loki reported chunk flush or WAL disk-full failures in the last 15 minutes."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#loki"
+        - alert: LokiMemberlistUnhealthy
+          expr: max(loki_memberlist_client_cluster_node_health_score{namespace="observability", job="loki"}) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki memberlist health score is non-zero"
+            description: "Loki memberlist reports a non-zero node health score for 10 minutes."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#loki"
