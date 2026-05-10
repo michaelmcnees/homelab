@@ -33,10 +33,11 @@ already scraped. Each item is one ConfigMap edit.
 - ✓ A4. **K8s overview enhancements.** CPU formula → idle-based percentunit,
   memory formula → utilisation percentunit, `$node`/`$namespace` variables,
   pending-pods/CrashLoopBackOff/node-pressure panels, PVC % full table.
-- ☐ A5. **Proxmox dashboard enhancements.** Edit `homelab-proxmox-dashboard.yaml`.
-  Add `$proxmox_node` variable. Add storage panel (`pve_disk_usage_bytes /
-  pve_disk_size_bytes`), ZFS pool health, swap. Replace "Down Scrape Targets"
-  stat with a table that names the failing target.
+- ▣ A5. **Proxmox dashboard enhancements.** Edit `homelab-proxmox-dashboard.yaml`.
+  Added `$proxmox_node` variable based on real PVE node names, storage usage /
+  inventory panels, VM/LXC CPU and memory panels, and replaced "Down Scrape
+  Targets" with a table that names each target. Still pending: direct swap and
+  ZFS pool health panels if/when those metrics are exposed by the PVE exporter.
 - ☐ A6. **AI dashboard enhancements.** Edit `homelab-ai-dashboard.yaml`. Convert
   Ollama Model RAM stat to a multi-model table. Replace hardcoded 4-workload
   ready stat with `replicas_available / replicas_desired` ratio. Add link from

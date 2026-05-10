@@ -34,7 +34,9 @@ data:
           "icon": "external link",
           "includeVars": false,
           "keepTime": true,
-          "tags": ["homelab"],
+          "tags": [
+            "homelab"
+          ],
           "targetBlank": false,
           "title": "Homelab dashboards",
           "type": "dashboards"
@@ -60,8 +62,12 @@ data:
                     "value": null
                   },
                   {
-                    "color": "green",
+                    "color": "orange",
                     "value": 1
+                  },
+                  {
+                    "color": "green",
+                    "value": 3
                   }
                 ]
               },
@@ -100,8 +106,8 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "count(max by (id) (pve_up{id=~\"node/.*\"}))",
-              "legendFormat": "nodes",
+              "expr": "count(max by (id) (pve_up{id=~\"node/$proxmox_node\"}))",
+              "legendFormat": "proxmox nodes",
               "range": true,
               "refId": "A"
             }
@@ -124,12 +130,8 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "red",
-                    "value": null
-                  },
-                  {
                     "color": "green",
-                    "value": 1
+                    "value": null
                   }
                 ]
               },
@@ -168,7 +170,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(max by (id) (pve_up{id=~\"qemu/.*\"}))",
+              "expr": "sum(max by (id, name, node) (pve_up{id=~\"qemu/.*\"} * on(instance, id) group_left(name, node, type) pve_guest_info{type=\"qemu\",node=~\"$proxmox_node\"}))",
               "legendFormat": "running vms",
               "range": true,
               "refId": "A"
@@ -194,14 +196,6 @@ data:
                   {
                     "color": "green",
                     "value": null
-                  },
-                  {
-                    "color": "yellow",
-                    "value": 1
-                  },
-                  {
-                    "color": "red",
-                    "value": 2
                   }
                 ]
               },
@@ -240,14 +234,97 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "count(up{job=\"proxmox-exporter\", endpoint=\"http\"} == 0)",
-              "legendFormat": "down targets",
+              "expr": "sum(max by (id, name, node) (pve_up{id=~\"lxc/.*\"} * on(instance, id) group_left(name, node, type) pve_guest_info{type=\"lxc\",node=~\"$proxmox_node\"}))",
+              "legendFormat": "running lxcs",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Down Scrape Targets",
+          "title": "Running LXCs",
           "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 70
+                  },
+                  {
+                    "color": "orange",
+                    "value": 85
+                  },
+                  {
+                    "color": "red",
+                    "value": 95
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 18,
+            "y": 0
+          },
+          "id": 4,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": false,
+                "displayName": "node"
+              }
+            ]
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "up{job=\"proxmox-exporter\", endpoint=\"http\"}",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Scrape Target Status",
+          "type": "table"
         },
         {
           "datasource": {
@@ -302,7 +379,9 @@ data:
                   }
                 ]
               },
-              "unit": "percentunit"
+              "unit": "percentunit",
+              "min": 0,
+              "max": 1
             },
             "overrides": []
           },
@@ -312,7 +391,7 @@ data:
             "x": 0,
             "y": 4
           },
-          "id": 4,
+          "id": 5,
           "options": {
             "legend": {
               "calcs": [
@@ -335,7 +414,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "max by (id) (pve_cpu_usage_ratio{id=~\"node/.*\"})",
+              "expr": "max by (id) (pve_cpu_usage_ratio{id=~\"node/$proxmox_node\"})",
               "legendFormat": "{{id}}",
               "range": true,
               "refId": "A"
@@ -397,7 +476,9 @@ data:
                   }
                 ]
               },
-              "unit": "bytes"
+              "unit": "percentunit",
+              "min": 0,
+              "max": 1
             },
             "overrides": []
           },
@@ -407,7 +488,7 @@ data:
             "x": 12,
             "y": 4
           },
-          "id": 5,
+          "id": 6,
           "options": {
             "legend": {
               "calcs": [
@@ -430,25 +511,98 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "max by (id) (pve_memory_usage_bytes{id=~\"node/.*\"})",
-              "legendFormat": "{{id}} used",
+              "expr": "max by (id) (pve_memory_usage_bytes{id=~\"node/$proxmox_node\"}) / max by (id) (pve_memory_size_bytes{id=~\"node/$proxmox_node\"})",
+              "legendFormat": "{{id}}",
               "range": true,
               "refId": "A"
+            }
+          ],
+          "title": "Node Memory Utilisation",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 70
+                  },
+                  {
+                    "color": "orange",
+                    "value": 85
+                  },
+                  {
+                    "color": "red",
+                    "value": 95
+                  }
+                ]
+              },
+              "unit": "percent"
             },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 12,
+            "x": 0,
+            "y": 12
+          },
+          "id": 7,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": false,
+                "displayName": "node"
+              }
+            ]
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
             {
               "datasource": {
                 "type": "prometheus",
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "max by (id) (pve_memory_size_bytes{id=~\"node/.*\"})",
-              "legendFormat": "{{id}} total",
-              "range": true,
-              "refId": "B"
+              "expr": "sort_desc(100 * max by (node, storage, id) (pve_disk_usage_bytes{id=~\"storage/.*\",node=~\"$proxmox_node\"}) / max by (node, storage, id) (pve_disk_size_bytes{id=~\"storage/.*\",node=~\"$proxmox_node\"}))",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
             }
           ],
-          "title": "Node Memory",
-          "type": "timeseries"
+          "title": "Storage Usage %",
+          "type": "table"
         },
         {
           "datasource": {
@@ -503,17 +657,17 @@ data:
                   }
                 ]
               },
-              "unit": "percentunit"
+              "unit": "bytes"
             },
             "overrides": []
           },
           "gridPos": {
-            "h": 8,
+            "h": 9,
             "w": 12,
-            "x": 0,
+            "x": 12,
             "y": 12
           },
-          "id": 6,
+          "id": 8,
           "options": {
             "legend": {
               "calcs": [
@@ -536,8 +690,188 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "max by (id, name) (pve_cpu_usage_ratio{id=~\"qemu/.*\"})",
-              "legendFormat": "{{name}}",
+              "expr": "max by (node, storage, id) (pve_disk_usage_bytes{id=~\"storage/.*\",node=~\"$proxmox_node\"})",
+              "legendFormat": "{{node}} / {{storage}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Storage Used",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 70
+                  },
+                  {
+                    "color": "orange",
+                    "value": 85
+                  },
+                  {
+                    "color": "red",
+                    "value": 95
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 21
+          },
+          "id": 9,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": false,
+                "displayName": "node"
+              }
+            ]
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "max by (node, storage, plugintype, content) (pve_storage_info{node=~\"$proxmox_node\"})",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Storage Inventory",
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 8,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "percentunit",
+              "min": 0,
+              "max": 1
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 29
+          },
+          "id": 10,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "max by (name, node, id) (pve_cpu_usage_ratio{id=~\"qemu/.*\"} * on(instance, id) group_left(name, node, type) pve_guest_info{type=\"qemu\",node=~\"$proxmox_node\"})",
+              "legendFormat": "{{node}} / {{name}}",
               "range": true,
               "refId": "A"
             }
@@ -606,9 +940,9 @@ data:
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 12
+            "y": 29
           },
-          "id": 7,
+          "id": 11,
           "options": {
             "legend": {
               "calcs": [
@@ -631,13 +965,205 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "max by (id, name) (pve_memory_usage_bytes{id=~\"qemu/.*\"})",
-              "legendFormat": "{{name}} used",
+              "expr": "max by (name, node, id) (pve_memory_usage_bytes{id=~\"qemu/.*\"} * on(instance, id) group_left(name, node, type) pve_guest_info{type=\"qemu\",node=~\"$proxmox_node\"})",
+              "legendFormat": "{{node}} / {{name}}",
               "range": true,
               "refId": "A"
             }
           ],
           "title": "VM Memory Used",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 8,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "percentunit",
+              "min": 0,
+              "max": 1
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 37
+          },
+          "id": 12,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "max by (name, node, id) (pve_cpu_usage_ratio{id=~\"lxc/.*\"} * on(instance, id) group_left(name, node, type) pve_guest_info{type=\"lxc\",node=~\"$proxmox_node\"})",
+              "legendFormat": "{{node}} / {{name}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "LXC CPU",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 8,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 37
+          },
+          "id": 13,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "max by (name, node, id) (pve_memory_usage_bytes{id=~\"lxc/.*\"} * on(instance, id) group_left(name, node, type) pve_guest_info{type=\"lxc\",node=~\"$proxmox_node\"})",
+              "legendFormat": "{{node}} / {{name}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "LXC Memory Used",
           "type": "timeseries"
         }
       ],
@@ -649,7 +1175,36 @@ data:
         "proxmox"
       ],
       "templating": {
-        "list": []
+        "list": [
+          {
+            "allValue": ".*",
+            "current": {
+              "selected": true,
+              "text": "All",
+              "value": "$__all"
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "definition": "label_values(pve_node_info, name)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Proxmox Node",
+            "multi": true,
+            "name": "proxmox_node",
+            "options": [],
+            "query": {
+              "qryType": 1,
+              "query": "label_values(pve_node_info, name)",
+              "refId": "PrometheusVariableQueryEditor-VariableQuery"
+            },
+            "refresh": 1,
+            "regex": "",
+            "sort": 1,
+            "type": "query"
+          }
+        ]
       },
       "time": {
         "from": "now-6h",
