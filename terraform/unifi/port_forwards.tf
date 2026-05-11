@@ -27,15 +27,6 @@ locals {
       fwd_port               = "32400"
       log                    = false
     }
-    pterodactyl_allocations = {
-      name                   = "Pterodactyl Allocations"
-      protocol               = "tcp_udp"
-      port_forward_interface = "wan"
-      dst_port               = "25565-25569"
-      fwd_ip                 = "10.0.2.20"
-      fwd_port               = "25565-25569"
-      log                    = false
-    }
     satisfactory = {
       name                   = "Satisfactory"
       protocol               = "tcp_udp"
@@ -43,24 +34,6 @@ locals {
       dst_port               = "7777"
       fwd_ip                 = "10.0.2.37"
       fwd_port               = "7777"
-      log                    = false
-    }
-    git = {
-      name                   = "Git"
-      protocol               = "tcp"
-      port_forward_interface = "wan"
-      dst_port               = "22"
-      fwd_ip                 = "10.0.1.1"
-      fwd_port               = "30009"
-      log                    = false
-    }
-    pterodactyl_sftp = {
-      name                   = "Pterodactyl SFTP"
-      protocol               = "tcp_udp"
-      port_forward_interface = "wan"
-      dst_port               = "2022"
-      fwd_ip                 = "10.0.2.20"
-      fwd_port               = "2022"
       log                    = false
     }
     xbox_live = {

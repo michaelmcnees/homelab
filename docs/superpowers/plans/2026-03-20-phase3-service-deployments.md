@@ -339,7 +339,9 @@ git commit -m "feat: add local-only ExternalService routes for TrueNAS apps, LXC
 
 Create `kubernetes/apps/external-services/temporary/` directory. Create one YAML file per service following the ExternalService pattern. Each points at the service's current Mew LXC IP.
 
-Services needing temporary routes (update IPs from Mew LXC assignments):
+Historical temporary routes were used during migration. As of the cleanup pass, only wildcard certificates and the temporary PXE/old-node Proxmox UI routes remain in `kubernetes/apps/external-services/temporary/`.
+
+Services that previously needed temporary routes:
 - `adguard.yaml` — AdGuard Home LXC, port 3000, host `adguard.home.mcnees.me`
 - `sonarr.yaml` — Docker LXC, port 8989, host `sonarr.home.mcnees.me`, OAuth2-Proxy
 - `sonarr-anime.yaml` — Docker LXC, port 8990, host `sonarr-anime.home.mcnees.me`, OAuth2-Proxy
@@ -357,8 +359,8 @@ Services needing temporary routes (update IPs from Mew LXC assignments):
 - `uptime-kuma.yaml` — Uptime Kuma LXC, port 3001, host `status.home.mcnees.me`, OAuth2-Proxy
 - `beszel.yaml` — Beszel LXC, port 8090, host `beszel.home.mcnees.me`, OAuth2-Proxy
 - `grafana.yaml` — Grafana LXC, port 3000, host `grafana.home.mcnees.me` (has own auth / will use Pocket ID)
-- `pelican-panel.yaml` — Pelican Panel LXC, port 443, host `games.mcnees.me` on the public entrypoint (has own auth)
-- `pelican-wings-public.yaml` — Pelican Wings API backend, host `wings.games.mcnees.me` on the public entrypoint. Create only after Panel is reachable and can manage the Wings node. Game allocations may use `games.mcnees.me:<port>` directly where the game protocol expects raw TCP/UDP.
+- `pelican-panel.yaml` — retired after Pelican Panel moved into K8s at `games.mcnees.me`
+- `pelican-wings-public.yaml` — retired in favor of `kubernetes/apps/external-services/pelican-wings.yaml`
 - `romm.yaml` — TrueNAS app (until Wave 8 migration), snorlax IP, port 8080, host `romm.home.mcnees.me` (has own auth)
 - `lazylibrarian.yaml` — LazyLibrarian LXC, port 5299, host `books.home.mcnees.me`, OAuth2-Proxy
 - `stash.yaml` — TrueNAS app on snorlax, port 9999, host `stash.home.mcnees.me`, OAuth2-Proxy
@@ -2603,6 +2605,8 @@ Delete `tautulli.yaml`, `romm.yaml`, `lazylibrarian.yaml`, `stash.yaml` from tem
 
 Deploy Mantle early so it can replace the legacy n8n path and be used by the household before the rest of the migration is complete.
 
+Current note: Mantle does not appear to publish a self-hosted container, Helm chart, Kubernetes manifest, or install guide yet. Do not create a placeholder Kubernetes deployment until a real self-hosted runtime is available. See `docs/runbooks/mantle.md`.
+
 ### Task 25: Deploy Mantle
 
 **Files:**
@@ -2632,7 +2636,7 @@ Move one small n8n-style automation or a new low-risk lab automation into Mantle
 
 - [ ] **Step 4: Retire n8n temporary route when replaced**
 
-After Mantle covers the needed workflow(s), remove `n8n.yaml` from `kubernetes/apps/external-services/temporary/` and stop the legacy n8n service.
+`n8n.yaml` has been removed from `kubernetes/apps/external-services/temporary/`. Stop the legacy n8n service if it still exists. Re-open the Mantle deployment task only if a real self-hosted runtime becomes available.
 
 ---
 
@@ -2746,7 +2750,6 @@ Remove `pelican-panel.yaml` from temporary directory. Destroy old Pelican Panel 
 
 **Files:**
 - Create or update: `kubernetes/apps/external-services/pelican-wings.yaml`
-- Create or update: `kubernetes/apps/external-services/temporary/pelican-wings-public.yaml`
 - Modify: `kubernetes/apps/external-services/kustomization.yaml`
 
 **Context:** Wings is the daemon that runs game instances and should be configured only after Panel is migrated and reachable. Keep an internal route for admin/debug access if useful. Expose the Wings HTTPS API/control endpoint as `wings.games.mcnees.me` on the external Traefik entrypoint, and expose game allocations as direct `games.mcnees.me:<port>` TCP/UDP forwards where required by the game protocol.

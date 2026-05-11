@@ -153,23 +153,11 @@ data:
             icon: truenas.png
             href: https://truenas.home.mcnees.me
             description: Bulk storage
-        - Portainer:
-            icon: portainer.png
-            href: https://portainer.home.mcnees.me
-            description: Container management
-        - Gitea:
-            icon: gitea.png
-            href: https://git.home.mcnees.me
-            description: Git hosting
         - Pelican:
             icon: pelican-panel.png
-            href: https://panel.home.mcnees.me
+            href: https://games.mcnees.me
             description: Game server panel
     - Bonus Stage:
-        - Home Assistant:
-            icon: home-assistant.png
-            href: https://hass.home.mcnees.me
-            description: Home automation
         - Homebridge:
             icon: homebridge.png
             href: https://homebridge.home.mcnees.me
@@ -202,10 +190,6 @@ data:
             icon: mdi-family-tree
             href: https://family.mcnees.me
             description: Family tree
-        - n8n:
-            icon: n8n.png
-            href: https://n8n.home.mcnees.me
-            description: Automations
   bookmarks.yaml: |
     - Repositories:
         - Homelab:

@@ -105,16 +105,16 @@ Last audit found 33 live clients still in `10.0.0.0/22`. Do not disable McLan DH
 | --- | --- | --- |
 | `10.0.0.18` | AdGuard Home | Old instance; DNS now uses `10.0.10.201`. Retire after confidence window. |
 | `10.0.0.21` | traefik | Old edge proxy; retire after all routes use Kubernetes Traefik. |
-| `10.0.0.23` | outline | Confirm replacement or retire. |
+| `10.0.0.23` | outline | Migrated to Kubernetes; old endpoint can be retired if still present. |
 | `10.0.0.51` | mariadb | Confirm no workloads depend on it, then retire. |
-| `10.0.0.60` | hass | Confirm Home Assistant migration path before retiring. |
-| `10.0.0.64` | pelican-wings | Move/replace with final Pelican Wings design. |
-| `10.0.1.40` | docker | Old Docker host. Retire after remaining temporary external service routes are gone. |
-| `10.0.2.0` | pxe-bulbasaur | Retire old node or move if still needed. |
-| `10.0.2.2` | pxe-charmander | Retire old node or move if still needed. |
-| `10.0.2.3` | pxe-pikachu | Retire old node or move if still needed. |
-| `10.0.2.5` | Homebridge | Migrated to Kubernetes; retire old endpoint after final scream test. |
-| `10.0.2.8` | Homey Server | Migrated to Kubernetes; retire old endpoint after final scream test. |
+| `10.0.0.60` | hass | Home Assistant is gone; DNS and temporary routes should stay removed. |
+| `10.0.0.64` | pelican-wings | Active Pelican Wings daemon. Keep as an external backend for `wings.games.mcnees.me`. |
+| `10.0.1.40` | docker | Old Docker host. Retire after final scream test and any remaining local-only data checks. |
+| `10.0.2.0` | pxe-bulbasaur | Keep temporary web UI route until the old Dell nodes are shut down. |
+| `10.0.2.2` | pxe-charmander | Keep temporary web UI route until the old Dell nodes are shut down. |
+| `10.0.2.3` | pxe-pikachu | Keep temporary web UI route until the old Dell nodes are shut down. |
+| `10.0.2.5` | Homebridge | Migrated to Kubernetes; old endpoint can be retired if still present. |
+| `10.0.2.8` | Homey Server | Migrated to Kubernetes; old endpoint can be retired if still present. |
 | `10.0.2.9` | Uptime Kuma | Retire if Kubernetes observability replaces it. |
 
 ### Wired Devices To Classify

@@ -109,7 +109,7 @@ This migration spec also supersedes the redesign spec on:
 - **Outline, Linkwarden, Actual Budget, Booklore, Glances, InfluxDB, Portainer**: Removed.
 - **Paperless-ngx + Paperless-GPT**: Added to Phase 3 service deployments.
 - **Pelican Panel and Wings**: Panel must be migrated and publicly reachable before Wings is finalized. Panel uses `games.mcnees.me`; Wings API/control uses `wings.games.mcnees.me`; game allocations may use `games.mcnees.me:<port>` direct TCP/UDP exposure. Wings is the daemon that runs game instances and remains outside K3s on the game-hosting backend. Pelipper VM (on latias) hosts additional game server capacity.
-- **Home Assistant**: Migrates from Mew to latios as a VM (6GB RAM, 2 cores).
+- **Home Assistant**: Removed from the lab; clear legacy DNS and route references.
 
 ### K3s Node Mapping
 
@@ -287,19 +287,19 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 | 8 | Automation + Gaming | Mantle (n8n replacement, dogfood early). Pelican Panel (K3s, database already migrated) before Pelican Wings public exposure. |
 | 9 | Misc infra | Tailscale subnet router, DbGate, Netboot.xyz, Stash, Romm, LazyLibrarian. |
 
-**Services that stay as LXCs (do NOT migrate to K3s):**
-- Homey → LXC on latios (host networking, 1GB)
-- Homebridge → LXC on latias (host networking + USB, 1GB)
+**Services that stay outside K3s:**
 - Pelican Wings → outside K3s on the game-hosting backend; configure after the public Panel migration
 - PostgreSQL (metagross) → LXC on rayquaza (created in Stage 3, 2GB)
-- Home Assistant → VM on latios (6GB RAM, smart home)
 
 **Services retired:**
+- Homey LXC — migrated to K3s
+- Homebridge LXC — migrated to K3s
+- Home Assistant — removed from the lab
 - MariaDB LXC — unused (destroyed in Stage 0)
 - InfluxDB LXC — replaced by Prometheus
 - Overseerr LXC — replaced by Seer
 - ntfy LXC — no longer needed
-- LazyLibrarian LXC — already runs as a TrueNAS app on snorlax
+- LazyLibrarian LXC — migrated to K3s
 - Traefik LXC — replaced by Traefik in K3s (Stage 3)
 - Old PostgreSQL LXC — destroyed after databases migrated to metagross
 - Docker LXC — destroyed after servarr migration and any remaining non-migrating containers are retired
@@ -311,6 +311,7 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 - Booklore — removed
 - Glances — removed
 - Portainer — replaced by Flux + Grafana
+- Readarr — dropped in favor of LazyLibrarian/Grimmory
 
 **Data preservation details:**
 - **Servarr apps** — Export Docker volumes (config dirs with databases + settings). Import into K8s PVCs.
