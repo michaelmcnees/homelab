@@ -10,6 +10,9 @@ data:
   APP_URL: https://games.mcnees.me
   APP_LOCALE: en
   APP_INSTALLED: "true"
+  XDG_DATA_HOME: /pelican-data
+  BEHIND_PROXY: "true"
+  TRUSTED_PROXIES: 10.244.0.0/16
   APP_2FA_REQUIRED: "1"
   APP_ACTIVITY_PRUNE_DAYS: "90"
   APP_ACTIVITY_HIDE_ADMIN: "false"
