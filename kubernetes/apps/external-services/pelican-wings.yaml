@@ -39,4 +39,17 @@ spec:
         - name: pelican-wings-external
           port: 8080
   tls:
-    secretName: legacy-public-wildcard-tls
+    secretName: pelican-wings-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pelican-wings
+  namespace: apps
+spec:
+  secretName: pelican-wings-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - wings.games.mcnees.me

@@ -18,4 +18,4 @@ spec:
         - local.mcnees.me
       providerSpecific:
         - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
-          value: "true"
+          value: "false"
