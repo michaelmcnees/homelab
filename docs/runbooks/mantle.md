@@ -1,20 +1,27 @@
-# Mantle Evaluation
+# Mantle
 
-Mantle was originally listed as the n8n replacement candidate, but the currently visible product does not expose a self-hosted deployment path for this lab.
+Mantle is the lab's n8n replacement candidate. This is the `dvflw/mantle` project, not the hosted product at `mantle.work`.
 
-## Current Finding
+## Deployment
 
-- Mantle is presented as a hosted automation/agent product at `mantle.work`.
-- The public site describes connecting SaaS tools and building agents through the hosted product.
-- No official container image, Helm chart, Kubernetes manifest, or self-hosted install guide has been identified yet.
+- Namespace: `apps`
+- URL: `https://mantle.home.mcnees.me`
+- Image: `ghcr.io/dvflw/mantle:latest`
+- Database: Postgres database `mantle` on metagross
+- Auth edge: Pocket ID via the shared `oauth2-proxy` middleware
+- Metrics: `/metrics` scraped by a `ServiceMonitor`
 
-## Lab Decision
+Mantle is a single Go binary with Postgres persistence. The pod runs `mantle init` as an init container before starting `mantle serve`.
 
-Do not add a Kubernetes deployment until Mantle publishes a self-hosted runtime or we receive private deployment instructions.
+## Secrets
 
-Keep the n8n replacement decision open. If Mantle remains hosted-only, choose a self-hosted automation platform instead so automations can run inside the homelab and use the existing SOPS, GitOps, auth, backup, and observability patterns.
+The SOPS secret `kubernetes/apps/mantle/secret.sops.yaml` contains:
 
-## Follow-Up
+- `MANTLE_DATABASE_URL`
+- `MANTLE_ENCRYPTION_KEY`
 
-- Re-check Mantle for a self-hosted install path before spending implementation time.
-- If no install path exists, evaluate self-hosted replacements such as Windmill, Activepieces, Node-RED, or keeping a minimal n8n deployment.
+The encryption key must be 32 bytes encoded as 64 hex characters. Do not rotate it casually after credentials have been created, because Mantle uses it to decrypt stored connector secrets.
+
+## Known Upstream Follow-Up
+
+GitHub issue `dvflw/mantle#136` tracks publishing versioned GHCR images. Until that is fixed, the homelab deployment uses `latest`.

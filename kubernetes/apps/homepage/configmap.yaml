@@ -50,6 +50,10 @@ data:
             icon: mdi-robot
             href: https://hermes.home.mcnees.me
             description: Self-hosted AI agent
+        - Mantle:
+            icon: mdi-workflow
+            href: https://mantle.home.mcnees.me
+            description: YAML workflow automation
     - High Scores:
         - Grafana:
             icon: grafana.png

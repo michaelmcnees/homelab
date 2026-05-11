@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mantle
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: mantle
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mantle
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mantle
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /metrics
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: migrate
+          image: ghcr.io/dvflw/mantle:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - mantle
+            - init
+          env:
+            - name: MANTLE_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: mantle-secrets
+                  key: MANTLE_DATABASE_URL
+            - name: MANTLE_LOG_LEVEL
+              value: info
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      containers:
+        - name: mantle
+          image: ghcr.io/dvflw/mantle:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - mantle
+            - serve
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: MANTLE_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: mantle-secrets
+                  key: MANTLE_DATABASE_URL
+            - name: MANTLE_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mantle-secrets
+                  key: MANTLE_ENCRYPTION_KEY
+            - name: MANTLE_API_ADDRESS
+              value: :8080
+            - name: MANTLE_LOG_LEVEL
+              value: info
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

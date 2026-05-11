@@ -1,0 +1,19 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: mantle
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`mantle.home.mcnees.me`)
+      kind: Rule
+      middlewares:
+        - name: oauth2-proxy
+          namespace: auth
+      services:
+        - name: mantle
+          port: 8080
+  tls:
+    secretName: legacy-home-wildcard-tls

@@ -56,6 +56,8 @@
         owner: bazarr
       - name: openwebui
         owner: openwebui
+      - name: mantle
+        owner: mantle
     postgresql_extensions:
       - database: chatwoot
         extension: pg_stat_statements
