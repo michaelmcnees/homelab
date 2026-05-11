@@ -21,6 +21,7 @@ spec:
               done
               mc mb --ignore-existing rustfs/invoice-ninja
               mc mb --ignore-existing rustfs/chatwoot
+              mc mb --ignore-existing rustfs/outline
           envFrom:
             - secretRef:
                 name: rustfs-secrets

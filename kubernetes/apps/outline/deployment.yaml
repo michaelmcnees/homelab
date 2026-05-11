@@ -95,10 +95,3 @@ spec:
               memory: 512Mi
             limits:
               memory: 2Gi
-          volumeMounts:
-            - name: data
-              mountPath: /var/lib/outline/data
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: outline-data
