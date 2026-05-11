@@ -5,8 +5,6 @@ resources:
   - gitea.yaml
   - hass.yaml
   - n8n.yaml
-  - pelican.yaml
-  - pelican-wings-public.yaml
   - portainer.yaml
   - pterodactyl.yaml
   - pterodactyl-wings.yaml

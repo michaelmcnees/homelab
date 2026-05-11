@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pelican-panel-config
+  namespace: apps
+data:
+  APP_NAME: Pelican
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_URL: https://games.mcnees.me
+  APP_LOCALE: en
+  APP_INSTALLED: "true"
+  APP_2FA_REQUIRED: "1"
+  APP_ACTIVITY_PRUNE_DAYS: "90"
+  APP_ACTIVITY_HIDE_ADMIN: "false"
+  APP_API_CLIENT_RATELIMIT: "720"
+  APP_API_APPLICATION_RATELIMIT: "240"
+  APP_WEBHOOK_PRUNE_DAYS: "30"
+  APP_BACKUP_DRIVER: wings
+  DB_CONNECTION: pgsql
+  DB_HOST: metagross.internal.svc.cluster.local
+  DB_PORT: "5432"
+  DB_DATABASE: pelican
+  DB_USERNAME: pelican
+  CACHE_STORE: file
+  QUEUE_CONNECTION: database
+  SESSION_DRIVER: file
+  MAIL_MAILER: smtp
+  MAIL_FROM_ADDRESS: pelican@mcnees.me
+  MAIL_FROM_NAME: Pelican Panel
+  MAIL_HOST: smtp.resend.com
+  MAIL_PORT: "465"
+  MAIL_SCHEME: smtps
+  PANEL_USE_BINARY_PREFIX: "false"
+  PANEL_CLIENT_ALLOCATIONS_ENABLED: "false"
+  PANEL_SEND_INSTALL_NOTIFICATION: "true"
+  PANEL_SEND_REINSTALL_NOTIFICATION: "true"
+  PANEL_EDITABLE_SERVER_DESCRIPTIONS: "true"
