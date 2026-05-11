@@ -72,8 +72,6 @@ These address records exist in Cloudflare but are not current repo-declared publ
 - `*.cloud.mcnees.me`
 - `*.hosting.mcnees.me`
 - `cloud.mcnees.me`
-- `gaming.mcnees.me`
-- `git.mcnees.me`
 - `gitlab.mcnees.me`
 - `grafana.mcnees.me`
 - `grocy.mcnees.me`
@@ -82,7 +80,6 @@ These address records exist in Cloudflare but are not current repo-declared publ
 - `pelican.mcnees.me`
 - `plex.mcnees.me`
 - `postgres.mcnees.me`
-- `pterodactyl.mcnees.me`
 - `satisfactory.mcnees.me`
 - `search.mcnees.me`
 - `uptime.mcnees.me`
