@@ -73,13 +73,16 @@ dashboard work.
   selecting on `app.kubernetes.io/part-of: flux` in flux-system, scraping
   `http-prom` port. Flux ships annotation-based scrape config but no
   ServiceMonitor; this PodMonitor closes the gap.
-- ▣ B3. **Auth tier ServiceMonitors.**
+- ✓ B3. **Auth tier ServiceMonitors.**
   - ✓ oauth2-proxy: `--metrics-address=0.0.0.0:44180` added,
     [`servicemonitor.yaml`](../../kubernetes/auth/oauth2-proxy/servicemonitor.yaml)
     in place.
-  - ⏸ pocket-id v2.5: no native Prometheus endpoint. Either add a sidecar
-    exporter or rely on kube-state-metrics + Loki + blackbox.
-  - ⏸ lldap: no native Prometheus endpoint. Same approach.
+  - ⏸ pocket-id v2.5: no native Prometheus endpoint. Current coverage is
+    kube-state-metrics + Loki + blackbox; sidecar/exporter work is deferred
+    until we see a concrete gap.
+  - ⏸ lldap: no native Prometheus endpoint. Current coverage is
+    kube-state-metrics + Loki + blackbox; sidecar/exporter work is deferred
+    until we see a concrete gap.
   - ⏸ kenway-arr oauth2-proxies: scope deferred (Tailscale-only ingress;
     not on the home network critical path).
 - ✓ B4. **Loki ServiceMonitor.** Added an explicit `ServiceMonitor` for the
@@ -109,14 +112,14 @@ Each item is one new ConfigMap dashboard plus PrometheusRule additions.
   combines oauth2-proxy native metrics with kube-state-metrics for pocket-id /
   lldap and Loki error counts. Alerts: `OAuth2ProxyErrorRateHigh`,
   `AuthDeploymentUnavailable`.
-- ▣ C4. **Loki health dashboard + LogQL alerts.** Added
+- ✓ C4. **Loki health dashboard + LogQL alerts.** Added
   `homelab-loki-dashboard.yaml` covering Loki scrape status, ingestion rate,
   bytes received, request/query latency, storage failures, memberlist health,
   memory, and log-pattern panels for Postgres, oauth2-proxy, and Flux errors.
   Added Prometheus-side Loki health alerts for target down, stopped ingestion,
-  high latency, storage failures, and memberlist health. Still pending: true
-  LogQL alerts, which need Loki Ruler or Grafana-managed alerting wired in
-  because `PrometheusRule` cannot evaluate LogQL.
+  high latency, storage failures, and memberlist health. True LogQL alerts are
+  intentionally deferred until we choose Loki Ruler or Grafana-managed
+  alerting; `PrometheusRule` cannot evaluate LogQL.
 
 ## Phase D — Decisions made (2026-05-09 grilling session)
 
