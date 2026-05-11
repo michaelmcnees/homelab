@@ -28,25 +28,15 @@ metadata:
   namespace: apps
 spec:
   entryPoints:
-    - websecure
+    - websecure-external
   routes:
-    - match: Host(`wings.home.mcnees.me`)
+    - match: Host(`wings.games.mcnees.me`)
       kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
       services:
         - name: pelican-wings-external
           port: 8080
   tls:
-    secretName: pelican-wings-tls
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: pelican-wings
-  namespace: apps
-spec:
-  secretName: pelican-wings-tls
-  issuerRef:
-    name: letsencrypt-production
-    kind: ClusterIssuer
-  dnsNames:
-    - wings.home.mcnees.me
+    secretName: legacy-public-wildcard-tls
