@@ -8,7 +8,7 @@ Mantle is the lab's n8n replacement candidate. This is the `dvflw/mantle` projec
 - URL: `https://mantle.home.mcnees.me`
 - Image: `ghcr.io/dvflw/mantle:latest`
 - Database: Postgres database `mantle` on metagross
-- Auth edge: Pocket ID via the shared `oauth2-proxy` middleware
+- Auth: Mantle's own auth/API-key model. The Traefik route does not use the shared `oauth2-proxy` middleware.
 - Metrics: disabled for now because `/metrics` returns `401` when Mantle auth is enabled.
 
 Mantle is a single Go binary with Postgres persistence. The pod runs `mantle init` as an init container before starting `mantle serve`.
