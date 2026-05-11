@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: outline-config
+  namespace: apps
+data:
+  NODE_ENV: production
+  URL: https://docs.mcnees.me
+  PORT: "3000"
+  FORCE_HTTPS: "false"
+  WEB_CONCURRENCY: "1"
+  PGSSLMODE: disable
+  REDIS_URL: redis://redis-master.databases.svc.cluster.local:6379/4
+  FILE_STORAGE: local
+  FILE_STORAGE_LOCAL_ROOT_DIR: /var/lib/outline/data
+  FILE_STORAGE_UPLOAD_MAX_SIZE: "26214400"
+  OIDC_DISPLAY_NAME: McNees ID
+  OIDC_ISSUER_URL: https://id.mcnees.me
+  OIDC_SCOPES: openid profile email
+  OIDC_USERNAME_CLAIM: preferred_username
+  ENABLE_UPDATES: "false"
+  LOG_LEVEL: info

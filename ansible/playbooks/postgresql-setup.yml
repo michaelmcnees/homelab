@@ -18,6 +18,8 @@
         owner: pocket_id
       - name: paperless
         owner: paperless
+      - name: outline
+        owner: outline
       - name: gramps
         owner: gramps
       - name: pelican

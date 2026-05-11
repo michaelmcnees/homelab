@@ -5,7 +5,6 @@ resources:
   - gitea.yaml
   - hass.yaml
   - n8n.yaml
-  - outline.yaml
   - pelican.yaml
   - pelican-wings-public.yaml
   - portainer.yaml

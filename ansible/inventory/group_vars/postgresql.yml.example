@@ -8,6 +8,7 @@
 pg_password_lldap: "CHANGE_ME"
 pg_password_pocket_id: "CHANGE_ME"
 pg_password_paperless: "CHANGE_ME"
+pg_password_outline: "CHANGE_ME"
 pg_password_gramps: "CHANGE_ME"
 pg_password_pelican: "CHANGE_ME"
 pg_password_chatwoot: "CHANGE_ME"
