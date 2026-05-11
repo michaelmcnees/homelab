@@ -1,0 +1,21 @@
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: pelican-public
+  namespace: apps
+spec:
+  endpoints:
+    - dnsName: games.mcnees.me
+      recordType: CNAME
+      targets:
+        - local.mcnees.me
+      providerSpecific:
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "false"
+    - dnsName: wings.games.mcnees.me
+      recordType: CNAME
+      targets:
+        - local.mcnees.me
+      providerSpecific:
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "true"

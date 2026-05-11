@@ -5,6 +5,7 @@ resources:
   - plex.yaml
   - tdarr.yaml
   - sabnzbd.yaml
+  - pelican-dnsendpoints.yaml
   - pelican-wings.yaml
   - truenas.yaml
   - proxmox-transport.yaml
