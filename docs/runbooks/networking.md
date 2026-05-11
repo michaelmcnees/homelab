@@ -87,7 +87,18 @@ Remove the McLan management IP from the Switch Lite-side NICs before applying th
 
 ## McLan Decommission Checklist
 
-Last audit found 33 live clients still in `10.0.0.0/22`. Do not disable McLan DHCP or remove the network until these are resolved.
+The latest UniFi audit on 2026-05-11 found 17 active McLan clients plus UniFi infrastructure devices still using `10.0.0.0/22`. Do not disable McLan DHCP or remove the network until these are resolved.
+
+### UniFi Infrastructure Still On McLan
+
+| IP | Name | Model | Notes |
+| --- | --- | --- | --- |
+| `10.0.3.146` | USW Flex XG | USFXG | Core 10Gb switch; keep until network management migration is planned. |
+| `10.0.3.216` | Switch Lite | USL16LP | Access switch; keep until switch management migration is planned. |
+| `10.0.3.89` | USW-Flex-Mini | USMINI | Access switch; keep until switch management migration is planned. |
+| `10.0.3.254` | US-24-G1 | US24 | Access switch; keep until switch management migration is planned. |
+| `10.0.3.101` | Kitchen AP | U7PIW | AP management IP; keep until AP management migration is planned. |
+| `10.0.3.0` | Office AP | U7PIW | AP management IP; keep until AP management migration is planned. |
 
 ### Keep As Host-Static Or Infrastructure
 
@@ -99,41 +110,34 @@ Last audit found 33 live clients still in `10.0.0.0/22`. Do not disable McLan DH
 | `10.0.3.40` | latias | Proxmox host-static IP. |
 | `10.0.3.196` | latios | Proxmox host-static IP. |
 
+### Moved During 2026-05-11 Cleanup
+
+| IP | Name | Expected action |
+| --- | --- | --- |
+| `10.0.10.64` | pelican-wings | Active Pelican Wings daemon. External backend for `wings.games.mcnees.me` and game allocations. |
+| `10.0.20.99` | MichaelcStudio2 | Trusted wired workstation; USW Flex XG port 3 moved to native Trusted. |
+| `10.0.30.8` | Samsung | IoT/media; US-24-G1 port 7 moved to native IoT. |
+| `10.0.30.18` | Security | IoT/security; US-24-G1 port 4 moved to native IoT. |
+| `10.0.30.37` | Basement-TV | IoT/media; US-24-G1 port 22 moved to native IoT. |
+| `10.0.30.51` | HDHomeRun | IoT/media; US-24-G1 port 3 moved to native IoT. |
+| `10.0.30.52` | Lutron | IoT; US-24-G1 port 1 moved to native IoT. |
+| `10.0.30.62` | Living-Room | IoT/media; US-24-G1 port 5 moved to native IoT. |
+| `10.0.30.181` | driveway | IoT/security; DHCP reservation moved to IoT. |
+
 ### Legacy Services To Retire Or Move
 
 | IP | Name | Expected action |
 | --- | --- | --- |
-| `10.0.0.18` | AdGuard Home | Old instance; DNS now uses `10.0.10.201`. Retire after confidence window. |
-| `10.0.0.21` | traefik | Old edge proxy; retire after all routes use Kubernetes Traefik. |
-| `10.0.0.23` | outline | Migrated to Kubernetes; old endpoint can be retired if still present. |
-| `10.0.0.51` | mariadb | Confirm no workloads depend on it, then retire. |
-| `10.0.0.60` | hass | Home Assistant is gone; DNS and temporary routes should stay removed. |
-| `10.0.0.64` | pelican-wings | Active Pelican Wings daemon. Keep as an external backend for `wings.games.mcnees.me`. |
-| `10.0.1.40` | docker | Old Docker host. Retire after final scream test and any remaining local-only data checks. |
-| `10.0.2.0` | pxe-bulbasaur | Keep temporary web UI route until the old Dell nodes are shut down. |
-| `10.0.2.2` | pxe-charmander | Keep temporary web UI route until the old Dell nodes are shut down. |
-| `10.0.2.3` | pxe-pikachu | Keep temporary web UI route until the old Dell nodes are shut down. |
-| `10.0.2.5` | Homebridge | Migrated to Kubernetes; old endpoint can be retired if still present. |
-| `10.0.2.8` | Homey Server | Migrated to Kubernetes; old endpoint can be retired if still present. |
-| `10.0.2.9` | Uptime Kuma | Retire if Kubernetes observability replaces it. |
+| `10.0.2.3` | adguard | Old AdGuard endpoint still visible on US-24-G1 port 6. Disable/unplug after confirming no clients depend on it. |
 
 ### Wired Devices To Classify
 
 | IP | Name | Likely action |
 | --- | --- | --- |
-| `10.0.1.18` | Security | Decide Trusted vs IoT vs dedicated security segment. |
-| `10.0.1.51` | HDHomeRun | Usually IoT/media; verify Plex/SAB access needs. |
-| `10.0.1.52` | Lutron | IoT. |
-| `10.0.3.8` | Samsung | IoT/media. |
-| `10.0.3.37` | Basement-TV | IoT/media. |
-| `10.0.3.62` | Living-Room | IoT/media. |
-| `10.0.3.99` | MichaelcStudio2 | Trusted or wired workstation. |
-| `10.0.3.126` | Living-Room | IoT WiFi client with stale lease; should renew into `10.0.30.0/24`. |
-| `10.0.3.131` | Officejet Pro 8600 | IoT or Trusted depending on print access needs. |
-| `10.0.3.178` | MacBook-Pro-3 | Trusted; renew/move off legacy if still present. |
-| `10.0.3.181` | driveway | IoT/security. |
 | `10.0.3.250` | office | Verify whether AP/switch/client before moving. |
 | `10.0.3.253` | basement | Verify whether AP/switch/client before moving. |
+| `10.0.3.201` | Unknown `78:20:a5:8e:eb:92` | Classify before assigning a final VLAN. |
+| `10.0.3.79` | Kiljarl | Classify before assigning a final VLAN. |
 
 ## Decommission Procedure
 

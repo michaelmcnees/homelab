@@ -68,7 +68,7 @@ locals {
       protocol               = "tcp_udp"
       port_forward_interface = "wan"
       dst_port               = "27010-27020"
-      fwd_ip                 = "10.0.0.64"
+      fwd_ip                 = "10.0.10.64"
       fwd_port               = "27010-27020"
       log                    = false
     }

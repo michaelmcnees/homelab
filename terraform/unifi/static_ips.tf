@@ -108,7 +108,7 @@ locals {
     pelican_wings_185000 = {
       name     = "pelican-wings"
       mac      = "bc:24:11:18:50:00"
-      fixed_ip = "10.0.0.64"
+      fixed_ip = "10.0.10.64"
     }
     onyx_roborock_a4d9e3 = {
       name     = "Onyx (roborock)"
@@ -154,7 +154,7 @@ locals {
     security_9b4134 = {
       name     = "Security"
       mac      = "e4:38:83:9b:41:34"
-      fixed_ip = "10.0.1.18"
+      fixed_ip = "10.0.30.18"
     }
     docker_3385c9 = {
       name     = "docker"
@@ -169,12 +169,37 @@ locals {
     hdhomerun_0540d7 = {
       name     = "HDHomeRun"
       mac      = "00:18:dd:05:40:d7"
-      fixed_ip = "10.0.1.51"
+      fixed_ip = "10.0.30.51"
     }
     lutron_02c0670a_c30e8b = {
       name     = "Lutron-02c0670a"
       mac      = "b4:bc:7c:c3:0e:8b"
-      fixed_ip = "10.0.1.52"
+      fixed_ip = "10.0.30.52"
+    }
+    samsung_b7c680 = {
+      name     = "Samsung"
+      mac      = "e0:03:6b:b7:c6:80"
+      fixed_ip = "10.0.30.8"
+    }
+    basement_tv_1fe60f = {
+      name     = "Basement-TV"
+      mac      = "6c:4a:85:1f:e6:0f"
+      fixed_ip = "10.0.30.37"
+    }
+    living_room_d1feda = {
+      name     = "Living-Room"
+      mac      = "8c:26:aa:d1:fe:da"
+      fixed_ip = "10.0.30.62"
+    }
+    driveway_0bab3b = {
+      name     = "driveway"
+      mac      = "e4:38:83:0b:ab:3b"
+      fixed_ip = "10.0.30.181"
+    }
+    michaelcstudio2_0a6dab = {
+      name     = "MichaelcStudio2"
+      mac      = "a4:fc:14:0a:6d:ab"
+      fixed_ip = "10.0.20.99"
     }
     k3s_eevee_8d8da0 = {
       name     = "k3s-eevee"

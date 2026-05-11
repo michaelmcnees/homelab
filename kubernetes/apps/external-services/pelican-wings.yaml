@@ -16,7 +16,7 @@ metadata:
   namespace: apps
 subsets:
   - addresses:
-      - ip: 10.0.0.64
+      - ip: 10.0.10.64
     ports:
       - name: http
         port: 8080
