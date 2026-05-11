@@ -33,11 +33,13 @@ already scraped. Each item is one ConfigMap edit.
 - ✓ A4. **K8s overview enhancements.** CPU formula → idle-based percentunit,
   memory formula → utilisation percentunit, `$node`/`$namespace` variables,
   pending-pods/CrashLoopBackOff/node-pressure panels, PVC % full table.
-- ▣ A5. **Proxmox dashboard enhancements.** Edit `homelab-proxmox-dashboard.yaml`.
+- ✓ A5. **Proxmox dashboard enhancements.** Edit `homelab-proxmox-dashboard.yaml`.
   Added `$proxmox_node` variable based on real PVE node names, storage usage /
   inventory panels, VM/LXC CPU and memory panels, and replaced "Down Scrape
-  Targets" with a table that names each target. Still pending: direct swap and
-  ZFS pool health panels if/when those metrics are exposed by the PVE exporter.
+  Targets" with a table that names each target. Verified live
+  `prometheus-pve-exporter` metrics; direct swap and ZFS pool health metrics are
+  not exposed by this exporter, so those panels are intentionally deferred until
+  we add a host-level exporter or custom collector.
 - ✓ A6. **AI dashboard enhancements.** Edit `homelab-ai-dashboard.yaml`. Added
   `$ai_workload` / `$ollama_model` filters, converted Ollama model RAM and
   context stats to multi-model tables, replaced hardcoded ready count with a

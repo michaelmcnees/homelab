@@ -293,7 +293,7 @@ data:
             "refresh": 1,
             "sort": 1,
             "type": "query",
-            "allValue": ".*"
+            "allValue": ".+"
           },
           {
             "current": {
@@ -307,7 +307,7 @@ data:
             },
             "definition": "label_values({namespace=~\"$namespace\"}, pod)",
             "includeAll": true,
-            "allValue": ".*",
+            "allValue": ".+",
             "multi": true,
             "name": "pod",
             "query": "label_values({namespace=~\"$namespace\"}, pod)",
@@ -325,5 +325,5 @@ data:
       "timezone": "browser",
       "title": "Homelab / Pod Logs",
       "uid": "homelab-pod-logs",
-      "version": 2
+      "version": 3
     }
