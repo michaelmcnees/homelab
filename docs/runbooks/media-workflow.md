@@ -87,7 +87,7 @@ Backups were imported on 2026-05-06:
 Grimmory runs in the `apps` namespace, but its content paths are part of the shared TrueNAS media tree so automation and SMB uploads can use the same directories:
 
 - Library: `10.0.1.1:/mnt/data/media/library/books`, mounted in Grimmory at `/books`.
-- BookDrop: `10.0.1.1:/mnt/data/media/bookdrop/grimmory`, mounted in Grimmory at `/bookdrop`.
+- BookDrop: `10.0.1.1:/mnt/data/media/bookdrop`, mounted in Grimmory at `/bookdrop`.
 
 Keep these directories owned/writable by the media dataset identity, UID/GID `568`. Grimmory runs with `USER_ID=568`, `GROUP_ID=568`, and `DISK_TYPE=NETWORK` so it treats the library as shared network storage.
 

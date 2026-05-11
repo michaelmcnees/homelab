@@ -10,6 +10,11 @@ spec:
     matchLabels:
       app.kubernetes.io/instance: loki
       app.kubernetes.io/name: loki
+    matchExpressions:
+      - key: prometheus.io/service-monitor
+        operator: NotIn
+        values:
+          - "false"
   endpoints:
     - port: http-metrics
       path: /metrics

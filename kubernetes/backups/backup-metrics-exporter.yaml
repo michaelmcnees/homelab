@@ -58,7 +58,7 @@ data:
 
     def run(args):
         return subprocess.run(
-            ["restic"] + args,
+            ["restic", "--no-lock"] + args,
             check=True,
             stdout=subprocess.PIPE,
             text=True,

@@ -29,7 +29,7 @@ These PVCs use `storageClassName: ""` and bind to NFS PVs that point at
 | Workload | Path | Size |
 |---|---|---|
 | paperless-ngx media / consume / export | `/mnt/data/k8s/apps/paperless/...` | 250 + 25 + 50 GiB |
-| grimmory-books, grimmory-bookdrop | `/mnt/data/media/library/books`, `/mnt/data/media/bookdrop/grimmory` | 2 TiB + 250 GiB |
+| grimmory-books, grimmory-bookdrop | `/mnt/data/media/library/books`, `/mnt/data/media/bookdrop` | 2 TiB + 250 GiB |
 | romm-library | `/mnt/data/media/library/games` | 2 TiB |
 | Plex shared media library | (NFS) | (large) |
 | postgresql-logical-backups | `/mnt/data/backups/postgresql` | 100 GiB |
