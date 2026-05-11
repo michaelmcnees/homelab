@@ -21,9 +21,8 @@ Create an OIDC client in Pocket ID for Outline:
 Save the client ID and client secret into
 `kubernetes/apps/outline/secret.sops.yaml`.
 
-The Kubernetes manifests are intentionally not included from
-`kubernetes/apps/kustomization.yaml` until the live LXC data is migrated. The
-temporary external route keeps `docs.mcnees.me` pointed at the existing LXC.
+The Kubernetes manifests are included from `kubernetes/apps/kustomization.yaml`.
+The old temporary external route should stay removed after cutover.
 
 ## Migration Notes
 
@@ -35,6 +34,4 @@ order:
 3. Copy old local uploads into the RustFS `outline` bucket, or confirm the old
    instance already used S3-compatible storage and point the new secret at the
    same object data.
-4. Add `./outline` to `kubernetes/apps/kustomization.yaml` and remove
-   `outline.yaml` from `kubernetes/apps/external-services/temporary/kustomization.yaml`.
-5. Start the Kubernetes Deployment and verify OIDC login plus attachment access.
+4. Start the Kubernetes Deployment and verify OIDC login plus attachment access.

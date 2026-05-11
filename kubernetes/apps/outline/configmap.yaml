@@ -19,8 +19,11 @@ data:
   AWS_S3_FORCE_PATH_STYLE: "true"
   AWS_S3_ACL: private
   OIDC_DISPLAY_NAME: McNees ID
-  OIDC_ISSUER_URL: https://id.mcnees.me
-  OIDC_SCOPES: openid profile email
+  OIDC_AUTH_URI: https://id.mcnees.me/authorize
+  OIDC_TOKEN_URI: https://id.mcnees.me/api/oidc/token
+  OIDC_USERINFO_URI: https://id.mcnees.me/api/oidc/userinfo
+  OIDC_LOGOUT_URI: https://id.mcnees.me/api/oidc/end-session
+  OIDC_SCOPES: openid profile email groups
   OIDC_USERNAME_CLAIM: preferred_username
   ENABLE_UPDATES: "false"
   LOG_LEVEL: info

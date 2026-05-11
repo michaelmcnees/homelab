@@ -9,6 +9,7 @@ resources:
   - ./homepage
   - ./ollama
   - ./open-webui
+  - ./outline
   - ./paperless-gpt
   - ./paperless-ngx
   - ./recyclarr
