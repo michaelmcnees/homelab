@@ -152,6 +152,8 @@ Batocera boxes can use the existing TrueNAS SMB share named `media` and point at
 
 Keep the games tree owned/writable by the media dataset identity, UID/GID `568` (`apps:apps` on TrueNAS). The RomM `romm-library` PV already points at this root, so files added through SMB are visible to RomM after a library scan.
 
+Use [ROM Intake](rom-intake.md) for the repeatable process to stage, verify, convert, and move owned-game backups into the shared library.
+
 Prowlarr migration started on 2026-05-06:
 
 - Prowlarr backup: `prowlarr_backup_v2.3.4.5307_2026.05.06_17.54.21.zip`
