@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mempalace
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: mempalace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mempalace
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mempalace
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 568
+        runAsGroup: 568
+        fsGroup: 568
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: install-tools
+          image: python:3.13.3-slim
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              pip install --no-cache-dir --target /tools/python mempalace==3.3.5
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 2Gi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 568
+            runAsGroup: 568
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tools
+              mountPath: /tools
+      containers:
+        - name: mempalace
+          image: python:3.13.3-slim
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              export PYTHONPATH=/tools/python
+              mkdir -p /data/palace /workspace
+              python -m mempalace.cli --palace /data/palace status || true
+              sleep infinity
+          env:
+            - name: HOME
+              value: /data
+            - name: XDG_CONFIG_HOME
+              value: /data/.config
+            - name: MEMPALACE_PALACE
+              value: /data/palace
+            - name: PYTHONPATH
+              value: /tools/python
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 2Gi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 568
+            runAsGroup: 568
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tools
+              mountPath: /tools
+              readOnly: true
+            - name: workspace
+              mountPath: /workspace
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mempalace-data
+        - name: tools
+          emptyDir: {}
+        - name: workspace
+          emptyDir: {}
