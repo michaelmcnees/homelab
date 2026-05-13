@@ -91,6 +91,67 @@ Grimmory runs in the `apps` namespace, but its content paths are part of the sha
 
 Keep these directories owned/writable by the media dataset identity, UID/GID `568`. Grimmory runs with `USER_ID=568`, `GROUP_ID=568`, and `DISK_TYPE=NETWORK` so it treats the library as shared network storage.
 
+## Games
+
+RomM runs in the `media` namespace and mounts the shared TrueNAS games library at `/romm/library`:
+
+- Library root: `10.0.1.1:/mnt/data/media/library/games`
+- RomM ROM folders: `/romm/library/roms/<platform>`
+- RomM BIOS folders: `/romm/library/bios/<platform>`
+
+Use RomM's Structure A layout for new collections:
+
+```text
+/mnt/data/media/library/games/
+  roms/
+    nes/
+    snes/
+    n64/
+    gb/
+    gbc/
+    gba/
+    genesis/
+    megadrive/
+    mastersystem/
+    gamegear/
+    psx/
+    ps2/
+    psp/
+    dreamcast/
+    gamecube/
+    wii/
+    switch/
+    nds/
+    3ds/
+    arcade/
+    mame/
+    fbneo/
+    scummvm/
+    ports/
+  bios/
+    gba/
+    psx/
+    ps2/
+    psp/
+    dreamcast/
+    gamecube/
+    wii/
+    nds/
+    3ds/
+    arcade/
+    mame/
+    fbneo/
+  import/
+  _batocera/
+```
+
+Batocera boxes can use the existing TrueNAS SMB share named `media` and point at the same tree:
+
+- ROMs: `//truenas/media/library/games/roms`
+- BIOS: `//truenas/media/library/games/bios`
+
+Keep the games tree owned/writable by the media dataset identity, UID/GID `568` (`apps:apps` on TrueNAS). The RomM `romm-library` PV already points at this root, so files added through SMB are visible to RomM after a library scan.
+
 Prowlarr migration started on 2026-05-06:
 
 - Prowlarr backup: `prowlarr_backup_v2.3.4.5307_2026.05.06_17.54.21.zip`
