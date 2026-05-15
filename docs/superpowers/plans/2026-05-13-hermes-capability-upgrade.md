@@ -6,7 +6,7 @@
 
 **Architecture:** Hermes remains a single in-cluster gateway deployment in the `apps` namespace with state on the existing `hermes-data` and `hermes-workspace` PVCs. Repo-managed ConfigMaps define non-secret configuration, SOPS stores credentials, and manual steps are limited to OAuth/app-password bootstrapping and interactive provider logins that cannot safely be represented in Git. External capabilities are added in phases with least-privilege tool exposure.
 
-**Tech Stack:** Hermes Agent, Kubernetes/Flux, SOPS, ConfigMaps, PVCs, Himalaya CLI, IMAP/SMTP, optional Honcho memory provider, MCP, Telegram, OpenAI Codex/OAuth, OpenRouter/OpenAI fallback keys.
+**Tech Stack:** Hermes Agent, Kubernetes/Flux, SOPS, ConfigMaps, PVCs, Himalaya CLI, IMAP/SMTP, HTTP-first memory service, MCP, Obsidian Local REST API/MCP, Telegram, OpenAI Codex/OAuth, OpenRouter/OpenAI fallback keys.
 
 ---
 
@@ -41,7 +41,8 @@
 
 - Email account app password or OAuth consent flow.
 - Codex OAuth login command inside the Hermes pod.
-- Honcho Cloud API key, if using hosted Honcho.
+- Hosted memory provider API key, only if we later decide self-hosted HTTP memory is not good enough.
+- Obsidian desktop plugin setup and API key generation if using the Obsidian Local REST API path.
 - Telegram BotFather setup and allowed user IDs.
 - Any third-party account authorization that requires browser consent.
 - Final approval of which tools are allowed to send email, mutate GitHub, or touch home automation.
@@ -52,10 +53,11 @@
 2. File/project context and durable built-in memory.
 3. Email via Himalaya in read-only mode.
 4. Email sending after manual approval workflow is documented.
-5. External memory provider, preferably Honcho if we want cross-session user modeling beyond files.
-6. MCP integrations for GitHub/issues and narrow filesystem access.
-7. Household integrations, starting read-only before write actions.
-8. Observability and alerting for Hermes failures, latency, and tool errors.
+5. HTTP-first shared memory provider with MCP compatibility for Hermes, Codex, Claude, and future tools.
+6. Obsidian integration for notes, daily logs, and durable human-readable knowledge.
+7. MCP integrations for GitHub/issues and narrow filesystem access.
+8. Household integrations, starting read-only before write actions.
+9. Observability and alerting for Hermes failures, latency, and tool errors.
 
 ---
 
@@ -391,46 +393,60 @@ git commit -m "Add Hermes email tooling"
 git push
 ```
 
-### Task 5: Add optional Honcho memory provider
+### Task 5: Add HTTP-first shared memory provider
 
 **Files:**
 - Modify: `kubernetes/apps/hermes/configmap.yaml`
 - Modify: `kubernetes/apps/hermes/secret.sops.yaml`
 - Modify: `docs/runbooks/hermes.md`
+- Optionally create: `kubernetes/apps/openmemory/`
 
-- [ ] **Step 1: Decide hosted vs self-hosted**
+- [ ] **Step 1: Choose the provider**
 
-Start with hosted Honcho if we want a fast validation path. Self-host Honcho only after we confirm Hermes memory is useful enough to justify operating another database-backed service.
+Prefer a provider that has both:
 
-- [ ] **Step 2: Add provider config**
+- an HTTP API Hermes can call directly or through a small tool bridge
+- an MCP server or Streamable HTTP MCP endpoint that Codex, Claude, and future clients can share
+
+Current preferred pilot: OpenMemory/Mem0, because it is explicitly MCP-oriented and has memory tools for add/search/get/update/delete/list events. Keep Honcho as a later hosted option if we decide the local/self-hosted path is not worth operating.
+
+- [ ] **Step 2: Decide hosted vs self-hosted**
+
+Start with a repo-managed self-hosted deployment if the upstream container story is stable enough for Kubernetes. If not, use hosted Mem0/OpenMemory for a short validation window and treat the API key as replaceable.
+
+- [ ] **Step 3: Add provider config**
 
 Add to Hermes config:
 
 ```yaml
 memory:
-  provider: honcho
+  provider: http
+  endpoint: http://openmemory.apps.svc.cluster.local:8000
 ```
 
-Add a `honcho.json` file through SOPS or a Secret-mounted file:
+If Hermes needs a tool bridge instead of native memory config, expose a narrow tool surface:
 
-```json
-{
-  "apiKey": "stored-in-sops",
-  "peerName": "michael",
-  "aiPeer": "hermes-homelab",
-  "workspace": "homelab"
-}
+```yaml
+tools:
+  memory:
+    base_url: http://openmemory.apps.svc.cluster.local:8000
+    allowed_operations:
+      - search
+      - add
+      - update
+      - list
 ```
 
-- [ ] **Step 3: Manual API key setup**
+- [ ] **Step 4: Manual/API key setup**
 
 Manual:
 
-1. Create Honcho API key or deploy a self-hosted Honcho endpoint.
-2. Store the key in `kubernetes/apps/hermes/secret.sops.yaml`.
-3. Reconcile `apps`.
+1. Create the provider API key if the chosen memory service requires one.
+2. Store it in `kubernetes/apps/hermes/secret.sops.yaml`.
+3. Configure Codex/Claude MCP clients against the same memory service.
+4. Reconcile `apps`.
 
-- [ ] **Step 4: Verify**
+- [ ] **Step 5: Verify**
 
 Run:
 
@@ -439,9 +455,9 @@ kubectl --kubeconfig talos/kubeconfig -n apps exec deployment/hermes -- \
   /opt/hermes/.venv/bin/hermes memory status
 ```
 
-Expected: built-in memory is active and Honcho is the external provider.
+Expected: built-in memory is active and the HTTP provider is reachable.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add kubernetes/apps/hermes/ docs/runbooks/hermes.md
@@ -449,7 +465,69 @@ git commit -m "Configure Hermes external memory"
 git push
 ```
 
-### Task 6: Add MCP servers with minimal tool filters
+### Task 6: Connect Hermes to Obsidian
+
+**Files:**
+- Modify: `kubernetes/apps/hermes/configmap.yaml`
+- Modify: `kubernetes/apps/hermes/secret.sops.yaml`
+- Modify: `docs/runbooks/hermes.md`
+
+- [ ] **Step 1: Pick the Obsidian access path**
+
+Recommended first path: Obsidian Local REST API plugin on the workstation that owns the vault. It exposes both REST and MCP endpoints, and avoids building a custom notes service before we know the workflow is useful.
+
+Cluster-native path for later: put the vault on a TrueNAS dataset and deploy a small internal `obsidian-bridge` service that performs safe Markdown operations against that mounted vault.
+
+- [ ] **Step 2: Start read-only**
+
+Expose only:
+
+- search notes
+- read note
+- list tags
+- read daily note
+
+Keep write operations disabled until the read path is reliable.
+
+- [ ] **Step 3: Add write operations after approval**
+
+After read-only verification, allow:
+
+- append to daily note
+- append to a named heading
+- create a new note from a template
+
+Do not allow unrestricted delete or whole-vault rewrites through Hermes.
+
+- [ ] **Step 4: Manual setup**
+
+Manual:
+
+1. Install and enable Obsidian Local REST API in Obsidian.
+2. Copy the API key from Obsidian settings.
+3. Decide whether Hermes reaches the plugin over Tailscale, local LAN, or a future in-cluster bridge.
+4. Store the API key in `kubernetes/apps/hermes/secret.sops.yaml`.
+
+- [ ] **Step 5: Verify**
+
+Run a read-only check from the Hermes pod:
+
+```bash
+kubectl --kubeconfig talos/kubeconfig -n apps exec deployment/hermes -- \
+  sh -lc 'curl -fsS -H "Authorization: Bearer ${OBSIDIAN_API_KEY}" "${OBSIDIAN_API_URL}/vault/" | head'
+```
+
+Expected: Hermes can list or search vault content without write access.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add kubernetes/apps/hermes/ docs/runbooks/hermes.md
+git commit -m "Connect Hermes to Obsidian"
+git push
+```
+
+### Task 7: Add MCP servers with minimal tool filters
 
 **Files:**
 - Modify: `kubernetes/apps/hermes/configmap.yaml`
@@ -526,7 +604,7 @@ git commit -m "Add limited MCP tools for Hermes"
 git push
 ```
 
-### Task 7: Add observability for Hermes tools
+### Task 8: Add observability for Hermes tools
 
 **Files:**
 - Modify: `kubernetes/infrastructure/observability/kube-prometheus-stack/homelab-ai-dashboard.yaml`
@@ -578,7 +656,8 @@ git push
 - [ ] Create an app password or OAuth client for that account.
 - [ ] Decide whether Hermes is allowed to send email automatically or only draft email.
 - [ ] Re-run Codex OAuth in the pod if the PVC is ever recreated.
-- [ ] Decide whether Honcho Cloud is acceptable or whether memory must stay self-hosted.
+- [ ] Decide whether the memory provider starts self-hosted or uses a short hosted validation window.
+- [ ] Install Obsidian Local REST API and store its API key in SOPS if using the plugin path.
 - [ ] Create a narrow GitHub PAT if MCP issue access is desired.
 - [ ] Approve exact MCP tool whitelist before enabling mutation tools.
 
@@ -586,6 +665,7 @@ git push
 
 - Should Hermes use your primary email account, a delegated assistant mailbox, or an HDF mailbox?
 - Should outbound email be disabled initially, draft-only, or send-after-confirmation?
-- Is hosted Honcho acceptable for user modeling, or should we stay with built-in file memory until self-hosting is worth it?
+- Should OpenMemory/Mem0 be self-hosted immediately, or should hosted Mem0/OpenMemory be used briefly to validate the workflow?
+- Should Obsidian be accessed through the desktop Local REST API plugin first, or should we build a cluster-native vault bridge immediately?
 - Do we want Hermes to control Home Assistant/Homey/Homebridge eventually, or stay read-only for household status?
 - Should Hermes have access to the homelab repo directly, or only a curated `/workspace` scratch/project context?
