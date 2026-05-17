@@ -15,5 +15,6 @@ resources:
   - ./paperless-gpt
   - ./paperless-ngx
   - ./recyclarr
+  - ./syncthing
   - ./uptime-kuma
   - ./webtrees
