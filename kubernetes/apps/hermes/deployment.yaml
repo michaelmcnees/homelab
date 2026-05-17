@@ -28,7 +28,7 @@ spec:
           command:
             - sh
             - -c
-            - chown -R 10000:10000 /opt/data /workspace
+            - chown -R 10000:10000 /opt/data /workspace /workspace/obsidian
           securityContext:
             runAsUser: 0
             allowPrivilegeEscalation: false
@@ -42,6 +42,8 @@ spec:
               mountPath: /opt/data
             - name: workspace
               mountPath: /workspace
+            - name: obsidian-vault
+              mountPath: /workspace/obsidian
       containers:
         - name: hermes
           image: nousresearch/hermes-agent:latest
@@ -129,6 +131,8 @@ spec:
               readOnly: true
             - name: workspace
               mountPath: /workspace
+            - name: obsidian-vault
+              mountPath: /workspace/obsidian
       volumes:
         - name: config
           configMap:
@@ -139,3 +143,6 @@ spec:
         - name: workspace
           persistentVolumeClaim:
             claimName: hermes-workspace
+        - name: obsidian-vault
+          persistentVolumeClaim:
+            claimName: obsidian-vault
