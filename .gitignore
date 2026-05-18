@@ -37,6 +37,9 @@ reference/
 .DS_Store
 *.swp
 
+# Syncthing
+.syncthing.*.tmp
+
 # IDE
 .vscode/
 .idea/
