@@ -252,6 +252,11 @@ spec:
                 secretKeyRef:
                   name: hermes-secret
                   key: GH_TOKEN
+            - name: LINEAR_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: LINEAR_API_KEY
           readinessProbe:
             tcpSocket:
               port: dashboard
