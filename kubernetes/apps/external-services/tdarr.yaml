@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tdarr-external
+  namespace: apps
+spec:
+  ports:
+    - name: http
+      port: 30028
+      targetPort: 30028
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: tdarr-external
+  namespace: apps
+subsets:
+  - addresses:
+      - ip: 10.0.1.1
+    ports:
+      - name: http
+        port: 30028
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: tdarr
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`tdarr.home.mcnees.me`)
+      kind: Rule
+      middlewares:
+        - name: oauth2-proxy
+          namespace: auth
+      services:
+        - name: tdarr-external
+          port: 30028
+  tls:
+    secretName: tdarr-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tdarr
+  namespace: apps
+spec:
+  secretName: tdarr-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - tdarr.home.mcnees.me

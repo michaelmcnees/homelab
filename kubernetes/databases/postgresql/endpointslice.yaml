@@ -1,0 +1,20 @@
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: metagross
+  namespace: internal
+  labels:
+    kubernetes.io/service-name: metagross
+    app.kubernetes.io/name: metagross
+    app.kubernetes.io/component: postgresql
+addressType: IPv4
+ports:
+  - name: ssh
+    protocol: TCP
+    port: 22
+  - name: postgresql
+    protocol: TCP
+    port: 5432
+endpoints:
+  - addresses:
+      - 10.0.10.90

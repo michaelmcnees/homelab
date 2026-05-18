@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxmox-rayquaza-external
+  namespace: apps
+spec:
+  ports:
+    - name: https
+      port: 8006
+      targetPort: 8006
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: proxmox-rayquaza-external
+  namespace: apps
+subsets:
+  - addresses:
+      - ip: 10.0.1.100
+    ports:
+      - name: https
+        port: 8006
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: proxmox-rayquaza
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`rayquaza.home.mcnees.me`)
+      kind: Rule
+      services:
+        - name: proxmox-rayquaza-external
+          port: 8006
+          scheme: https
+          serversTransport: proxmox-insecure
+  tls:
+    secretName: proxmox-rayquaza-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: proxmox-rayquaza
+  namespace: apps
+spec:
+  secretName: proxmox-rayquaza-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - rayquaza.home.mcnees.me

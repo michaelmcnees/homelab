@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lazylibrarian
+  namespace: media
+  labels:
+    app.kubernetes.io/name: lazylibrarian
+spec:
+  selector:
+    app.kubernetes.io/name: lazylibrarian
+  ports:
+    - name: http
+      port: 5299
+      targetPort: http
+      protocol: TCP

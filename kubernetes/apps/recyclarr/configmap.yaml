@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: recyclarr-config
+  namespace: apps
+data:
+  recyclarr.yml: |
+    sonarr:
+      tv-web-1080p:
+        base_url: http://sonarr.media.svc.cluster.local:8989
+        api_key: !secret sonarr_api_key
+        quality_definition:
+          type: series
+        quality_profiles:
+          - trash_id: 72dae194fc92bf828f32cde7744e51a1 # WEB-1080p
+            reset_unmatched_scores:
+              enabled: true
+
+    radarr:
+      movies-hd-bluray-web:
+        base_url: http://radarr.media.svc.cluster.local:7878
+        api_key: !secret radarr_api_key
+        quality_definition:
+          type: movie
+        quality_profiles:
+          - trash_id: d1d67249d3890e49bc12e275d989a7e9 # HD Bluray + WEB
+            reset_unmatched_scores:
+              enabled: true

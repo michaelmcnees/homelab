@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-config
+  namespace: apps
+data:
+  config.yaml: |
+    model:
+      provider: openai-codex
+      default: gpt-5.3-codex

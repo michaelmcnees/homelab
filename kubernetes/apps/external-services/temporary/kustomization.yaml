@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - certificates.yaml
+  - pxe-bulbasaur.yaml
+  - pxe-charmander.yaml
+  - pxe-mew.yaml
+  - pxe-pikachu.yaml
+  - pxe-squirtle.yaml

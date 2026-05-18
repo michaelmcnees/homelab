@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: invoice-ninja-scheduler
+  namespace: hdf
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: scheduler
+              image: invoiceninja/invoiceninja-debian:5
+              imagePullPolicy: IfNotPresent
+              command:
+                - php
+                - artisan
+                - schedule:run
+              envFrom:
+                - configMapRef:
+                    name: invoice-ninja-config
+                - secretRef:
+                    name: invoice-ninja-secrets
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  memory: 512Mi

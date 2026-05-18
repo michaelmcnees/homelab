@@ -1,0 +1,6 @@
+---
+- name: Install host monitoring (Beszel agent + node_exporter) on household hosts
+  hosts: household_hosts
+  gather_facts: true
+  roles:
+    - host-monitoring

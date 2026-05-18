@@ -1,0 +1,17 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: k8s-services
+  namespace: metallb-system
+spec:
+  addresses:
+    - 10.0.10.200-10.0.10.239
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: k8s-services
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - k8s-services

@@ -1,0 +1,62 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: homelab-backup-alerts
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: homelab.backups
+      rules:
+        - alert: BackupStale
+          expr: time() - homelab_backup_latest_timestamp_seconds > 36 * 60 * 60
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Backup tag {{ $labels.tag }} is stale"
+            description: "No restic snapshot for tag {{ $labels.tag }} (host {{ $labels.host }}) in over 36 hours. Daily backups are missing."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/superpowers/specs/2026-05-09-backup-strategy-restic-design.md"
+        - alert: BackupRepoFillingUp
+          expr: homelab_backup_repo_physical_bytes / 1024 / 1024 / 1024 > 800
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Restic repository physical size above 800 GiB"
+            description: "Restic repo on TrueNAS is at {{ $value }} GiB. Forecast retention or check for runaway data."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/superpowers/specs/2026-05-09-backup-strategy-restic-design.md"
+        - alert: BackupMetricsExporterDown
+          expr: |
+            absent_over_time(homelab_backup_metrics_last_success_timestamp_seconds[15m]) == 1
+            or
+            time() - homelab_backup_metrics_last_success_timestamp_seconds > 30 * 60
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "backup-metrics-exporter has not collected in 30+ minutes"
+            description: "The exporter is up but failing to read the restic repo. Check NFS mount and restic password."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/superpowers/specs/2026-05-09-backup-strategy-restic-design.md"
+        - alert: BackupCronJobFailing
+          expr: kube_job_failed{job_name=~".*-backup-.*"} > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Backup CronJob {{ $labels.job_name }} failed"
+            description: "A backup Job {{ $labels.namespace }}/{{ $labels.job_name }} reported failure. Check pod logs."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/superpowers/specs/2026-05-09-backup-strategy-restic-design.md"
+        - alert: BackupDedupEffectivenessDegraded
+          expr: |
+            homelab_backup_repo_logical_bytes
+              /
+            (homelab_backup_repo_physical_bytes > 0) < 1.2
+          for: 6h
+          labels:
+            severity: info
+          annotations:
+            summary: "Restic dedup ratio dropped below 1.2x"
+            description: "Logical/physical ratio is {{ $value }}. Either backups contain mostly unique high-entropy data, or the repo is experiencing corruption. Investigate."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/superpowers/specs/2026-05-09-backup-strategy-restic-design.md"

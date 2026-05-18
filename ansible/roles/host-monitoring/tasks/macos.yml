@@ -1,0 +1,39 @@
+---
+- name: Ensure Homebrew is on PATH
+  ansible.builtin.shell: command -v brew
+  changed_when: false
+  register: _hm_brew_check
+
+- name: Tap beszel/beszel
+  community.general.homebrew_tap:
+    name: beszel/beszel
+    state: present
+
+- name: Install beszel-agent
+  community.general.homebrew:
+    name: beszel-agent
+    state: present
+
+- name: Install node_exporter
+  community.general.homebrew:
+    name: node_exporter
+    state: present
+
+- name: Render beszel-agent launchd-friendly env file
+  ansible.builtin.copy:
+    dest: "{{ ansible_env.HOME }}/.beszel-agent.env"
+    mode: "0600"
+    content: |
+      KEY={{ host_monitoring_beszel_agent_key }}
+      HUB_URL={{ host_monitoring_beszel_hub_url }}
+      PORT={{ host_monitoring_beszel_agent_port }}
+
+# brew services on macOS uses launchd. We rely on brew's plist; user supplies
+# env via the env file above. Restart to pick up changes.
+- name: Restart beszel-agent service
+  ansible.builtin.command: brew services restart beszel/beszel/beszel-agent
+  changed_when: true
+
+- name: Restart node_exporter service
+  ansible.builtin.command: brew services restart node_exporter
+  changed_when: true

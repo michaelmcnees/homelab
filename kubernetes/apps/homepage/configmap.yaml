@@ -1,0 +1,362 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage-config
+  namespace: apps
+data:
+  settings.yaml: |
+    title: McNees Homelab
+    startUrl: https://dashboard.home.mcnees.me
+    theme: dark
+    color: slate
+    statusStyle: dot
+    hideVersion: true
+    showStats: false
+    layout:
+      Control Deck:
+        style: row
+        columns: 4
+      High Scores:
+        style: row
+        columns: 4
+      Media Cabinet:
+        style: row
+        columns: 4
+      Machine Room:
+        style: row
+        columns: 4
+      Bonus Stage:
+        style: row
+        columns: 4
+  services.yaml: |
+    - Control Deck:
+        - Pocket ID:
+            icon: pocket-id.png
+            href: https://id.mcnees.me
+            description: Passkey identity provider
+        - LLDAP:
+            icon: lldap.png
+            href: https://lldap.home.mcnees.me
+            description: Local directory
+        - AdGuard Home:
+            icon: adguard-home.png
+            href: https://adguard.home.mcnees.me
+            description: Local DNS and filtering
+        - Open WebUI:
+            icon: open-webui.png
+            href: https://ai.home.mcnees.me
+            description: Local AI chat
+        - Hermes:
+            icon: mdi-robot
+            href: https://hermes.home.mcnees.me
+            description: Self-hosted AI agent
+        - Mantle:
+            icon: mdi-workflow
+            href: https://mantle.home.mcnees.me
+            description: YAML workflow automation
+    - High Scores:
+        - Grafana:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me
+            description: Metrics and dashboards
+        - Uptime Kuma:
+            icon: uptime-kuma.png
+            href: https://status.home.mcnees.me
+            description: Service checks
+        - Beszel:
+            icon: beszel.png
+            href: https://beszel.home.mcnees.me
+            description: Lightweight host monitoring
+        - K8s Overview:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-k8s-overview/homelab-k8s-overview
+            description: Cluster vitals
+        - Pod Logs:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-pod-logs/homelab-pod-logs
+            description: Loki log search
+        - Proxmox Metrics:
+            icon: proxmox.png
+            href: https://grafana.home.mcnees.me/d/homelab-proxmox/homelab-proxmox
+            description: VM and host metrics
+        - Database Metrics:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-databases/homelab-databases
+            description: Postgres, Redis, and backups
+        - App Versions:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-app-versions/homelab-app-versions
+            description: Deployed image updates
+        - Paperless Metrics:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-paperless/homelab-paperless
+            description: Documents and AI processing
+        - AI Metrics:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-ai/homelab-ai
+            description: Ollama and AI workloads
+        - Network Metrics:
+            icon: grafana.png
+            href: https://grafana.home.mcnees.me/d/homelab-network/homelab-network
+            description: UniFi and network probes
+    - Media Cabinet:
+        - Plex:
+            icon: plex.png
+            href: https://plex.home.mcnees.me
+            description: Media server
+        - Seerr:
+            icon: seerr.png
+            href: https://seer.home.mcnees.me
+            description: Media requests
+        - Sonarr:
+            icon: sonarr.png
+            href: https://sonarr.home.mcnees.me
+            description: TV management
+        - Sonarr Anime:
+            icon: sonarr.png
+            href: https://sonarr-anime.home.mcnees.me
+            description: Anime tracking
+        - Radarr:
+            icon: radarr.png
+            href: https://radarr.home.mcnees.me
+            description: Movie management
+        - Prowlarr:
+            icon: prowlarr.png
+            href: https://prowlarr.home.mcnees.me
+            description: Indexer management
+        - Bazarr:
+            icon: bazarr.png
+            href: https://bazarr.home.mcnees.me
+            description: Subtitle management
+        - Lidarr:
+            icon: lidarr.png
+            href: https://lidarr.home.mcnees.me
+            description: Music management
+        - Lidarr Kids:
+            icon: lidarr.png
+            href: https://lidarr-kids.home.mcnees.me
+            description: Kids music
+        - Tautulli:
+            icon: tautulli.png
+            href: https://tautulli.home.mcnees.me
+            description: Plex analytics
+    - Machine Room:
+        - Proxmox Latios:
+            icon: proxmox.png
+            href: https://latios.home.mcnees.me
+            description: Proxmox node
+        - Proxmox Latias:
+            icon: proxmox.png
+            href: https://latias.home.mcnees.me
+            description: Proxmox node
+        - Proxmox Rayquaza:
+            icon: proxmox.png
+            href: https://rayquaza.home.mcnees.me
+            description: Proxmox node
+        - TrueNAS:
+            icon: truenas.png
+            href: https://truenas.home.mcnees.me
+            description: Bulk storage
+        - Pelican:
+            icon: pelican-panel.png
+            href: https://games.mcnees.me
+            description: Game server panel
+    - Bonus Stage:
+        - Homebridge:
+            icon: homebridge.png
+            href: https://homebridge.home.mcnees.me
+            description: HomeKit bridge
+        - Homey:
+            icon: homey.png
+            href: https://homey.home.mcnees.me
+            description: Smart home server
+        - Paperless:
+            icon: paperless-ngx.png
+            href: https://paperless.home.mcnees.me
+            description: Documents
+        - Paperless GPT:
+            icon: paperless-ngx.png
+            href: https://paperless-gpt.home.mcnees.me
+            description: Document AI
+        - RomM:
+            icon: romm.png
+            href: https://arcade.mcnees.me
+            description: Game library
+        - Stash:
+            icon: stash.png
+            href: https://stash.home.mcnees.me
+            description: Media library
+        - Grimmory:
+            icon: grimmory.png
+            href: https://grimmory.home.mcnees.me
+            description: Books
+        - webtrees:
+            icon: mdi-family-tree
+            href: https://family.mcnees.me
+            description: Family tree
+  bookmarks.yaml: |
+    - Repositories:
+        - Homelab:
+            - abbr: HL
+              href: https://github.com/michaelmcnees/homelab
+  widgets.yaml: |
+    - resources:
+        cpu: true
+        memory: true
+        disk: /
+    - search:
+        provider: duckduckgo
+        target: _blank
+  docker.yaml: |
+    ---
+  kubernetes.yaml: |
+    ---
+    mode: disabled
+  proxmox.yaml: |
+    ---
+  custom.css: |
+    :root {
+      --arcade-bg: #07080d;
+      --arcade-panel: rgba(13, 17, 28, 0.86);
+      --arcade-panel-strong: rgba(17, 23, 37, 0.94);
+      --arcade-border: rgba(73, 235, 255, 0.32);
+      --arcade-cyan: #49ebff;
+      --arcade-gold: #ffd166;
+      --arcade-red: #ff4d6d;
+      --arcade-green: #7cff6b;
+      --arcade-text: #f6f1d1;
+      --arcade-muted: #a6adc8;
+    }
+
+    html,
+    body {
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.025) 50%, rgba(0, 0, 0, 0.08) 50%),
+        radial-gradient(circle at 18% 12%, rgba(73, 235, 255, 0.11), transparent 28rem),
+        radial-gradient(circle at 82% 4%, rgba(255, 77, 109, 0.08), transparent 22rem),
+        linear-gradient(180deg, #0b1020 0%, var(--arcade-bg) 42%, #05060a 100%) !important;
+      background-size: 100% 3px, auto, auto, auto !important;
+      color: var(--arcade-text) !important;
+      font-family: "Courier New", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      background:
+        linear-gradient(90deg, rgba(255, 0, 0, 0.035), rgba(0, 255, 60, 0.018), rgba(0, 160, 255, 0.035)),
+        repeating-linear-gradient(0deg, transparent 0 2px, rgba(255, 255, 255, 0.025) 2px 3px);
+      mix-blend-mode: screen;
+      opacity: 0.46;
+    }
+
+    a,
+    button {
+      transition: color 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease !important;
+    }
+
+    h1,
+    h2,
+    h3,
+    [class*="group"] > div:first-child {
+      letter-spacing: 0 !important;
+      text-transform: uppercase;
+      color: var(--arcade-gold) !important;
+      text-shadow:
+        2px 0 rgba(255, 77, 109, 0.52),
+        -2px 0 rgba(73, 235, 255, 0.45),
+        0 0 14px rgba(255, 209, 102, 0.3);
+    }
+
+    main,
+    #page_container,
+    [class*="page"],
+    [class*="content"] {
+      background: transparent !important;
+    }
+
+    input,
+    [role="searchbox"],
+    [class*="search"] {
+      border: 1px solid rgba(255, 209, 102, 0.28) !important;
+      background: rgba(4, 6, 12, 0.72) !important;
+      color: var(--arcade-text) !important;
+      box-shadow: inset 0 0 0 1px rgba(73, 235, 255, 0.08), 0 0 18px rgba(73, 235, 255, 0.08) !important;
+    }
+
+    [class*="service"],
+    [class*="bookmark"],
+    [class*="widget"] {
+      border-radius: 2px !important;
+    }
+
+    [class*="service-card"],
+    [class*="serviceCard"],
+    [class*="service"] a,
+    [class*="bookmark"] a,
+    [class*="widget"] > div {
+      border: 1px solid var(--arcade-border) !important;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 38%),
+        var(--arcade-panel) !important;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+        0 0 0 1px rgba(0, 0, 0, 0.8),
+        0 10px 24px rgba(0, 0, 0, 0.32) !important;
+    }
+
+    [class*="service"] a:hover,
+    [class*="bookmark"] a:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 209, 102, 0.78) !important;
+      background:
+        linear-gradient(180deg, rgba(255, 209, 102, 0.08), transparent 45%),
+        var(--arcade-panel-strong) !important;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 209, 102, 0.1),
+        0 0 18px rgba(73, 235, 255, 0.18),
+        0 14px 28px rgba(0, 0, 0, 0.42) !important;
+    }
+
+    [class*="service"] img,
+    [class*="bookmark"] img {
+      image-rendering: auto;
+      filter: saturate(1.25) contrast(1.08) drop-shadow(0 0 5px rgba(73, 235, 255, 0.28));
+    }
+
+    [class*="service"] a:hover img,
+    [class*="bookmark"] a:hover img {
+      filter: saturate(1.45) contrast(1.12) drop-shadow(0 0 7px rgba(255, 209, 102, 0.38));
+    }
+
+    [class*="description"],
+    [class*="subtitle"],
+    [class*="text-muted"],
+    p {
+      color: var(--arcade-muted) !important;
+    }
+
+    [class*="status"] {
+      filter: drop-shadow(0 0 4px rgba(124, 255, 107, 0.35));
+    }
+
+    ::selection {
+      background: var(--arcade-cyan);
+      color: #05060a;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      a,
+      button {
+        transition: none !important;
+      }
+
+      [class*="service"] a:hover,
+      [class*="bookmark"] a:hover {
+        transform: none;
+      }
+    }
+  custom.js: |

@@ -1,0 +1,612 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-homelab-capacity-dashboard
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  homelab-capacity.json: |
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [
+        {
+          "asDropdown": true,
+          "icon": "external link",
+          "includeVars": false,
+          "keepTime": true,
+          "tags": ["homelab"],
+          "targetBlank": false,
+          "title": "Homelab dashboards",
+          "type": "dashboards"
+        }
+      ],
+      "panels": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 0.7},
+                  {"color": "orange", "value": 0.85},
+                  {"color": "red", "value": 0.95}
+                ]
+              },
+              "unit": "percentunit",
+              "min": 0,
+              "max": 1
+            },
+            "overrides": []
+          },
+          "gridPos": {"h": 4, "w": 8, "x": 0, "y": 0},
+          "id": 1,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "showPercentChange": true,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "sum(kube_pod_container_resource_requests{resource=\"cpu\"}) / sum(kube_node_status_allocatable{resource=\"cpu\"})",
+              "legendFormat": "cluster cpu request %",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Cluster CPU Requests / Allocatable",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 0.7},
+                  {"color": "orange", "value": 0.85},
+                  {"color": "red", "value": 0.95}
+                ]
+              },
+              "unit": "percentunit",
+              "min": 0,
+              "max": 1
+            },
+            "overrides": []
+          },
+          "gridPos": {"h": 4, "w": 8, "x": 8, "y": 0},
+          "id": 2,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "showPercentChange": true,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "sum(kube_pod_container_resource_requests{resource=\"memory\"}) / sum(kube_node_status_allocatable{resource=\"memory\"})",
+              "legendFormat": "cluster memory request %",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Cluster Memory Requests / Allocatable",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 0.7},
+                  {"color": "orange", "value": 0.85},
+                  {"color": "red", "value": 0.95}
+                ]
+              },
+              "unit": "percentunit",
+              "min": 0,
+              "max": 1
+            },
+            "overrides": []
+          },
+          "gridPos": {"h": 4, "w": 8, "x": 16, "y": 0},
+          "id": 3,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "showPercentChange": true,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "sum(kubelet_running_pods) / sum(kube_node_status_allocatable{resource=\"pods\"})",
+              "legendFormat": "pod density",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Cluster Pod Density",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "% of allocatable",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 8,
+                "gradientMode": "none",
+                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {"type": "linear"},
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {"group": "A", "mode": "none"},
+                "thresholdsStyle": {"mode": "line+area"}
+              },
+              "mappings": [],
+              "max": 1,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "orange", "value": 0.85},
+                  {"color": "red", "value": 0.95}
+                ]
+              },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+          "id": 4,
+          "options": {
+            "legend": {
+              "calcs": ["lastNotNull"],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "sum by (node) (kube_pod_container_resource_requests{resource=\"cpu\"}) / sum by (node) (kube_node_status_allocatable{resource=\"cpu\"})",
+              "legendFormat": "{{node}} requested",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "1 - avg by (node) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m]) * on (instance) group_left(node) (label_replace(kube_node_info, \"instance\", \"$1\", \"internal_ip\", \"(.*)\")))",
+              "hide": false,
+              "legendFormat": "{{node}} actual",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "Per-Node CPU Headroom (requested vs actual)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "% of allocatable",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 8,
+                "gradientMode": "none",
+                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {"type": "linear"},
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {"group": "A", "mode": "none"},
+                "thresholdsStyle": {"mode": "line+area"}
+              },
+              "mappings": [],
+              "max": 1,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "orange", "value": 0.85},
+                  {"color": "red", "value": 0.95}
+                ]
+              },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+          "id": 5,
+          "options": {
+            "legend": {
+              "calcs": ["lastNotNull"],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "sum by (node) (kube_pod_container_resource_requests{resource=\"memory\"}) / sum by (node) (kube_node_status_allocatable{resource=\"memory\"})",
+              "legendFormat": "{{node}} requested",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)",
+              "legendFormat": "{{instance}} actual",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "Per-Node Memory Headroom (requested vs actual)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "custom": {
+                "align": "auto",
+                "cellOptions": {"type": "auto"},
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{"color": "green", "value": null}]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {"id": "byName", "options": "pod density"},
+                "properties": [
+                  {"id": "unit", "value": "percentunit"},
+                  {"id": "custom.cellOptions", "value": {"type": "gauge", "mode": "gradient"}},
+                  {"id": "max", "value": 1},
+                  {"id": "min", "value": 0},
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {"color": "green", "value": null},
+                        {"color": "yellow", "value": 0.7},
+                        {"color": "orange", "value": 0.85},
+                        {"color": "red", "value": 0.95}
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {"h": 6, "w": 12, "x": 0, "y": 12},
+          "id": 6,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+            "showHeader": true,
+            "sortBy": [{"desc": true, "displayName": "pod density"}]
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "sum by (node) (kubelet_running_pods)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "running",
+              "range": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "sum by (node) (kube_node_status_allocatable{resource=\"pods\"})",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "allocatable",
+              "range": false,
+              "refId": "B"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "sum by (node) (kubelet_running_pods) / sum by (node) (kube_node_status_allocatable{resource=\"pods\"})",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "density",
+              "range": false,
+              "refId": "C"
+            }
+          ],
+          "title": "Pod Density By Node",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {"byField": "node", "mode": "outer"}
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time 1": true,
+                  "Time 2": true,
+                  "Time 3": true
+                },
+                "indexByName": {
+                  "node": 0,
+                  "Value #A": 1,
+                  "Value #B": 2,
+                  "Value #C": 3
+                },
+                "renameByName": {
+                  "Value #A": "running",
+                  "Value #B": "allocatable",
+                  "Value #C": "pod density"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "% full",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 8,
+                "gradientMode": "none",
+                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {"type": "linear"},
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {"group": "A", "mode": "none"},
+                "thresholdsStyle": {"mode": "off"}
+              },
+              "mappings": [],
+              "max": 1,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{"color": "green", "value": null}]
+              },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {"h": 6, "w": 12, "x": 12, "y": 12},
+          "id": 7,
+          "options": {
+            "legend": {
+              "calcs": ["lastNotNull"],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "1 - (node_filesystem_avail_bytes{mountpoint=\"/\", fstype!=\"\"} / node_filesystem_size_bytes{mountpoint=\"/\", fstype!=\"\"})",
+              "legendFormat": "{{instance}} root",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Per-Node Root Filesystem Fill",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18},
+          "id": 8,
+          "panels": [],
+          "title": "Forecasts (predict_linear over 7d → 7d ahead)",
+          "type": "row"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "custom": {
+                "align": "auto",
+                "cellOptions": {"type": "auto"},
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{"color": "green", "value": null}]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {"id": "byName", "options": "projected % in 7d"},
+                "properties": [
+                  {"id": "unit", "value": "percentunit"},
+                  {"id": "custom.cellOptions", "value": {"type": "gauge", "mode": "gradient"}},
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {"color": "green", "value": null},
+                        {"color": "yellow", "value": 0.7},
+                        {"color": "orange", "value": 0.85},
+                        {"color": "red", "value": 0.95}
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 19},
+          "id": 9,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+            "showHeader": true,
+            "sortBy": [{"desc": true, "displayName": "projected % in 7d"}]
+          },
+          "pluginVersion": "12.3.0",
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "editorMode": "code",
+              "expr": "(predict_linear(node_filesystem_avail_bytes{mountpoint=\"/\", fstype!=\"\"}[7d], 7 * 86400) <= 0) or 1 - (predict_linear(node_filesystem_avail_bytes{mountpoint=\"/\", fstype!=\"\"}[7d], 7 * 86400) / node_filesystem_size_bytes{mountpoint=\"/\", fstype!=\"\"})",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "fs",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Projected Root Filesystem Fill in 7d",
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "device": true,
+                  "endpoint": true,
+                  "fstype": true,
+                  "job": true,
+                  "service": true,
+                  "container": true,
+                  "namespace": true,
+                  "mountpoint": true
+                },
+                "indexByName": {
+                  "instance": 0,
+                  "Value": 1
+                },
+                "renameByName": {
+                  "Value": "projected % in 7d"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        }
+      ],
+      "preload": false,
+      "refresh": "1m",
+      "schemaVersion": 42,
+      "tags": ["homelab", "capacity", "headroom"],
+      "templating": {"list": []},
+      "time": {"from": "now-7d", "to": "now"},
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Homelab / Capacity",
+      "uid": "homelab-capacity",
+      "version": 1
+    }

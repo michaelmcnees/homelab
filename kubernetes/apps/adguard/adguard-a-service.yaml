@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: adguard-a
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: adguard
+    app.kubernetes.io/instance: adguard-a
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: adguard
+    app.kubernetes.io/instance: adguard-a
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adguard-a-dns
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: adguard
+    app.kubernetes.io/instance: adguard-a
+  annotations:
+    metallb.io/loadBalancerIPs: 10.0.10.201
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector:
+    app.kubernetes.io/name: adguard
+    app.kubernetes.io/instance: adguard-a
+  ports:
+    - name: dns-tcp
+      port: 53
+      targetPort: dns-tcp
+      protocol: TCP
+    - name: dns-udp
+      port: 53
+      targetPort: dns-udp
+      protocol: UDP

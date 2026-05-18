@@ -1,0 +1,10 @@
+---
+proxmox_management_gateway: 10.0.0.1
+proxmox_dns_servers:
+  - 10.0.10.201
+proxmox_dns_search:
+  - home.mcnees.me
+proxmox_management_bridge: vmbr0
+proxmox_management_bridge_vlan_aware: true
+proxmox_management_bridge_vids:
+  - 2-4094

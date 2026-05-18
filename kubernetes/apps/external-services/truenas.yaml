@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: truenas-external
+  namespace: apps
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: truenas-external
+  namespace: apps
+subsets:
+  - addresses:
+      - ip: 10.0.1.1
+    ports:
+      - name: http
+        port: 80
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: truenas
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`truenas.home.mcnees.me`)
+      kind: Rule
+      services:
+        - name: truenas-external
+          port: 80
+  tls:
+    secretName: truenas-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: truenas
+  namespace: apps
+spec:
+  secretName: truenas-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - truenas.home.mcnees.me

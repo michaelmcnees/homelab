@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarr-anime
+  namespace: media
+  labels:
+    app.kubernetes.io/name: sonarr-anime
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sonarr-anime
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sonarr-anime
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 568
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: sonarr-anime
+          image: ghcr.io/linuxserver/sonarr:4.0.16.2944-ls298
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8989
+              protocol: TCP
+          env:
+            - name: TZ
+              value: America/Detroit
+            - name: PUID
+              value: "568"
+            - name: PGID
+              value: "568"
+            - name: UMASK
+              value: "002"
+            - name: SONARR__AUTH__METHOD
+              value: External
+            - name: SONARR__AUTH__REQUIRED
+              value: DisabledForLocalAddresses
+            - name: SONARR__POSTGRES__HOST
+              value: metagross.internal.svc.cluster.local
+            - name: SONARR__POSTGRES__PORT
+              value: "5432"
+            - name: SONARR__POSTGRES__USER
+              value: sonarr_anime
+            - name: SONARR__POSTGRES__MAINDB
+              value: sonarr_anime_main
+            - name: SONARR__POSTGRES__LOGDB
+              value: sonarr_anime_log
+            - name: SONARR__POSTGRES__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sonarr-anime-secrets
+                  key: SONARR__POSTGRES__PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: media
+              mountPath: /media
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: sonarr-anime-config
+        - name: media
+          persistentVolumeClaim:
+            claimName: media-library

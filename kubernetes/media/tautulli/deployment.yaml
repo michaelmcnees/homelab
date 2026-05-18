@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tautulli
+  namespace: media
+  labels:
+    app.kubernetes.io/name: tautulli
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tautulli
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tautulli
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 568
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: tautulli
+          image: lscr.io/linuxserver/tautulli:v2.17.0-ls223
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8181
+              protocol: TCP
+          env:
+            - name: TZ
+              value: America/Detroit
+            - name: PUID
+              value: "568"
+            - name: PGID
+              value: "568"
+            - name: UMASK
+              value: "002"
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /config
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: tautulli-config

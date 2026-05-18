@@ -16,33 +16,68 @@ variable "proxmox_password" {
   sensitive   = true
 }
 
-# --- VM Defaults ---
+# --- Talos Image ---
 
-variable "vm_template_id" {
-  description = "Proxmox VM template ID for cloud-init Ubuntu"
-  type        = number
-  default     = 9000
+variable "talos_version" {
+  description = "Talos Linux version for VM boot media"
+  type        = string
+  default     = "v1.12.6"
 }
+
+variable "talos_iso_url" {
+  description = "Talos ISO URL. Override with an Image Factory ISO URL when adding system extensions."
+  type        = string
+  default     = "https://github.com/siderolabs/talos/releases/download/v1.12.6/metal-amd64.iso"
+}
+
+variable "talos_iso_datastore" {
+  description = "Shared Proxmox datastore used for the Talos ISO"
+  type        = string
+  default     = "nfs-isos"
+}
+
+variable "talos_iso_file_id" {
+  description = "Proxmox file ID for the pre-seeded Talos ISO"
+  type        = string
+  default     = "nfs-isos:iso/talos-1.12.6-metal-amd64.iso"
+}
+
+# --- VM Defaults ---
 
 variable "vm_default_storage" {
   description = "Default storage pool for VM disks"
   type        = string
-  default     = "ceph-pool"
+  default     = "ceph-nvme"
 }
 
-variable "vm_ssh_public_key" {
-  description = "SSH public key to inject via cloud-init"
-  type        = string
+variable "kubernetes_vlan_tag" {
+  description = "VLAN tag for Kubernetes node VM network interfaces"
+  type        = number
+  default     = 10
 }
 
-variable "vm_default_gateway" {
-  description = "Default gateway for VM network"
+# --- LXC Defaults ---
+
+variable "lxc_template_file_id" {
+  description = "Proxmox file ID for the Debian LXC template used by service containers."
   type        = string
-  default     = "10.0.0.1"
+  default     = "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst"
 }
 
-variable "vm_dns_servers" {
-  description = "DNS servers for VMs"
+variable "lxc_default_gateway" {
+  description = "Default gateway for service LXCs."
   type        = string
-  default     = "10.0.0.53"
+  default     = "10.0.10.1"
+}
+
+variable "lxc_dns_servers" {
+  description = "DNS servers for service LXCs."
+  type        = list(string)
+  default     = ["10.0.10.201"]
+}
+
+variable "lxc_ssh_public_key_path" {
+  description = "Path to the SSH public key installed for root access in service LXCs."
+  type        = string
+  default     = "~/.ssh/id_ed25519.pub"
 }

@@ -14,7 +14,7 @@ spec:
   prune: true
   wait: true
   dependsOn:
-    - name: infrastructure
+    - name: infrastructure-configs
   decryption:
     provider: sops
     secretRef:

@@ -4,6 +4,19 @@
   become: true
 
   tasks:
+    - name: Configure host resolver
+      copy:
+        content: |
+          search {{ proxmox_dns_search | join(' ') }}
+          {% for nameserver in proxmox_dns_servers %}
+          nameserver {{ nameserver }}
+          {% endfor %}
+        dest: /etc/resolv.conf
+        mode: '0644'
+      when:
+        - proxmox_dns_servers is defined
+        - proxmox_dns_servers | length > 0
+
     - name: Install security packages
       apt:
         name:
@@ -74,6 +87,24 @@
         dest: /etc/apt/apt.conf.d/20auto-upgrades
         mode: '0644'
 
+    - name: Check whether Proxmox host interface management is ready
+      assert:
+        that:
+          - proxmox_management_address is defined
+          - proxmox_management_gateway is defined
+          - proxmox_management_bridge is defined
+        quiet: true
+      when: proxmox_management_bridge_ports is defined
+
+    - name: Configure Proxmox host network interfaces
+      template:
+        src: ../templates/proxmox-interfaces.j2
+        dest: /etc/network/interfaces
+        mode: '0644'
+        backup: true
+      when: proxmox_management_bridge_ports is defined
+      notify: reload networking
+
     - name: Ensure services are enabled and started
       systemd:
         name: "{{ item }}"
@@ -93,3 +124,6 @@
       systemd:
         name: fail2ban
         state: restarted
+
+    - name: reload networking
+      command: ifreload -a

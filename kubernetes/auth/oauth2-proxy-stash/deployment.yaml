@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth2-proxy-stash
+  namespace: auth
+  labels:
+    app.kubernetes.io/name: oauth2-proxy-stash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: oauth2-proxy-stash
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: oauth2-proxy-stash
+    spec:
+      enableServiceLinks: false
+      hostAliases:
+        - ip: 10.0.10.200
+          hostnames:
+            - id.mcnees.me
+      containers:
+        - name: oauth2-proxy
+          image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.2
+          imagePullPolicy: IfNotPresent
+          args:
+            - --http-address=0.0.0.0:4180
+            - --provider=oidc
+            - --oidc-issuer-url=https://id.mcnees.me
+            - --redirect-url=https://stash.home.mcnees.me/oauth2/callback
+            - --scope=openid profile email groups
+            - --cookie-domain=.home.mcnees.me
+            - --cookie-secure=true
+            - --cookie-samesite=lax
+            - --cookie-refresh=1h
+            - --cookie-expire=8h
+            - --cookie-csrf-per-request=true
+            - --cookie-csrf-per-request-limit=8
+            - --email-domain=*
+            - --allowed-group=stash
+            - --whitelist-domain=.home.mcnees.me
+            - --upstream=static://202
+            - --reverse-proxy=true
+            - --trusted-proxy-ip=10.244.0.0/16
+            - --set-xauthrequest=true
+            - --set-authorization-header=true
+            - --pass-access-token=true
+            - --pass-user-headers=true
+            - --session-store-type=redis
+            - --redis-connection-url=redis://redis-master.databases.svc.cluster.local:6379
+            - --skip-provider-button=true
+          ports:
+            - name: http
+              containerPort: 4180
+              protocol: TCP
+          env:
+            - name: OAUTH2_PROXY_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: oauth2-proxy-secret
+                  key: OAUTH2_PROXY_CLIENT_ID
+            - name: OAUTH2_PROXY_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: oauth2-proxy-secret
+                  key: OAUTH2_PROXY_CLIENT_SECRET
+            - name: OAUTH2_PROXY_COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: oauth2-proxy-secret
+                  key: OAUTH2_PROXY_COOKIE_SECRET
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 128Mi

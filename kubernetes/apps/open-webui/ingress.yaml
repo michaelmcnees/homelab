@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: open-webui
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`ai.home.mcnees.me`)
+      kind: Rule
+      services:
+        - name: open-webui
+          port: 8080
+  tls:
+    secretName: legacy-home-wildcard-tls

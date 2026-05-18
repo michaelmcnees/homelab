@@ -80,7 +80,7 @@ As defined in the redesign spec (with naming and service updates from this migra
 - TrueNAS virtualized as **snorlax** on rayquaza (Proxmox)
 - Homey LXC on latios, Homebridge LXC on latias, Home Assistant VM on latios
 - Pelican game server VM (**pelipper**) on latias
-- democratic-csi for K8s persistent storage via TrueNAS NFS
+- local-path for default K8s persistent storage on Ceph-backed Talos VM disks; TrueNAS NFS only for bulk/shared datasets
 - Cold spare Dell 3050 powered off for DR
 
 ### Naming Decisions
@@ -104,12 +104,12 @@ The redesign spec, Phase 1 plan, Phase 2 plan, OpenTofu configs, and Ansible inv
 ### Service Decisions
 
 This migration spec also supersedes the redesign spec on:
-- **n8n**: Removed (replaced by mantle). Database no longer needs migration.
+- **n8n**: Removed (replaced by Mantle). Database no longer needs migration. Mantle is promoted into the near-term Kubernetes plan so it can be dogfooded before the migration is complete.
 - **Scrypted**: Removed.
 - **Outline, Linkwarden, Actual Budget, Booklore, Glances, InfluxDB, Portainer**: Removed.
-- **Paperless-ngx + Paperless-ai**: Added to Phase 3 service deployments.
-- **Pelican Wings**: Stays as existing LXC. Wings is the daemon that runs game instances; Panel is the management UI in K3s. Pelipper VM (on latias) hosts additional game server capacity alongside the Wings LXC.
-- **Home Assistant**: Migrates from Mew to latios as a VM (6GB RAM, 2 cores).
+- **Paperless-ngx + Paperless-GPT**: Added to Phase 3 service deployments.
+- **Pelican Panel and Wings**: Panel must be migrated and publicly reachable before Wings is finalized. Panel uses `games.mcnees.me`; Wings API/control uses `wings.games.mcnees.me`; game allocations may use `games.mcnees.me:<port>` direct TCP/UDP exposure. Wings is the daemon that runs game instances and remains outside K3s on the game-hosting backend. Pelipper VM (on latias) hosts additional game server capacity.
+- **Home Assistant**: Removed from the lab; clear legacy DNS and route references.
 
 ### K3s Node Mapping
 
@@ -242,7 +242,7 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 
 **Steps (all GitOps via Flux):**
 1. Helm repositories — add chart sources for all infrastructure components.
-2. Storage — democratic-csi (TrueNAS NFS via `truenas-nfs` storage class) + local-path-provisioner (`local-path` storage class). Requires firewall rule: VLAN 10 → snorlax TrueNAS API.
+2. Storage — local-path-provisioner (`local-path` default StorageClass) on Ceph-backed Talos VM disks. Add TrueNAS NFS only for bulk/shared datasets.
 3. Ingress — MetalLB (LoadBalancer IPs from VLAN 10) + Traefik v3.
 4. TLS + DNS — cert-manager (Let's Encrypt, Cloudflare DNS-01) + ExternalDNS (Cloudflare).
 5. PostgreSQL LXC (metagross) — OpenTofu creates LXC (Ceph-backed, Proxmox HA). Ansible installs and configures PostgreSQL.
@@ -280,30 +280,30 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 | 1 | AdGuard Home | DNS — everything depends on it. Cut over DHCP DNS settings to new MetalLB VIP. |
 | 2 | Traefik cutover | Already deployed in Stage 3. Cut over ingress from old Traefik LXC — update DNS records. |
 | 3 | Auth chain verification | Already deployed in Stage 3 (LLDAP, Pocket ID, OAuth2-Proxy). Verify SSO end-to-end. |
-| 4 | Servarr stack | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr. From Docker LXC. Need democratic-csi NFS to TrueNAS media datasets. Migrate Docker volume configs. |
+| 4 | Servarr stack | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr. From Docker LXC. Config PVCs use local-path; media libraries mount from TrueNAS bulk storage. Migrate Docker volume configs. |
 | 5 | Media adjacent | Seer (replaces Overseerr), Wizarr, Tautulli. Low data, mostly config. |
-| 6 | Productivity | Paperless-ngx + Paperless-ai, Gramps. Gramps has family tree data in Docker volume. |
+| 6 | Productivity | Paperless-ngx + Paperless-GPT. |
 | 7 | AI | Ollama + OpenWebUI (models on TrueNAS NFS, prefer scheduling on lugia/latios for memory headroom). |
-| 8 | Monitoring + Gaming | Grafana (fresh via kube-prometheus-stack), Beszel, Uptime Kuma. Replaces InfluxDB with Prometheus — no data migration. Pelican Panel (K3s, database already migrated). Points at existing Pelican Wings LXC. |
+| 8 | Automation + Gaming | Mantle (n8n replacement, dogfood early). Pelican Panel (K3s, database already migrated) before Pelican Wings public exposure. |
 | 9 | Misc infra | Tailscale subnet router, DbGate, Netboot.xyz, Stash, Romm, LazyLibrarian. |
 
-**Services that stay as LXCs (do NOT migrate to K3s):**
-- Homey → LXC on latios (host networking, 1GB)
-- Homebridge → LXC on latias (host networking + USB, 1GB)
-- Pelican Wings → LXC (existing, stays)
+**Services that stay outside K3s:**
+- Pelican Wings → outside K3s on the game-hosting backend; configure after the public Panel migration
 - PostgreSQL (metagross) → LXC on rayquaza (created in Stage 3, 2GB)
-- Home Assistant → VM on latios (6GB RAM, smart home)
 
 **Services retired:**
+- Homey LXC — migrated to K3s
+- Homebridge LXC — migrated to K3s
+- Home Assistant — removed from the lab
 - MariaDB LXC — unused (destroyed in Stage 0)
 - InfluxDB LXC — replaced by Prometheus
 - Overseerr LXC — replaced by Seer
 - ntfy LXC — no longer needed
-- LazyLibrarian LXC — already runs as a TrueNAS app on snorlax
+- LazyLibrarian LXC — migrated to K3s
 - Traefik LXC — replaced by Traefik in K3s (Stage 3)
 - Old PostgreSQL LXC — destroyed after databases migrated to metagross
-- Docker LXC — destroyed after servarr + Gramps migrated
-- n8n — replaced by mantle
+- Docker LXC — destroyed after servarr migration and any remaining non-migrating containers are retired
+- n8n — replaced by Mantle
 - Scrypted — removed
 - Outline — removed
 - Linkwarden — removed
@@ -311,10 +311,10 @@ No overlap with the existing `/22` except VLAN 1 (management), which is a subset
 - Booklore — removed
 - Glances — removed
 - Portainer — replaced by Flux + Grafana
+- Readarr — dropped in favor of LazyLibrarian/Grimmory
 
 **Data preservation details:**
 - **Servarr apps** — Export Docker volumes (config dirs with databases + settings). Import into K8s PVCs.
-- **Gramps** — Export Docker volume (family tree data). Import into K8s PVC.
 - **Pocket ID** — PostgreSQL database migrated in Stage 3.
 - **Pelican Panel** — PostgreSQL database migrated in Stage 3.
 - **Uptime Kuma** — Export monitors config, reimport.

@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homebridge
+  namespace: smart-home
+  labels:
+    app.kubernetes.io/name: homebridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: homebridge
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: homebridge
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      enableServiceLinks: false
+      nodeSelector:
+        kubernetes.io/hostname: lugia
+      containers:
+        - name: homebridge
+          image: homebridge/homebridge:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: America/Detroit
+            - name: ENABLE_AVAHI
+              value: "1"
+          ports:
+            - name: http
+              containerPort: 8581
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /homebridge
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: homebridge-config

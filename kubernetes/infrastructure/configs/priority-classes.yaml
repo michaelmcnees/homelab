@@ -1,0 +1,23 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: critical
+value: 1000
+globalDefault: false
+description: Business-critical services such as ingress, DNS, auth, and home automation.
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: standard
+value: 500
+globalDefault: true
+description: Standard application workloads.
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: best-effort
+value: 100
+globalDefault: false
+description: Non-critical services that can be evicted under resource pressure.

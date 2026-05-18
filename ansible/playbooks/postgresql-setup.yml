@@ -1,0 +1,335 @@
+---
+- name: Configure PostgreSQL LXC
+  hosts: postgresql
+  become: true
+
+  vars:
+    postgresql_version: "16"
+    postgresql_port: 5432
+    postgresql_listen_addresses: "*"
+    postgresql_allowed_networks:
+      - "10.0.0.0/16"
+    postgresql_backup_ssh_user: pgbackup
+    postgresql_backup_ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGiN+l0kfzJZQrdnlSHrFKBHbA3sd8yDg+ysTCOGw8bb k8s-postgresql-logical-backup"
+    postgresql_databases:
+      - name: lldap
+        owner: lldap
+      - name: pocket_id
+        owner: pocket_id
+      - name: paperless
+        owner: paperless
+      - name: outline
+        owner: outline
+      - name: gramps
+        owner: gramps
+      - name: pelican
+        owner: pelican
+      - name: chatwoot
+        owner: chatwoot
+      - name: romm
+        owner: romm
+      - name: sonarr_main
+        owner: sonarr
+      - name: sonarr_log
+        owner: sonarr
+      - name: sonarr_anime_main
+        owner: sonarr_anime
+      - name: sonarr_anime_log
+        owner: sonarr_anime
+      - name: radarr_main
+        owner: radarr
+      - name: radarr_log
+        owner: radarr
+      - name: lidarr_main
+        owner: lidarr
+      - name: lidarr_log
+        owner: lidarr
+      - name: lidarr_kids_main
+        owner: lidarr_kids
+      - name: lidarr_kids_log
+        owner: lidarr_kids
+      - name: prowlarr_main
+        owner: prowlarr
+      - name: prowlarr_log
+        owner: prowlarr
+      - name: bazarr
+        owner: bazarr
+      - name: openwebui
+        owner: openwebui
+      - name: mantle
+        owner: mantle
+    postgresql_extensions:
+      - database: chatwoot
+        extension: pg_stat_statements
+      - database: chatwoot
+        extension: vector
+    postgresql_human_users:
+      - name: mmcnees-readonly
+        password_var: pg_password_mmcnees_readonly
+      - name: mmcnees-readwrite
+        password_var: pg_password_mmcnees_readwrite
+    postgresql_monitor_users:
+      - name: postgres_exporter
+        password_var: pg_password_postgres_exporter
+
+  tasks:
+    - name: Install PostgreSQL prerequisites
+      ansible.builtin.apt:
+        name:
+          - acl
+          - ca-certificates
+          - gnupg
+          - lsb-release
+          - python3-psycopg2
+          - sudo
+        state: present
+        update_cache: true
+
+    - name: Add PostgreSQL APT repository key
+      ansible.builtin.get_url:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        dest: /usr/share/keyrings/postgresql-archive-keyring.asc
+        mode: "0644"
+
+    - name: Add PostgreSQL APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.asc] https://apt.postgresql.org/pub/repos/apt {{ ansible_facts.distribution_release }}-pgdg main"
+        filename: pgdg
+        state: present
+
+    - name: Install PostgreSQL
+      ansible.builtin.apt:
+        name:
+          - "postgresql-{{ postgresql_version }}"
+          - "postgresql-client-{{ postgresql_version }}"
+          - "postgresql-{{ postgresql_version }}-pgvector"
+        state: present
+        update_cache: true
+
+    - name: Configure listen_addresses
+      ansible.builtin.lineinfile:
+        path: "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+        regexp: "^#?listen_addresses\\s*="
+        line: "listen_addresses = '{{ postgresql_listen_addresses }}'"
+      notify: Restart PostgreSQL
+
+    - name: Configure password encryption
+      ansible.builtin.lineinfile:
+        path: "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+        regexp: "^#?password_encryption\\s*="
+        line: "password_encryption = scram-sha-256"
+      notify: Restart PostgreSQL
+
+    - name: Allow homelab network access
+      ansible.builtin.blockinfile:
+        path: "/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf"
+        marker: "# {mark} ANSIBLE MANAGED homelab network access"
+        block: |
+          {% for network in postgresql_allowed_networks %}
+          host    all    all    {{ network }}    scram-sha-256
+          {% endfor %}
+      notify: Restart PostgreSQL
+
+    - name: Ensure PostgreSQL is started and enabled
+      ansible.builtin.systemd:
+        name: postgresql
+        state: started
+        enabled: true
+
+    - name: Flush PostgreSQL config changes before database creation
+      ansible.builtin.meta: flush_handlers
+
+    - name: Create PostgreSQL users
+      become_user: postgres
+      community.postgresql.postgresql_user:
+        name: "{{ item.owner }}"
+        password: "{{ lookup('vars', 'pg_password_' + item.owner) }}"
+        state: present
+      loop: "{{ postgresql_databases }}"
+      no_log: true
+
+    - name: Collect existing PostgreSQL databases
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: postgres
+        query: SELECT datname FROM pg_database;
+      register: postgresql_existing_databases
+      changed_when: false
+
+    - name: Create missing PostgreSQL databases
+      become_user: postgres
+      community.postgresql.postgresql_db:
+        name: "{{ item.name }}"
+        owner: "{{ item.owner }}"
+        encoding: UTF8
+        lc_collate: C
+        lc_ctype: C
+        template: template0
+        state: present
+      loop: "{{ postgresql_databases }}"
+      when: item.name not in (postgresql_existing_databases.query_result | map(attribute='datname') | list)
+
+    - name: Ensure PostgreSQL database owners
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: postgres
+        query: ALTER DATABASE "{{ item.name }}" OWNER TO "{{ item.owner }}";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Create required PostgreSQL extensions
+      become_user: postgres
+      community.postgresql.postgresql_ext:
+        db: "{{ item.database }}"
+        name: "{{ item.extension }}"
+        state: present
+      loop: "{{ postgresql_extensions }}"
+
+    - name: Create shared PostgreSQL users
+      become_user: postgres
+      community.postgresql.postgresql_user:
+        name: "{{ item.name }}"
+        password: "{{ lookup('vars', item.password_var) }}"
+        role_attr_flags: LOGIN
+        state: present
+      loop: "{{ postgresql_human_users }}"
+      no_log: true
+
+    - name: Create PostgreSQL monitor users
+      become_user: postgres
+      community.postgresql.postgresql_user:
+        name: "{{ item.name }}"
+        password: "{{ lookup('vars', item.password_var) }}"
+        role_attr_flags: LOGIN
+        state: present
+      loop: "{{ postgresql_monitor_users }}"
+      no_log: true
+
+    - name: Grant PostgreSQL monitor role
+      become_user: postgres
+      community.postgresql.postgresql_membership:
+        group: pg_monitor
+        target_roles:
+          - "{{ item.name }}"
+        state: present
+      loop: "{{ postgresql_monitor_users }}"
+
+    - name: Grant shared database access
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: postgres
+        query:
+          - GRANT CONNECT ON DATABASE "{{ item.name }}" TO "mmcnees-readonly";
+          - GRANT CONNECT, TEMPORARY ON DATABASE "{{ item.name }}" TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant shared schema access
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - GRANT USAGE ON SCHEMA public TO "mmcnees-readonly";
+          - GRANT USAGE, CREATE ON SCHEMA public TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant shared table privileges
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - GRANT SELECT ON ALL TABLES IN SCHEMA public TO "mmcnees-readonly";
+          - GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant shared sequence privileges
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO "mmcnees-readonly";
+          - GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant shared routine privileges
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - GRANT EXECUTE ON ALL ROUTINES IN SCHEMA public TO "mmcnees-readonly";
+          - GRANT EXECUTE ON ALL ROUTINES IN SCHEMA public TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant default shared table privileges
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - ALTER DEFAULT PRIVILEGES FOR ROLE "{{ item.owner }}" IN SCHEMA public GRANT SELECT ON TABLES TO "mmcnees-readonly";
+          - ALTER DEFAULT PRIVILEGES FOR ROLE "{{ item.owner }}" IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant default shared sequence privileges
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - ALTER DEFAULT PRIVILEGES FOR ROLE "{{ item.owner }}" IN SCHEMA public GRANT SELECT ON SEQUENCES TO "mmcnees-readonly";
+          - ALTER DEFAULT PRIVILEGES FOR ROLE "{{ item.owner }}" IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Grant default shared routine privileges
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        login_db: "{{ item.name }}"
+        query:
+          - ALTER DEFAULT PRIVILEGES FOR ROLE "{{ item.owner }}" IN SCHEMA public GRANT EXECUTE ON ROUTINES TO "mmcnees-readonly";
+          - ALTER DEFAULT PRIVILEGES FOR ROLE "{{ item.owner }}" IN SCHEMA public GRANT EXECUTE ON ROUTINES TO "mmcnees-readwrite";
+      loop: "{{ postgresql_databases }}"
+      changed_when: false
+
+    - name: Remove legacy PostgreSQL backup cron
+      ansible.builtin.cron:
+        name: PostgreSQL nightly logical backup
+        state: absent
+        user: root
+
+    - name: Remove legacy PostgreSQL backup script
+      ansible.builtin.file:
+        path: /usr/local/bin/pg-backup.sh
+        state: absent
+
+    - name: Create PostgreSQL backup SSH user
+      ansible.builtin.user:
+        name: "{{ postgresql_backup_ssh_user }}"
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+    - name: Install PostgreSQL backup SSH key
+      ansible.posix.authorized_key:
+        user: "{{ postgresql_backup_ssh_user }}"
+        key: "{{ postgresql_backup_ssh_public_key }}"
+        state: present
+
+    - name: Allow backup user to run PostgreSQL dump commands
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/postgresql-backup
+        owner: root
+        group: root
+        mode: "0440"
+        validate: "visudo -cf %s"
+        content: |
+          {{ postgresql_backup_ssh_user }} ALL=(postgres) NOPASSWD: /usr/bin/pg_dump, /usr/bin/pg_dumpall, /usr/bin/psql
+
+  handlers:
+    - name: Restart PostgreSQL
+      ansible.builtin.systemd:
+        name: postgresql
+        state: restarted

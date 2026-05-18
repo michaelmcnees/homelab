@@ -1,6 +1,15 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-resources: []
-  # Will be populated in Phase 4:
-  # - kube-prometheus-stack.yaml
-  # - loki.yaml
+resources:
+  - namespace.yaml
+  - ./beszel
+  - ./loki
+  - ./alloy
+  - ./blackbox-exporter
+  - ./ollama-exporter
+  - ./adguard-exporter
+  - ./tailscale-exporter
+  - ./version-checker
+  - ./proxmox-exporter
+  - ./unpoller
+  - ./kube-prometheus-stack

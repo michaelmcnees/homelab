@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: adguard
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`adguard.home.mcnees.me`) || Host(`adguard-k8s.home.mcnees.me`)
+      kind: Rule
+      services:
+        - name: adguard-a
+          port: 80
+  tls:
+    secretName: legacy-home-wildcard-tls

@@ -1,0 +1,19 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: lidarr-kids
+  namespace: media
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`lidarr-kids.home.mcnees.me`) || Host(`lidarr-kids-k8s.home.mcnees.me`)
+      kind: Rule
+      middlewares:
+        - name: oauth2-proxy
+          namespace: auth
+      services:
+        - name: lidarr-kids
+          port: 8686
+  tls:
+    secretName: legacy-home-wildcard-tls

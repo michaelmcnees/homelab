@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tailscale-exporter-script
+  namespace: observability
+data:
+  exporter.py: |
+    #!/usr/bin/env python3
+    """
+    Polls the Tailscale API for devices and exposes Prometheus metrics.
+
+    Uses OAuth client_credentials. Scope: devices:read.
+    """
+    import json
+    import os
+    import time
+    import urllib.parse
+    import urllib.request
+    from datetime import datetime, timezone
+    from prometheus_client import start_http_server, Gauge, Counter
+
+    CLIENT_ID = os.environ["TAILSCALE_CLIENT_ID"]
+    CLIENT_SECRET = os.environ["TAILSCALE_CLIENT_SECRET"]
+    TAILNET = os.environ.get("TAILSCALE_TAILNET", "-")
+    INTERVAL = int(os.environ.get("INTERVAL_SECONDS", "60"))
+    PORT = int(os.environ.get("PORT", "9619"))
+    ONLINE_THRESHOLD = int(os.environ.get("ONLINE_THRESHOLD_SECONDS", "300"))
+
+    LABELS = ["device", "hostname", "os", "user"]
+
+    g_online = Gauge("tailscale_device_online", "1 if device's last seen is within ONLINE_THRESHOLD_SECONDS", LABELS)
+    g_last_seen = Gauge("tailscale_device_last_seen_timestamp_seconds", "Unix timestamp of device last seen", LABELS)
+    g_age = Gauge("tailscale_device_age_seconds", "Seconds since device last seen", LABELS)
+    g_authorized = Gauge("tailscale_device_authorized", "1 if device is authorized in the tailnet", LABELS)
+    g_total = Gauge("tailscale_device_count", "Total devices in the tailnet")
+    g_last_success = Gauge("tailscale_exporter_last_success_timestamp_seconds", "Last successful API poll")
+    c_errors = Counter("tailscale_exporter_collect_errors_total", "Errors collecting Tailscale data")
+
+    def _post_form(url, data, headers=None):
+        body = urllib.parse.urlencode(data).encode("utf-8")
+        req = urllib.request.Request(url, data=body, method="POST", headers=headers or {})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
+    def _get_json(url, token):
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
+    def _get_token():
+        result = _post_form(
+            "https://api.tailscale.com/api/v2/oauth/token",
+            {
+                "grant_type": "client_credentials",
+                "client_id": CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        return result["access_token"], time.time() + int(result.get("expires_in", 3600))
+
+    def _parse_iso(ts):
+        if not ts:
+            return None
+        if ts.endswith("Z"):
+            ts = ts[:-1] + "+00:00"
+        try:
+            return datetime.fromisoformat(ts).timestamp()
+        except ValueError:
+            return None
+
+    def _short_name(d):
+        # Prefer the user-visible name; fall back to hostname
+        return d.get("name", "").split(".")[0] or d.get("hostname", "unknown")
+
+    def collect(token):
+        url = f"https://api.tailscale.com/api/v2/tailnet/{urllib.parse.quote(TAILNET, safe='')}/devices"
+        data = _get_json(url, token)
+        devices = data.get("devices", [])
+
+        now = time.time()
+        g_online.clear()
+        g_last_seen.clear()
+        g_age.clear()
+        g_authorized.clear()
+
+        for d in devices:
+            labels = {
+                "device": _short_name(d),
+                "hostname": d.get("hostname", "unknown"),
+                "os": d.get("os", "unknown"),
+                "user": d.get("user", "unknown"),
+            }
+            ls = _parse_iso(d.get("lastSeen"))
+            if ls is None:
+                continue
+            age = now - ls
+            g_last_seen.labels(**labels).set(ls)
+            g_age.labels(**labels).set(age)
+            g_online.labels(**labels).set(1 if age <= ONLINE_THRESHOLD else 0)
+            g_authorized.labels(**labels).set(1 if d.get("authorized", False) else 0)
+
+        g_total.set(len(devices))
+        g_last_success.set(now)
+
+    def main():
+        start_http_server(PORT)
+        print(f"tailscale-exporter listening on :{PORT}", flush=True)
+        token = None
+        token_exp = 0
+        while True:
+            try:
+                if token is None or time.time() > token_exp - 60:
+                    token, token_exp = _get_token()
+                collect(token)
+            except Exception as e:
+                print(f"collect error: {e}", flush=True)
+                c_errors.inc()
+                token = None  # force token refresh next cycle
+            time.sleep(INTERVAL)
+
+    if __name__ == "__main__":
+        main()

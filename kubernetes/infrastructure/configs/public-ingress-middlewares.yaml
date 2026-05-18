@@ -1,0 +1,51 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: public-chain
+  namespace: infrastructure
+spec:
+  chain:
+    middlewares:
+      - name: public-security-headers
+      - name: public-rate-limit
+      - name: public-inflight-limit
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: public-security-headers
+  namespace: infrastructure
+spec:
+  headers:
+    contentTypeNosniff: true
+    customFrameOptionsValue: SAMEORIGIN
+    forceSTSHeader: true
+    permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    referrerPolicy: strict-origin-when-cross-origin
+    stsIncludeSubdomains: true
+    stsPreload: true
+    stsSeconds: 31536000
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: public-rate-limit
+  namespace: infrastructure
+spec:
+  rateLimit:
+    average: 120
+    burst: 240
+    period: 1m
+    sourceCriterion:
+      requestHeaderName: CF-Connecting-IP
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: public-inflight-limit
+  namespace: infrastructure
+spec:
+  inFlightReq:
+    amount: 40
+    sourceCriterion:
+      requestHeaderName: CF-Connecting-IP

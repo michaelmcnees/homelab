@@ -108,7 +108,6 @@ A single **PostgreSQL LXC** on Proxmox serves as the central database for all ap
 | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Prowlarr | `*__POSTGRES__HOST`, `*__POSTGRES__PORT`, etc. env vars |
 | Bazarr | PostgreSQL env vars |
 | Paperless-ngx | `PAPERLESS_DBENGINE=postgresql`, `PAPERLESS_DBHOST`, etc. |
-| Gramps Web | PostgreSQL connection string |
 | Pocket ID | `DB_CONNECTION_STRING` env var |
 | Pelican Panel | Database connection env vars |
 | LLDAP | Planned — env var config exists but documentation is sparse. Falls back to SQLite on `local-path` if Postgres doesn't work. |
@@ -137,36 +136,35 @@ SATA SSDs across latios, latias, and rayquaza form a Ceph pool with 3-way replic
 - PostgreSQL LXC disk (HA, live-migratable — critical shared database)
 - Any other VM/LXC disks
 
-### Kubernetes Persistent Volumes — democratic-csi
+### Kubernetes Persistent Volumes — local-path on Ceph-backed VM disks
 
-**democratic-csi** connects K8s to TrueNAS via its API, dynamically creating ZFS datasets per PVC.
+Kubernetes uses Rancher `local-path` as the default StorageClass. Talos VM disks live on Proxmox `ceph-nvme`, so `local-path` data is physically backed by the replicated Proxmox Ceph pool even though Kubernetes treats each PVC as node-local `ReadWriteOnce` storage.
 
 | Storage Class | Backend | Use Case |
 |---------------|---------|----------|
-| `truenas-nfs` | democratic-csi -> TrueNAS NFS | Most workloads (bulk data, media references, document storage). ReadWriteMany. |
-| `local-path` | Rancher local-path-provisioner | SQLite fallbacks (e.g., LLDAP), Redis persistence, anything with NFS/locking issues. Node-local Ceph-backed storage. |
+| `local-path` | Rancher local-path-provisioner on Talos VM disks backed by Proxmox `ceph-nvme` | **Default.** App config, caches, single-pod service data, Redis persistence, and anything with NFS/locking sensitivity. ReadWriteOnce and node-bound at the Kubernetes layer. |
+| TrueNAS NFS | Static or future dynamic NFS shares from snorlax | Bulk/shared datasets: media, downloads, ROM libraries, document archives, backups, and workloads that truly need ReadWriteMany semantics. |
 
-Why democratic-csi over Longhorn: democratic-csi puts all persistent data on TrueNAS's massive ZFS pool — K3s nodes stay stateless compute. Simpler, more storage, fewer moving parts.
+This intentionally avoids a `flash/k8s` default PVC pool. The scarce resource is bulk drive capacity, while the Proxmox Ceph pool already gives the Talos VM disks replicated fast storage. If node-bound PVCs become painful later, add a real Kubernetes Ceph CSI layer deliberately rather than treating TrueNAS as the default app PVC backend.
 
 ### Storage Class Selection Guide
 
-With databases externalized to the PostgreSQL LXC, most K8s apps no longer manage their own databases. This dramatically simplifies storage — almost everything can go on `truenas-nfs`.
+With databases externalized to the PostgreSQL LXC, most K8s apps only need config/cache PVCs. Those should use `local-path` unless the workload explicitly needs shared filesystem access or bulk capacity.
 
-| Use `local-path` | Use `truenas-nfs` |
+| Use `local-path` | Use TrueNAS NFS |
 |-------------------|-------------------|
 | Redis (optional persistence) | Paperless-ngx document storage |
-| LLDAP (if Postgres fallback to SQLite) | Ollama model files |
-| Any app with known NFS/locking issues | Media references, bulk downloads |
-| | App configs (no longer databases — just config files) |
-| | Everything else by default |
+| App config and caches | Ollama model files |
+| SQLite or NFS/locking-sensitive data | Media references, bulk downloads |
+| Single-pod service data that can tolerate node-bound PVCs | ROM libraries, documents, archives |
 
-**Why this is simpler now:** The *arr apps, Paperless-ngx, Gramps, Pocket ID, and Pelican Panel all use the PostgreSQL LXC for their databases. Their K8s PVCs only store config files and cache — safe on NFS.
+**Why this is simpler now:** The *arr apps, Paperless-ngx, Pocket ID, and Pelican Panel all use the PostgreSQL LXC for their databases. Their K8s PVCs mostly store config files and cache, which fit well on `local-path`.
 
-**Escape hatch:** If NFS performance becomes an issue for a service, moving it to `local-path` is a PVC migration — not an architecture change.
+**Tradeoff:** `local-path` PVCs are node-bound at the Kubernetes layer. A pod using one of these PVCs can restart on the same node automatically, but moving the workload to another node requires operational recovery or a future migration to Ceph CSI/NFS.
 
 ### Storage Tiering — Optane, L2ARC, and SSD Pool
 
-> This section has been superseded by `docs/superpowers/specs/2026-03-14-storage-tiering-design.md`. See that spec for the full tiered storage design: Optane metadata/SLOG, NVMe L2ARC, SSD `flash` pool, and StorageClass mappings.
+> This section has been revised by `docs/superpowers/specs/2026-03-14-storage-tiering-design.md`. The old `flash/k8s` default PVC pool is no longer planned; TrueNAS focuses on bulk/shared/backup storage.
 
 ### TrueNAS Dataset Layout
 
@@ -182,7 +180,7 @@ data/
 │   ├── stash/
 │   ├── lazylibrarian/
 │   └── romm/
-├── k8s/                    # democratic-csi managed (auto-creates child datasets)
+├── k8s-bulk/               # optional K8s bulk/shared NFS datasets
 │   ├── nfs/
 │   └── snapshots/
 ├── backups/
@@ -222,7 +220,7 @@ A **PBS instance** (LXC or lightweight VM) provides deduplicated, incremental ba
 #### Other Backup Layers
 
 - **PostgreSQL**: `pg_dump` cron inside the LXC writes logical backups to TrueNAS (`data/backups/postgresql/`). Supplements the PBS VM-level backup with application-consistent database dumps.
-- **K8s persistent data**: Protected by TrueNAS ZFS snapshots (automated hourly/daily/weekly retention). democratic-csi creates per-PVC datasets, so each service's data gets independent snapshot coverage.
+- **K8s persistent data**: Default app PVCs live on Talos VM disks and are protected through Proxmox/PBS VM backups plus app-level exports where needed. TrueNAS-backed bulk/shared datasets use ZFS snapshots.
 - **GitOps repo**: The GitHub repo IS the backup for all K8s manifests and configuration. Cluster can be rebuilt entirely from the repo.
 - **TrueNAS ZFS**: Automated snapshot schedule (hourly/daily/weekly retention) via built-in snapshot tasks.
 
@@ -330,7 +328,7 @@ Future consideration: evaluate Caddy as an alternative ingress controller once t
 - **Subnet router**: Runs as a K8s pod, advertises home subnets to the tailnet.
 - **Use case**: Access all internal services via `home.mcnees.me` names from anywhere.
 - **Tailscale SSH**: Bonus — SSH into Proxmox nodes from anywhere without port forwarding.
-- Publicly exposed services (Wizarr, Pocket ID) go through external Traefik entrypoint via Cloudflare, not Tailscale.
+- Publicly exposed services (Pocket ID, Wizarr, Pelican Panel, Pelican Wings, and selected HDF services) go through the external Traefik entrypoint via Cloudflare, not Tailscale. Pelican Panel uses `games.mcnees.me`, Wings API/control uses `wings.games.mcnees.me`, and game allocations may use `games.mcnees.me:<port>` direct TCP/UDP exposure. Local infrastructure UIs such as TrueNAS, Proxmox, Homebridge, SABnzbd, and Tdarr remain internal-only under `home.mcnees.me`.
 
 ---
 
@@ -427,7 +425,7 @@ homelab/
 │   │   ├── lldap/
 │   │   ├── oauth2-proxy/
 │   │   ├── ollama/
-│   │   ├── paperless-ai/
+│   │   ├── paperless-gpt/
 │   │   ├── paperless-ngx/
 │   │   ├── pelican-panel/
 │   │   ├── pocket-id/
@@ -562,9 +560,9 @@ K8s namespaces group services by function for isolation and NetworkPolicy bounda
 | `auth` | Pocket ID, LLDAP, OAuth2-Proxy |
 | `databases` | Redis (cache/session store) |
 | `media` | Sonarr, Sonarr-anime, Radarr, Lidarr, Lidarr-kids, Bazarr, Prowlarr, Recyclarr, Seer, Wizarr, Tautulli |
-| `apps` | Pelican Panel, Paperless-ngx, Paperless-ai, Ollama, Homepage, Stash, Netboot.xyz |
+| `apps` | Mantle, Pelican Panel, Paperless-ngx, Paperless-GPT, Ollama, Homepage, Stash, Netboot.xyz |
 | `hdf` | Invoice Ninja, Chatwoot (Hudsonville Digital Foundry client services) |
-| `storage` | democratic-csi, RustFS (S3-compatible object storage) |
+| `storage` | local-path provisioner, future TrueNAS NFS mounts, RustFS (S3-compatible object storage) |
 | `networking` | AdGuard Home, Tailscale |
 | `dev-lab` | Development/experimentation workloads (see Section 8) |
 
@@ -688,11 +686,11 @@ Home Dashboard
 
 **Productivity & Knowledge**
 - Paperless-ngx (document management, OCR, search)
-- Paperless-ai (auto-tagging and classification companion for Paperless-ngx)
+- Paperless-GPT (auto-tagging, metadata, and OCR companion for Paperless-ngx)
 - Homepage (dashboard)
 
 **AI/ML**
-- Ollama (local LLM inference — serves Paperless-ai and other local AI workloads)
+- Ollama (local LLM inference - serves Paperless-GPT and other local AI workloads)
 
 **Media Management**
 - Seer (replaces Overseerr — migration required)
@@ -723,19 +721,19 @@ Home Dashboard
 
 ### Document Processing — Paperless-ngx + Local AI
 
-**Paperless-ngx** handles document ingestion, OCR, storage, and search. **Paperless-ai** watches for new documents and sends them to an LLM for automatic tagging, classification, and summarization. **Ollama** runs the LLM locally — no documents leave the network.
+**Paperless-ngx** handles document ingestion, OCR, storage, and search. **Paperless-GPT** watches tagged documents and sends them to an LLM for automatic titles, tags, correspondents, document types, and optional OCR assistance. **Ollama** runs the LLM locally — no documents leave the network.
 
 | Component | RAM | Storage Class | Notes |
 |-----------|-----|---------------|-------|
 | Paperless-ngx | ~1GB | `truenas-nfs` (documents), PostgreSQL LXC (db) | Core document management |
-| Paperless-ai | ~512MB | — | Stateless companion, calls Ollama API |
+| Paperless-GPT | ~256-512MB | `local-path` (prompt templates) | Companion web UI, calls Paperless and Ollama APIs |
 | Ollama | 4-6GB limit | `truenas-nfs` (model files) | Serves LLM inference |
 
 **Default model:** Llama 3.2 3B (Q4 quantized) — ~2-3GB RAM, strong at classification and summarization. Upgrade path to Llama 3.1 8B (Q4, ~5GB) if quality is insufficient.
 
 **Node scheduling:** Ollama should prefer lugia (latios, 40GB worker) where there's the most memory headroom. Soft affinity — not a hard requirement.
 
-**Anthropic API fallback:** Paperless-ai supports any OpenAI-compatible API. If local model quality is insufficient for certain document types, it can be pointed at the Anthropic API (via a compatible proxy) without architecture changes. Preference is local-first for privacy.
+**Anthropic API fallback:** Paperless-GPT supports Anthropic directly. If local model quality is insufficient for certain document types, it can be pointed at Claude without architecture changes. Preference is local-first for privacy.
 
 ### Retired
 
@@ -744,7 +742,7 @@ Home Dashboard
 | Portainer | Flux + Grafana |
 | Overseerr | Seer |
 | InfluxDB | Prometheus |
-| n8n | Replaced by mantle |
+| n8n | Replaced by Mantle |
 | Scrypted | Removed |
 | Outline | Removed |
 | Linkwarden | Removed |
@@ -810,7 +808,7 @@ An isolated environment within K8s for career development, experimentation, and 
 - **Namespace**: `dev-lab` with its own resource quotas (CPU/memory limits) to prevent experiments from starving production workloads.
 - **DNS**: `*.dev.home.mcnees.me` — separate subdomain so it's clear what's dev vs. production.
 - **Traefik**: Dedicated IngressRoute entries under the dev subdomain. Same internal entrypoint as production (no public exposure).
-- **Storage**: Uses the same `truenas-nfs` storage class. democratic-csi creates datasets under `data/k8s/nfs/` — no special config needed.
+- **Storage**: Uses `local-path` by default. Add a TrueNAS NFS mount only for experiments that need shared filesystem semantics or bulk datasets.
 - **NetworkPolicies**: Dev lab namespace can reach the PostgreSQL LXC IP (for testing against shared databases), Redis in the databases namespace, and the internet, but not production app namespaces.
 - **Auth**: Dev services behind the same OAuth2-Proxy chain — only Michael has access.
 

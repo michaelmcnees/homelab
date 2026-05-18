@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: homebridge-external
+  namespace: apps
+spec:
+  ports:
+    - name: http
+      port: 8581
+      targetPort: 8581
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: homebridge-external
+  namespace: apps
+subsets:
+  - addresses:
+      - ip: 10.0.2.5
+    ports:
+      - name: http
+        port: 8581
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: homebridge
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`homebridge.home.mcnees.me`)
+      kind: Rule
+      services:
+        - name: homebridge-external
+          port: 8581
+  tls:
+    secretName: homebridge-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: homebridge
+  namespace: apps
+spec:
+  secretName: homebridge-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - homebridge.home.mcnees.me

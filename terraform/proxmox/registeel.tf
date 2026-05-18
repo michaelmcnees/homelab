@@ -1,16 +1,20 @@
 module "registeel" {
-  source = "./modules/k3s-node"
+  source = "./modules/lxc"
 
-  vm_name        = "registeel"
-  target_node    = "bulbasaur"
-  vm_id          = 112
-  cores          = 4
-  memory         = 24576
-  disk_size      = 50
-  storage_pool   = var.vm_default_storage
-  ip_address     = "10.0.0.82/24"
-  gateway        = var.vm_default_gateway
-  dns_servers    = var.vm_dns_servers
-  ssh_public_key = var.vm_ssh_public_key
-  tags           = ["k3s", "k3s-server", "terraform"]
+  lxc_hostname     = "registeel"
+  target_node      = "rayquaza"
+  lxc_id           = 201
+  cores            = 2
+  memory           = 4096
+  swap             = 1024
+  disk_size        = 64
+  storage_pool     = var.vm_default_storage
+  ip_address       = "10.0.10.91/24"
+  gateway          = var.lxc_default_gateway
+  dns_servers      = var.lxc_dns_servers
+  ssh_public_key   = trimspace(file(pathexpand(var.lxc_ssh_public_key_path)))
+  template_file_id = var.lxc_template_file_id
+  vlan_tag         = var.kubernetes_vlan_tag
+  tags             = ["registeel", "mariadb", "database", "terraform", "ha"]
+  ha_enabled       = true
 }

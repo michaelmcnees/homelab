@@ -8,8 +8,9 @@ k3s_version: "v1.31.12+k3s1"
 # Cluster token — generate with: openssl rand -base64 64
 token: "CHANGE_ME_GENERATE_WITH_openssl_rand_-base64_64"
 
-# API endpoint — first server node IP (or VIP if using kube-vip later)
-api_endpoint: "10.0.0.80"
+# API endpoint — first server node IP during bootstrap.
+# After kube-vip is deployed, local kubeconfigs can point at 10.0.10.10.
+api_endpoint: "10.0.10.11"
 api_port: 6443
 
 # K3s server config — written to /etc/rancher/k3s/config.yaml on server nodes
@@ -22,7 +23,10 @@ server_config_yaml: |
     - local-storage
   flannel-backend: vxlan
   tls-san:
-    - "10.0.0.80"
+    - "10.0.10.10"
+    - "10.0.10.11"
+    - "10.0.10.12"
+    - "10.0.10.13"
 
 # K3s agent config — written to /etc/rancher/k3s/config.yaml on agent nodes
 # agent_config_yaml: |

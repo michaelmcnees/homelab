@@ -45,6 +45,7 @@ Use this to track where you are in the migration. When starting a new Claude ses
 | 1.4 | 🖥️ Physical | Configure VLAN-aware bridges on each Proxmox node | ⬜ |
 | 1.5 | 🔀 Both | Verify: spin up test VM on VLAN 10, confirm IP assignment + inter-VLAN routing | ⬜ |
 | 1.6 | 🔀 Both | Verify AdGuard (on Mew, flat network) reachable from all VLANs | ⬜ |
+| 1.7 | 💻 Software | After VLAN 10/40 are verified, tighten the UniFi Proxmox host ports from tagged VLAN `Allow All` to custom tagged VLANs for K8s (10) and Storage (40). Note: USW Flex XG rejects provider-created port profiles that include implicit QoS queue fields, so prefer built-in/manual port settings unless provider behavior improves. | ⬜ |
 
 **Gate:** All VLANs active, VLAN 10 test VM passes connectivity tests.
 
@@ -79,7 +80,7 @@ Use this to track where you are in the migration. When starting a new Claude ses
 | 3.3 | 💻 Software | Deploy MetalLB + Traefik v3 (ingress) | ⬜ |
 | 3.4 | 💻 Software | Deploy cert-manager + ExternalDNS (TLS + public DNS) | ⬜ |
 | 3.5 | 🔀 Both | Create metagross LXC (OpenTofu), install PostgreSQL (Ansible) | ⬜ |
-| 3.6 | 🔀 Both | Migrate databases to metagross: pocket_id, pelican, n8n, romm (pg_dump/restore) | ⬜ |
+| 3.6 | 🔀 Both | Migrate databases to metagross: pocket_id, pelican, romm (pg_dump/restore). n8n stays on the legacy path until replaced by Mantle. | ⬜ |
 | 3.7 | 💻 Software | Deploy Redis in K8s | ⬜ |
 | 3.8 | 💻 Software | Deploy auth chain: LLDAP → Pocket ID → OAuth2-Proxy | ⬜ |
 | 3.9 | 🔀 Both | Verify: all HelmReleases Ready, test Ingress gets TLS cert, auth SSO works | ⬜ |
@@ -100,12 +101,12 @@ Each wave follows: export data → deploy to K3s → import data → verify → 
 | 4.4 | 🔀 Both | **Wave 4:** Servarr stack (sonarr×2, radarr, lidarr×2, bazarr, prowlarr, recyclarr). Migrate Docker volumes. | ⬜ |
 | 4.4b | 🔀 Both | Destroy Docker LXC, deploy 5th K3s VM on freed node, join to cluster | ⬜ |
 | 4.5 | 🔀 Both | **Wave 5:** Seer, Wizarr, Tautulli. Mostly config migration. | ⬜ |
-| 4.6 | 🔀 Both | **Wave 6:** Outline, Booklore, Paperless-ngx+ai, Gramps. Migrate DBs + file data. | ⬜ |
-| 4.7 | 🔀 Both | **Wave 7:** Ollama + OpenWebUI, n8n. | ⬜ |
-| 4.8 | 🔀 Both | **Wave 8:** Monitoring (kube-prometheus-stack, Beszel, Uptime Kuma). Retire InfluxDB. | ⬜ |
-| 4.9 | 🔀 Both | **Wave 9:** Pelican Panel → K3s (points at Wings LXC on pikachu). | ⬜ |
-| 4.10 | 💻 Software | **Wave 10:** Scrypted (new deploy, replaces Homebridge cameras). | ⬜ |
-| 4.11 | 🔀 Both | **Wave 11:** Tailscale subnet router, DbGate, Netboot.xyz LXC. | ⬜ |
+| 4.6 | 🔀 Both | **Wave 6:** Ollama, Open WebUI, Homepage, Paperless-ngx, Paperless-GPT. | ⬜ |
+| 4.7 | 🔀 Both | **Wave 7:** Tautulli, RomM, LazyLibrarian/Readarr decision, Stash/alternative decision. | ⬜ |
+| 4.8 | 🔀 Both | **Wave 8:** Mantle dogfood deployment; replace n8n instead of migrating it. | ⬜ |
+| 4.9 | 🔀 Both | **Wave 9:** Pelican Panel → K3s and public exposure, then Wings public exposure. | ⬜ |
+| 4.10 | 🔀 Both | **Wave 10:** RustFS, Invoice Ninja, Chatwoot. | ⬜ |
+| 4.11 | 🔀 Both | **Phase 4 deferred:** Tailscale subnet router, DbGate, Netboot.xyz LXC. | ⬜ |
 | 4.12 | 🖥️ Physical | Destroy retired LXCs: InfluxDB, Overseerr, ntfy, LazyLibrarian, old Traefik, old PostgreSQL, Docker | ⬜ |
 
 **Gate:** All services in K3s verified, old LXCs destroyed, Mew nearly empty.
@@ -116,10 +117,10 @@ Each wave follows: export data → deploy to K3s → import data → verify → 
 
 | Step | Type | Task | Status |
 |------|------|------|--------|
-| 5.1 | 🔀 Both | Move WiFi clients to VLAN 20 (trusted) — update McNet SSID VLAN | ⬜ |
-| 5.2 | 🔀 Both | Move IoT devices to VLAN 30 — update McNet_IoT SSID VLAN | ⬜ |
-| 5.3 | 🔀 Both | Create guest WiFi on VLAN 50 (McNet Guest, internet-only) | ⬜ |
-| 5.4 | 💻 Software | Import DHCP reservations into OpenTofu (`terraform/unifi/`) | ⬜ |
+| 5.1 | 🔀 Both | Move WiFi clients to VLAN 20 (trusted) — update McNet SSID VLAN | ✅ |
+| 5.2 | 🔀 Both | Move IoT devices to VLAN 30 — update McNet_IoT SSID VLAN | ✅ |
+| 5.3 | 🔀 Both | Create guest WiFi on VLAN 50 (McNet Guest, internet-only) | ✅ |
+| 5.4 | 💻 Software | Import DHCP reservations into OpenTofu (`terraform/unifi/`) | ✅ |
 | 5.5 | 🔀 Both | Decommission flat /22 — verify everything works on VLANs first | ⬜ |
 | 5.6 | 🖥️ Physical | Clean up Mew — destroy remaining LXCs, repurpose or decommission | ⬜ |
 | 5.7 | 🔀 Both | Create deoxys (PBS LXC), configure backup jobs | ⬜ |
@@ -127,6 +128,8 @@ Each wave follows: export data → deploy to K3s → import data → verify → 
 | 5.9 | 💻 Software | Write documentation: break-glass guide, in-case-of-death plan, runbooks | ⬜ |
 
 **Gate:** All VLANs active, flat /22 gone, PBS running, docs complete. **Migration done.**
+
+McLan decommission blockers are tracked in `docs/runbooks/networking.md`.
 
 ---
 

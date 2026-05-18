@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - secret.sops.yaml
+  - alertmanager-config.sops.yaml
+  - helmrelease.yaml
+  - ingress.yaml
+  - loki-datasource.yaml
+  - homelab-k8s-overview-dashboard.yaml
+  - homelab-databases-dashboard.yaml
+  - homelab-app-versions-dashboard.yaml
+  - homelab-paperless-dashboard.yaml
+  - homelab-ai-dashboard.yaml
+  - homelab-network-dashboard.yaml
+  - homelab-pod-logs-dashboard.yaml
+  - homelab-proxmox-dashboard.yaml
+  - homelab-storage-dashboard.yaml
+  - homelab-certmanager-dashboard.yaml
+  - homelab-capacity-dashboard.yaml
+  - homelab-traefik-dashboard.yaml
+  - homelab-flux-dashboard.yaml
+  - homelab-auth-dashboard.yaml
+  - homelab-household-compute-dashboard.yaml
+  - homelab-loki-dashboard.yaml
+  - flux-podmonitor.yaml
+  - homelab-alerts.yaml
+  - homelab-ai-network-alerts.yaml
+  - homelab-platform-alerts.yaml

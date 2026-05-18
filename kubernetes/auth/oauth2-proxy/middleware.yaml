@@ -1,0 +1,73 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth2-proxy
+  namespace: auth
+spec:
+  chain:
+    middlewares:
+      - name: oauth2-proxy-errors
+      - name: oauth2-proxy-auth
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth2-proxy-auth
+  namespace: auth
+spec:
+  forwardAuth:
+    address: http://oauth2-proxy.auth.svc.cluster.local:4180/oauth2/auth
+    trustForwardHeader: true
+    authResponseHeaders:
+      - X-Auth-Request-User
+      - X-Auth-Request-Email
+      - X-Auth-Request-Groups
+      - X-Auth-Request-Preferred-Username
+      - Authorization
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: oauth2-proxy
+  namespace: auth
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`auth.home.mcnees.me`) || PathPrefix(`/oauth2`)
+      kind: Rule
+      services:
+        - name: oauth2-proxy
+          port: 4180
+  tls:
+    secretName: oauth2-proxy-tls
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth2-proxy-errors
+  namespace: auth
+spec:
+  errors:
+    status:
+      - "401-403"
+    service:
+      name: oauth2-proxy
+      port: 4180
+    query: /oauth2/sign_in?rd={url}
+    statusRewrites:
+      "401": 302
+      "403": 302
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: oauth2-proxy
+  namespace: auth
+spec:
+  secretName: oauth2-proxy-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - auth.home.mcnees.me

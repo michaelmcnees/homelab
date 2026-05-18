@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lazylibrarian
+  namespace: media
+  labels:
+    app.kubernetes.io/name: lazylibrarian
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lazylibrarian
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: lazylibrarian
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 568
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: lazylibrarian
+          image: lscr.io/linuxserver/lazylibrarian:652b2d0d-ls276
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 5299
+              protocol: TCP
+          env:
+            - name: TZ
+              value: America/Detroit
+            - name: PUID
+              value: "568"
+            - name: PGID
+              value: "568"
+            - name: UMASK
+              value: "002"
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: media
+              mountPath: /media
+            - name: media
+              mountPath: /books
+              subPath: library/books
+            - name: media
+              mountPath: /audiobooks
+              subPath: library/audiobooks
+            - name: media
+              mountPath: /downloads
+              subPath: usenet/complete/books
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: lazylibrarian-config
+        - name: media
+          persistentVolumeClaim:
+            claimName: media-library
