@@ -114,6 +114,11 @@ spec:
                 curl -sSL https://github.com/pimalaya/himalaya/releases/latest/download/himalaya.x86_64-linux.tgz | tar xz -C /opt/data/.local/bin/
                 chmod +x /opt/data/.local/bin/himalaya
               fi
+              if [ ! -f /opt/data/.local/bin/gh ]; then
+                GH_URL=$(curl -sL https://api.github.com/repos/cli/cli/releases/latest | grep -o '"browser_download_url": "[^"]*linux_amd64.tar.gz"' | cut -d'"' -f4)
+                curl -sSL "$GH_URL" | tar xz --strip-components=2 -C /opt/data/.local/bin/ --wildcards '*/bin/gh'
+                chmod +x /opt/data/.local/bin/gh
+              fi
           env:
             - name: ICLOUD_USER
               value: mcnees.michael@icloud.com
@@ -225,6 +230,11 @@ spec:
                 secretKeyRef:
                   name: hermes-secret
                   key: TODOIST_API_TOKEN
+            - name: GH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: GH_TOKEN
           readinessProbe:
             tcpSocket:
               port: dashboard
