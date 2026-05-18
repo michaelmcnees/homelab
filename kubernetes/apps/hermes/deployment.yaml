@@ -116,8 +116,11 @@ spec:
               fi
               if [ ! -f /opt/data/.local/bin/gh ]; then
                 GH_URL=$(curl -sL https://api.github.com/repos/cli/cli/releases/latest | grep -o '"browser_download_url": "[^"]*linux_amd64.tar.gz"' | cut -d'"' -f4)
-                curl -sSL "$GH_URL" | tar xz --strip-components=2 -C /opt/data/.local/bin/ --wildcards '*/bin/gh'
+                mkdir -p /tmp/gh-install
+                curl -sSL "$GH_URL" | tar xz -C /tmp/gh-install/
+                cp /tmp/gh-install/*/bin/gh /opt/data/.local/bin/gh
                 chmod +x /opt/data/.local/bin/gh
+                rm -rf /tmp/gh-install
               fi
           env:
             - name: ICLOUD_USER
