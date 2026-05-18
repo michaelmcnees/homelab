@@ -44,8 +44,8 @@ spec:
               mountPath: /workspace
             - name: obsidian-vault
               mountPath: /workspace/obsidian
-        - name: inject-email-config
-          image: busybox:1.37.0
+        - name: inject-icloud-config
+          image: curlimages/curl:8.13.0
           imagePullPolicy: IfNotPresent
           command:
             - sh
@@ -53,21 +53,49 @@ spec:
             - |
               ENV_FILE=/opt/data/.env
               sed -i '/^EMAIL_ADDRESS=/d;/^EMAIL_PASSWORD=/d;/^EMAIL_IMAP_HOST=/d;/^EMAIL_IMAP_PORT=/d;/^EMAIL_SMTP_HOST=/d;/^EMAIL_SMTP_PORT=/d;/^EMAIL_POLL_INTERVAL=/d;/^EMAIL_ALLOWED_USERS=/d;/^EMAIL_HOME_ADDRESS=/d;/^CALDAV_URL=/d;/^CALDAV_USER=/d;/^CALDAV_PASSWORD=/d' "$ENV_FILE"
-              printf '\nEMAIL_ADDRESS=%s\nEMAIL_PASSWORD=%s\nEMAIL_IMAP_HOST=%s\nEMAIL_IMAP_PORT=%s\nEMAIL_SMTP_HOST=%s\nEMAIL_SMTP_PORT=%s\nEMAIL_POLL_INTERVAL=15\nEMAIL_ALLOWED_USERS=%s\nEMAIL_HOME_ADDRESS=%s\nCALDAV_URL=%s\nCALDAV_USER=%s\nCALDAV_PASSWORD=%s\n' \
-                "$EMAIL_ADDRESS" "$EMAIL_PASSWORD" "$EMAIL_IMAP_HOST" "$EMAIL_IMAP_PORT" \
-                "$EMAIL_SMTP_HOST" "$EMAIL_SMTP_PORT" "$EMAIL_HOME" "$EMAIL_HOME" \
+              printf '\nCALDAV_URL=%s\nCALDAV_USER=%s\nCALDAV_PASSWORD=%s\n' \
                 "$CALDAV_URL" "$CALDAV_USER" "$CALDAV_PASSWORD" \
                 >> "$ENV_FILE"
+              mkdir -p /opt/data/home/.config/himalaya
+              cat > /opt/data/home/.config/himalaya/config.toml <<TOML
+[accounts.icloud]
+email = "$EMAIL_HOME"
+display-name = "Michael McNees"
+default = true
+backend.type = "imap"
+backend.host = "$EMAIL_IMAP_HOST"
+backend.port = $EMAIL_IMAP_PORT
+backend.encryption.type = "tls"
+backend.login = "$ICLOUD_USER"
+backend.auth.type = "password"
+backend.auth.raw = "$ICLOUD_PASSWORD"
+message.send.backend.type = "smtp"
+message.send.backend.host = "$EMAIL_SMTP_HOST"
+message.send.backend.port = $EMAIL_SMTP_PORT
+message.send.backend.encryption.type = "start-tls"
+message.send.backend.login = "$ICLOUD_USER"
+message.send.backend.auth.type = "password"
+message.send.backend.auth.raw = "$ICLOUD_PASSWORD"
+folder.aliases.inbox = "INBOX"
+folder.aliases.sent = "Sent Messages"
+folder.aliases.drafts = "Drafts"
+folder.aliases.trash = "Deleted Messages"
+TOML
+              if [ ! -f /opt/data/.local/bin/himalaya ]; then
+                mkdir -p /opt/data/.local/bin
+                curl -sSL https://github.com/pimalaya/himalaya/releases/latest/download/himalaya-linux-x86_64.tar.gz | tar xz -C /opt/data/.local/bin/
+                chmod +x /opt/data/.local/bin/himalaya
+              fi
           env:
-            - name: EMAIL_ADDRESS
+            - name: ICLOUD_USER
               value: mcnees.michael@icloud.com
-            - name: EMAIL_HOME
-              value: michael@mcnees.me
-            - name: EMAIL_PASSWORD
+            - name: ICLOUD_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: hermes-secret
                   key: APPLE_APP_PASSWORD
+            - name: EMAIL_HOME
+              value: michael@mcnees.me
             - name: EMAIL_IMAP_HOST
               value: imap.mail.me.com
             - name: EMAIL_IMAP_PORT
