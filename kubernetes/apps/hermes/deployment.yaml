@@ -220,6 +220,11 @@ spec:
                 secretKeyRef:
                   name: hermes-secret
                   key: TELEGRAM_ALLOWED_USERS
+            - name: TODOIST_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: TODOIST_API_TOKEN
           readinessProbe:
             tcpSocket:
               port: dashboard
