@@ -57,30 +57,30 @@ spec:
                 "$CALDAV_URL" "$CALDAV_USER" "$CALDAV_PASSWORD" \
                 >> "$ENV_FILE"
               mkdir -p /opt/data/home/.config/himalaya
-              cat > /opt/data/home/.config/himalaya/config.toml <<TOML
-[accounts.icloud]
-email = "$EMAIL_HOME"
-display-name = "Michael McNees"
-default = true
-backend.type = "imap"
-backend.host = "$EMAIL_IMAP_HOST"
-backend.port = $EMAIL_IMAP_PORT
-backend.encryption.type = "tls"
-backend.login = "$ICLOUD_USER"
-backend.auth.type = "password"
-backend.auth.raw = "$ICLOUD_PASSWORD"
-message.send.backend.type = "smtp"
-message.send.backend.host = "$EMAIL_SMTP_HOST"
-message.send.backend.port = $EMAIL_SMTP_PORT
-message.send.backend.encryption.type = "start-tls"
-message.send.backend.login = "$ICLOUD_USER"
-message.send.backend.auth.type = "password"
-message.send.backend.auth.raw = "$ICLOUD_PASSWORD"
-folder.aliases.inbox = "INBOX"
-folder.aliases.sent = "Sent Messages"
-folder.aliases.drafts = "Drafts"
-folder.aliases.trash = "Deleted Messages"
-TOML
+              printf '%s\n' \
+                "[accounts.icloud]" \
+                "email = \"$EMAIL_HOME\"" \
+                "display-name = \"Michael McNees\"" \
+                "default = true" \
+                "backend.type = \"imap\"" \
+                "backend.host = \"$EMAIL_IMAP_HOST\"" \
+                "backend.port = $EMAIL_IMAP_PORT" \
+                "backend.encryption.type = \"tls\"" \
+                "backend.login = \"$ICLOUD_USER\"" \
+                "backend.auth.type = \"password\"" \
+                "backend.auth.raw = \"$ICLOUD_PASSWORD\"" \
+                "message.send.backend.type = \"smtp\"" \
+                "message.send.backend.host = \"$EMAIL_SMTP_HOST\"" \
+                "message.send.backend.port = $EMAIL_SMTP_PORT" \
+                "message.send.backend.encryption.type = \"start-tls\"" \
+                "message.send.backend.login = \"$ICLOUD_USER\"" \
+                "message.send.backend.auth.type = \"password\"" \
+                "message.send.backend.auth.raw = \"$ICLOUD_PASSWORD\"" \
+                "folder.aliases.inbox = \"INBOX\"" \
+                "folder.aliases.sent = \"Sent Messages\"" \
+                "folder.aliases.drafts = \"Drafts\"" \
+                "folder.aliases.trash = \"Deleted Messages\"" \
+                > /opt/data/home/.config/himalaya/config.toml
               if [ ! -f /opt/data/.local/bin/himalaya ]; then
                 mkdir -p /opt/data/.local/bin
                 curl -sSL https://github.com/pimalaya/himalaya/releases/latest/download/himalaya-linux-x86_64.tar.gz | tar xz -C /opt/data/.local/bin/
