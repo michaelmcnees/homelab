@@ -83,7 +83,7 @@ spec:
                 > /opt/data/home/.config/himalaya/config.toml
               if [ ! -f /opt/data/.local/bin/himalaya ]; then
                 mkdir -p /opt/data/.local/bin
-                curl -sSL https://github.com/pimalaya/himalaya/releases/latest/download/himalaya-linux-x86_64.tar.gz | tar xz -C /opt/data/.local/bin/
+                curl -sSL https://github.com/pimalaya/himalaya/releases/latest/download/himalaya.x86_64-linux.tgz | tar xz -C /opt/data/.local/bin/
                 chmod +x /opt/data/.local/bin/himalaya
               fi
           env:
