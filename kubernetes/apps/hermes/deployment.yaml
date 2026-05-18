@@ -181,6 +181,8 @@ spec:
               value: /opt/data
             - name: HERMES_WORKSPACE_DIR
               value: /workspace
+            - name: PYTHONPATH
+              value: /opt/data/home/.local/lib/python3
             - name: OLLAMA_BASE_URL
               value: http://ollama.apps.svc.cluster.local:11434
             - name: OPENROUTER_API_KEY
