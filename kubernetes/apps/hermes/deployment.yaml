@@ -56,7 +56,8 @@ spec:
               printf '\nCALDAV_URL=%s\nCALDAV_USER=%s\nCALDAV_PASSWORD=%s\n' \
                 "$CALDAV_URL" "$CALDAV_USER" "$CALDAV_PASSWORD" \
                 >> "$ENV_FILE"
-              if [ ! -f /opt/data/home/.config/himalaya/config.toml ]; then
+              HCONFIG=/opt/data/home/.config/himalaya/config.toml
+              if [ ! -f "$HCONFIG" ]; then
                 mkdir -p /opt/data/home/.config/himalaya
                 printf '%s\n' \
                   "[accounts.icloud]" \
@@ -81,7 +82,32 @@ spec:
                   "folder.aliases.sent = \"Sent Messages\"" \
                   "folder.aliases.drafts = \"Drafts\"" \
                   "folder.aliases.trash = \"Deleted Messages\"" \
-                  > /opt/data/home/.config/himalaya/config.toml
+                  > "$HCONFIG"
+              fi
+              if ! grep -q '\[accounts\.gmail\]' "$HCONFIG"; then
+                printf '\n%s\n' \
+                  "[accounts.gmail]" \
+                  "email = \"$GMAIL_USER\"" \
+                  "display-name = \"Michael McNees\"" \
+                  "backend.type = \"imap\"" \
+                  "backend.host = \"imap.gmail.com\"" \
+                  "backend.port = 993" \
+                  "backend.encryption.type = \"tls\"" \
+                  "backend.login = \"$GMAIL_USER\"" \
+                  "backend.auth.type = \"password\"" \
+                  "backend.auth.raw = \"$GMAIL_PASSWORD\"" \
+                  "message.send.backend.type = \"smtp\"" \
+                  "message.send.backend.host = \"smtp.gmail.com\"" \
+                  "message.send.backend.port = 465" \
+                  "message.send.backend.encryption.type = \"tls\"" \
+                  "message.send.backend.login = \"$GMAIL_USER\"" \
+                  "message.send.backend.auth.type = \"password\"" \
+                  "message.send.backend.auth.raw = \"$GMAIL_PASSWORD\"" \
+                  "folder.aliases.inbox = \"INBOX\"" \
+                  "folder.aliases.sent = \"[Gmail]/Sent Mail\"" \
+                  "folder.aliases.drafts = \"[Gmail]/Drafts\"" \
+                  "folder.aliases.trash = \"[Gmail]/Trash\"" \
+                  >> "$HCONFIG"
               fi
               if [ ! -f /opt/data/.local/bin/himalaya ]; then
                 mkdir -p /opt/data/.local/bin
@@ -106,6 +132,13 @@ spec:
               value: smtp.mail.me.com
             - name: EMAIL_SMTP_PORT
               value: "587"
+            - name: GMAIL_USER
+              value: mcnees.michael@gmail.com
+            - name: GMAIL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: GMAIL_APP_PASSWORD
             - name: CALDAV_URL
               value: https://caldav.icloud.com/
             - name: CALDAV_USER
