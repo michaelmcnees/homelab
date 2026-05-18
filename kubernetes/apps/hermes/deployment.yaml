@@ -28,7 +28,7 @@ spec:
           command:
             - sh
             - -c
-            - chown -R 10000:10000 /opt/data /workspace /workspace/obsidian
+            - chown -R 10000:10000 /opt/data && find /workspace -xdev -not -path /workspace/obsidian -exec chown 10000:10000 {} +
           securityContext:
             runAsUser: 0
             allowPrivilegeEscalation: false
