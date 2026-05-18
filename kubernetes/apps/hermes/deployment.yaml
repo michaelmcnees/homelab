@@ -238,6 +238,11 @@ spec:
                 secretKeyRef:
                   name: hermes-secret
                   key: GH_TOKEN
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: GH_TOKEN
           readinessProbe:
             tcpSocket:
               port: dashboard
