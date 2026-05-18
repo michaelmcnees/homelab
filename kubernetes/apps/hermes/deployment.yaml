@@ -123,7 +123,9 @@ spec:
                 rm -rf /tmp/gh-install
               fi
               export HOME=/opt/data/home
-              echo "$GH_TOKEN" | /opt/data/.local/bin/gh auth login --with-token
+              GH_TOK="$GH_TOKEN"
+              unset GH_TOKEN
+              echo "$GH_TOK" | /opt/data/.local/bin/gh auth login --with-token
           env:
             - name: ICLOUD_USER
               value: mcnees.michael@icloud.com
