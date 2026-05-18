@@ -122,6 +122,8 @@ spec:
                 chmod +x /opt/data/.local/bin/gh
                 rm -rf /tmp/gh-install
               fi
+              export HOME=/opt/data/home
+              echo "$GH_TOKEN" | /opt/data/.local/bin/gh auth login --with-token
           env:
             - name: ICLOUD_USER
               value: mcnees.michael@icloud.com
@@ -156,6 +158,11 @@ spec:
                 secretKeyRef:
                   name: hermes-secret
                   key: APPLE_APP_PASSWORD
+            - name: GH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: GH_TOKEN
           securityContext:
             runAsUser: 10000
             allowPrivilegeEscalation: false
