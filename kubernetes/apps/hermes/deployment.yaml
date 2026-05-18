@@ -96,6 +96,30 @@ spec:
                 secretKeyRef:
                   name: hermes-secret
                   key: OLLAMA_API_KEY
+            - name: EMAIL_IMAP_HOST
+              value: imap.mail.me.com
+            - name: EMAIL_IMAP_PORT
+              value: "993"
+            - name: EMAIL_IMAP_USER
+              value: michael@mcnees.me
+            - name: EMAIL_IMAP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: APPLE_APP_PASSWORD
+            - name: EMAIL_SMTP_HOST
+              value: smtp.mail.me.com
+            - name: EMAIL_SMTP_PORT
+              value: "587"
+            - name: EMAIL_SMTP_USER
+              value: michael@mcnees.me
+            - name: EMAIL_SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: APPLE_APP_PASSWORD
+            - name: EMAIL_SMTP_TLS
+              value: "true"
             - name: TELEGRAM_BOT_TOKEN
               valueFrom:
                 secretKeyRef:
