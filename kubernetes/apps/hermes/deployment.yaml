@@ -44,6 +44,55 @@ spec:
               mountPath: /workspace
             - name: obsidian-vault
               mountPath: /workspace/obsidian
+        - name: inject-email-config
+          image: busybox:1.37.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              ENV_FILE=/opt/data/.env
+              sed -i '/^EMAIL_ADDRESS=/d;/^EMAIL_PASSWORD=/d;/^EMAIL_IMAP_HOST=/d;/^EMAIL_IMAP_PORT=/d;/^EMAIL_SMTP_HOST=/d;/^EMAIL_SMTP_PORT=/d;/^EMAIL_POLL_INTERVAL=/d;/^EMAIL_ALLOWED_USERS=/d;/^EMAIL_HOME_ADDRESS=/d;/^CALDAV_URL=/d;/^CALDAV_USER=/d;/^CALDAV_PASSWORD=/d' "$ENV_FILE"
+              printf '\nEMAIL_ADDRESS=%s\nEMAIL_PASSWORD=%s\nEMAIL_IMAP_HOST=%s\nEMAIL_IMAP_PORT=%s\nEMAIL_SMTP_HOST=%s\nEMAIL_SMTP_PORT=%s\nEMAIL_POLL_INTERVAL=15\nEMAIL_ALLOWED_USERS=%s\nEMAIL_HOME_ADDRESS=%s\nCALDAV_URL=%s\nCALDAV_USER=%s\nCALDAV_PASSWORD=%s\n' \
+                "$EMAIL_ADDRESS" "$EMAIL_PASSWORD" "$EMAIL_IMAP_HOST" "$EMAIL_IMAP_PORT" \
+                "$EMAIL_SMTP_HOST" "$EMAIL_SMTP_PORT" "$EMAIL_HOME" "$EMAIL_HOME" \
+                "$CALDAV_URL" "$CALDAV_USER" "$CALDAV_PASSWORD" \
+                >> "$ENV_FILE"
+          env:
+            - name: EMAIL_ADDRESS
+              value: mcnees.michael@icloud.com
+            - name: EMAIL_HOME
+              value: michael@mcnees.me
+            - name: EMAIL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: APPLE_APP_PASSWORD
+            - name: EMAIL_IMAP_HOST
+              value: imap.mail.me.com
+            - name: EMAIL_IMAP_PORT
+              value: "993"
+            - name: EMAIL_SMTP_HOST
+              value: smtp.mail.me.com
+            - name: EMAIL_SMTP_PORT
+              value: "587"
+            - name: CALDAV_URL
+              value: https://caldav.icloud.com/
+            - name: CALDAV_USER
+              value: mcnees.michael@icloud.com
+            - name: CALDAV_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secret
+                  key: APPLE_APP_PASSWORD
+          securityContext:
+            runAsUser: 10000
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: data
+              mountPath: /opt/data
       containers:
         - name: hermes
           image: nousresearch/hermes-agent:latest
@@ -96,30 +145,6 @@ spec:
                 secretKeyRef:
                   name: hermes-secret
                   key: OLLAMA_API_KEY
-            - name: EMAIL_IMAP_HOST
-              value: imap.mail.me.com
-            - name: EMAIL_IMAP_PORT
-              value: "993"
-            - name: EMAIL_IMAP_USER
-              value: michael@mcnees.me
-            - name: EMAIL_IMAP_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: hermes-secret
-                  key: APPLE_APP_PASSWORD
-            - name: EMAIL_SMTP_HOST
-              value: smtp.mail.me.com
-            - name: EMAIL_SMTP_PORT
-              value: "587"
-            - name: EMAIL_SMTP_USER
-              value: michael@mcnees.me
-            - name: EMAIL_SMTP_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: hermes-secret
-                  key: APPLE_APP_PASSWORD
-            - name: EMAIL_SMTP_TLS
-              value: "true"
             - name: TELEGRAM_BOT_TOKEN
               valueFrom:
                 secretKeyRef:
