@@ -2,25 +2,25 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Deploy all application workloads into the K3s cluster across migration waves — starting with a hard Traefik ingress cutover, then migrating services from Mew LXCs and TrueNAS apps to K8s, and finally deploying new services (observability, Mantle, Pelican, HDF). Services with data migrations run in parallel with the old instance until verified, then the old instance is destroyed.
+**Goal:** Deploy all application workloads into the K3s cluster across 9 migration waves — starting with a hard Traefik ingress cutover, then migrating services from Mew LXCs and TrueNAS apps to K8s, and finally deploying new services (observability, HDF). Services with data migrations run in parallel with the old instance until verified, then the old instance is destroyed.
 
-**Architecture:** Each K8s service follows the Flux CD GitOps pattern: namespace directory → Kustomization → Deployment/HelmRelease → Service → IngressRoute → Certificate → ConfigMap → SOPS-encrypted Secret. Services needing PostgreSQL connect to metagross (external LXC) via `metagross.internal.svc.cluster.local` DNS. App config/cache PVCs use `local-path` by default on Ceph-backed Talos VM disks. TrueNAS NFS is reserved for bulk/shared datasets such as media, downloads, ROMs, documents, archives, backups, and workloads requiring ReadWriteMany semantics. Plex, Tdarr, SABnzbd, Homebridge, TrueNAS, and Proxmox UIs may use Kubernetes `ExternalService`/Endpoints because their backends live outside the cluster, but they remain local-only through the internal Traefik entrypoint. Public exposure is reserved for explicitly selected services such as Pocket ID, Wizarr, Pelican Panel, Pelican Wings, and HDF services.
+**Architecture:** Each K8s service follows the Flux CD GitOps pattern: namespace directory → Kustomization → Deployment/HelmRelease → Service → IngressRoute → Certificate → ConfigMap → SOPS-encrypted Secret. Services needing PostgreSQL connect to metagross (external LXC) via `metagross.internal` DNS. Services needing NFS storage use `truenas-nfs` (SSD-backed `flash/k8s/` pool) or `truenas-nfs-bulk` (HDD-backed `data/k8s/` pool) StorageClasses via democratic-csi. Plex, Tdarr, and SABnzbd stay on TrueNAS with permanent ExternalService IngressRoutes.
 
-**Tech Stack:** Flux CD v2, Kustomize, SOPS + age, Traefik v3 IngressRoutes, cert-manager, local-path-provisioner, PostgreSQL 16 (metagross LXC), Redis 7 (databases namespace), RustFS, AdGuard Home, kube-prometheus-stack, Loki, Beszel, Uptime Kuma
+**Tech Stack:** Flux CD v2, Kustomize, SOPS + age, Traefik v3 IngressRoutes, cert-manager, democratic-csi, PostgreSQL 16 (metagross LXC), Redis 7 (databases namespace), RustFS, AdGuard Home, kube-prometheus-stack, Loki, Beszel, Uptime Kuma
 
 **Specs:**
 - `docs/superpowers/specs/2026-03-11-homelab-redesign-design.md` — master design
 - `docs/superpowers/specs/2026-03-13-migration-plan-design.md` — migration waves and stages
 - `docs/superpowers/specs/2026-03-16-hdf-services-design.md` — Invoice Ninja, Chatwoot, RustFS
 
-**Depends on:** Phase 2 (Core Platform) — all infrastructure services running: local-path-provisioner, MetalLB, Traefik, cert-manager, ExternalDNS, metagross (PostgreSQL), Redis, LLDAP, Pocket ID, OAuth2-Proxy
+**Depends on:** Phase 2 (Core Platform) — all infrastructure services running: democratic-csi, MetalLB, Traefik, cert-manager, ExternalDNS, metagross (PostgreSQL), Redis, LLDAP, Pocket ID, OAuth2-Proxy
 
 **Services intentionally removed from plan** (decided during design review):
 - Outline — replaced by Obsidian, data already migrated
 - Linkwarden — never deployed, removed from scope
 - Actual Budget — previous experiment, removed
-- Gramps — removed; genealogy replacement research in progress before Docker host retirement
-- n8n — stays on the legacy path until replaced by Mantle; no Kubernetes migration
+- Gramps — removed, may build custom alternative later
+- n8n — replaced by Mantle (custom build)
 - Booklore — upstream repo pulled, no stable fork yet
 - Scrypted — too resource-intensive for current Dell hardware (revisit after node upgrade)
 - Glances — replaced by Prometheus/Grafana
@@ -119,8 +119,6 @@ spec:
 
 ### ExternalService Pattern
 
-In this plan, `ExternalService` means "Kubernetes route to a backend outside the cluster." It does not imply public internet exposure. Local-only outside-cluster services must use the internal `websecure` entrypoint and `*.home.mcnees.me` hosts. Public services must be called out explicitly and use `websecure-external`.
-
 For services running outside K8s (TrueNAS apps, LXCs):
 
 ```yaml
@@ -196,7 +194,7 @@ routes:
 
 Create ExternalService IngressRoutes for ALL existing services, then hard-cut DNS and port forwarding from the old Traefik LXC to the new K3s Traefik.
 
-### Task 1: Create local-only ExternalService IngressRoutes for permanent outside-cluster services
+### Task 1: Create ExternalService IngressRoutes for permanent services
 
 **Files:**
 - Create: `kubernetes/apps/external-services/plex.yaml`
@@ -204,6 +202,7 @@ Create ExternalService IngressRoutes for ALL existing services, then hard-cut DN
 - Create: `kubernetes/apps/external-services/sabnzbd.yaml`
 - Create: `kubernetes/apps/external-services/homebridge.yaml`
 - Create: `kubernetes/apps/external-services/homey.yaml`
+- Create: `kubernetes/apps/external-services/pelican-wings.yaml`
 - Create: `kubernetes/apps/external-services/truenas.yaml`
 - Create: `kubernetes/apps/external-services/proxmox-latios.yaml`
 - Create: `kubernetes/apps/external-services/proxmox-latias.yaml`
@@ -211,7 +210,7 @@ Create ExternalService IngressRoutes for ALL existing services, then hard-cut DN
 - Create: `kubernetes/apps/external-services/kustomization.yaml`
 - Modify: `kubernetes/apps/kustomization.yaml`
 
-**Context:** These are permanent local-only ExternalService routes — the backends live outside Kubernetes, but the routes are internal-only. Plex, Tdarr, and SABnzbd stay on TrueNAS (snorlax). Homebridge stays as an LXC on latias. Homey stays as an LXC on latios. Proxmox node UIs and TrueNAS UI get internal routes for convenience. These must not use the public Traefik entrypoint or public DNS. Pelican Wings is intentionally not part of this local-only group because Panel and Wings need public game-server exposure and are handled in the Pelican wave. Stash is NOT here — it migrates to K8s in Wave 7 and is in the temporary routes.
+**Context:** These are permanent ExternalService routes — they will never be replaced by in-cluster services. Plex, Tdarr, and SABnzbd stay on TrueNAS (snorlax). Homebridge stays as an LXC on latias, Homey stays as an LXC on latios, and Pelican Wings (pelipper) stays as a VM on latias. Proxmox node UIs and TrueNAS UI get routes for convenience. Stash is NOT here — it migrates to K8s in Wave 7 and is in the temporary routes.
 
 - [ ] **Step 1: Create the external-services directory**
 
@@ -288,6 +287,7 @@ Each file follows the plex.yaml pattern but adds the OAuth2-Proxy ForwardAuth mi
 Follow the same pattern for:
 - `homebridge.yaml` — latias LXC IP, port 8581, host `homebridge.home.mcnees.me`
 - `homey.yaml` — latios LXC IP, port 443, host `homey.home.mcnees.me`
+- `pelican-wings.yaml` — pelipper VM IP (latias), port 443, host `wings.home.mcnees.me`
 
 - [ ] **Step 5: Create Proxmox node and TrueNAS UI ExternalService files**
 
@@ -310,6 +310,7 @@ resources:
   - sabnzbd.yaml
   - homebridge.yaml
   - homey.yaml
+  - pelican-wings.yaml
   - truenas.yaml
   - proxmox-latios.yaml
   - proxmox-latias.yaml
@@ -324,7 +325,7 @@ Add `./external-services` to the resources list.
 
 ```bash
 git add kubernetes/apps/external-services/ kubernetes/apps/kustomization.yaml
-git commit -m "feat: add local-only ExternalService routes for TrueNAS apps, LXCs, and Proxmox nodes"
+git commit -m "feat: add permanent ExternalService IngressRoutes for TrueNAS apps, LXCs, and Proxmox nodes"
 ```
 
 ### Task 2: Create ExternalService IngressRoutes for temporary services
@@ -339,9 +340,7 @@ git commit -m "feat: add local-only ExternalService routes for TrueNAS apps, LXC
 
 Create `kubernetes/apps/external-services/temporary/` directory. Create one YAML file per service following the ExternalService pattern. Each points at the service's current Mew LXC IP.
 
-Historical temporary routes were used during migration. As of the cleanup pass, only wildcard certificates and the temporary PXE/old-node Proxmox UI routes remain in `kubernetes/apps/external-services/temporary/`.
-
-Services that previously needed temporary routes:
+Services needing temporary routes (update IPs from Mew LXC assignments):
 - `adguard.yaml` — AdGuard Home LXC, port 3000, host `adguard.home.mcnees.me`
 - `sonarr.yaml` — Docker LXC, port 8989, host `sonarr.home.mcnees.me`, OAuth2-Proxy
 - `sonarr-anime.yaml` — Docker LXC, port 8990, host `sonarr-anime.home.mcnees.me`, OAuth2-Proxy
@@ -359,8 +358,7 @@ Services that previously needed temporary routes:
 - `uptime-kuma.yaml` — Uptime Kuma LXC, port 3001, host `status.home.mcnees.me`, OAuth2-Proxy
 - `beszel.yaml` — Beszel LXC, port 8090, host `beszel.home.mcnees.me`, OAuth2-Proxy
 - `grafana.yaml` — Grafana LXC, port 3000, host `grafana.home.mcnees.me` (has own auth / will use Pocket ID)
-- `pelican-panel.yaml` — retired after Pelican Panel moved into K8s at `games.mcnees.me`
-- `pelican-wings-public.yaml` — retired in favor of `kubernetes/apps/external-services/pelican-wings.yaml`
+- `pelican-panel.yaml` — Pelican Panel LXC, port 443, host `panel.home.mcnees.me` (has own auth)
 - `romm.yaml` — TrueNAS app (until Wave 8 migration), snorlax IP, port 8080, host `romm.home.mcnees.me` (has own auth)
 - `lazylibrarian.yaml` — LazyLibrarian LXC, port 5299, host `books.home.mcnees.me`, OAuth2-Proxy
 - `stash.yaml` — TrueNAS app on snorlax, port 9999, host `stash.home.mcnees.me`, OAuth2-Proxy
@@ -486,7 +484,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
+  storageClassName: truenas-nfs
   resources:
     requests:
       storage: 1Gi
@@ -499,7 +497,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
+  storageClassName: truenas-nfs
   resources:
     requests:
       storage: 5Gi
@@ -843,8 +841,8 @@ git commit -m "feat: add servarr PostgreSQL databases to metagross playbook"
 
 **Context:** Each *arr app is deployed as a Deployment with:
 - PostgreSQL connection env vars pointing at metagross (with `POSTGRES__MAINDB` and `POSTGRES__LOGDB` for Sonarr/Radarr/Prowlarr)
-- TrueNAS NFS bulk mount for media access at `/media` (the TRaSH Guides hardlink structure)
-- `local-path` PVC for config at `/config`
+- NFS PVC (`truenas-nfs-bulk`) for media access at `/media` (the TRaSH Guides hardlink structure)
+- NFS PVC (`truenas-nfs`) for config at `/config`
 - OAuth2-Proxy ForwardAuth middleware (none of the *arr apps have native auth)
 - IngressRoute on internal entrypoint
 
@@ -913,7 +911,7 @@ spec:
             - name: SONARR__AUTH__REQUIRED
               value: DisabledForLocalAddresses
             - name: SONARR__POSTGRES__HOST
-              value: metagross.internal.svc.cluster.local
+              value: metagross.internal
             - name: SONARR__POSTGRES__PORT
               value: "5432"
             - name: SONARR__POSTGRES__MAINDB
@@ -979,7 +977,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
+  storageClassName: truenas-nfs
   resources:
     requests:
       storage: 2Gi
@@ -992,7 +990,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: truenas-bulk # Future TrueNAS NFS class/static PV for media datasets.
+  storageClassName: truenas-nfs-bulk
   resources:
     requests:
       storage: 1Ti
@@ -1085,7 +1083,7 @@ ssh root@<docker-lxc-ip> "cd /opt/docker && docker compose stop sonarr radarr pr
 
 - [ ] **Step 2: Copy SQLite databases and config to K8s PVCs**
 
-For each service, scale down the K8s deployment and copy data into the config PVC with a temporary helper pod or an init/import job. Config PVCs use `local-path`, so do not assume a directly accessible TrueNAS dataset path.
+For each service, scale down the K8s deployment and copy data directly to the NFS PVC mount on TrueNAS (since `kubectl cp` requires a running pod):
 
 ```bash
 # Scale down the K8s deployment
@@ -1094,10 +1092,10 @@ kubectl scale deployment sonarr -n media --replicas=0
 # Copy config from Docker LXC to local
 scp -r root@<docker-lxc-ip>:/opt/docker/sonarr/config/ /tmp/sonarr-config/
 
-# Copy into the local-path PVC via a temporary pod that mounts the claim.
-# Exact helper pod manifest depends on the app PVC name.
-kubectl cp /tmp/sonarr-config/sonarr.db media/<helper-pod>:/config/sonarr.db
-kubectl cp /tmp/sonarr-config/config.xml media/<helper-pod>:/config/config.xml
+# Copy directly to the NFS PVC mount on TrueNAS
+# Find the PVC's NFS path (democratic-csi creates datasets under flash/k8s/)
+scp /tmp/sonarr-config/sonarr.db root@<snorlax-ip>:/mnt/flash/k8s/nfs/<pvc-dataset>/sonarr.db
+scp /tmp/sonarr-config/config.xml root@<snorlax-ip>:/mnt/flash/k8s/nfs/<pvc-dataset>/config.xml
 ```
 
 Repeat for sonarr-anime, radarr, prowlarr, bazarr.
@@ -1492,7 +1490,7 @@ spec:
       envFromSecret: grafana-secrets
       persistence:
         enabled: true
-        storageClassName: local-path
+        storageClassName: truenas-nfs
         size: 5Gi
     prometheus:
       prometheusSpec:
@@ -1500,7 +1498,7 @@ spec:
         storageSpec:
           volumeClaimTemplate:
             spec:
-              storageClassName: local-path
+              storageClassName: truenas-nfs
               resources:
                 requests:
                   storage: 50Gi
@@ -1509,7 +1507,7 @@ spec:
         storage:
           volumeClaimTemplate:
             spec:
-              storageClassName: local-path
+              storageClassName: truenas-nfs
               resources:
                 requests:
                   storage: 1Gi
@@ -1619,7 +1617,7 @@ spec:
     singleBinary:
       replicas: 1
       persistence:
-        storageClass: local-path
+        storageClass: truenas-nfs
         size: 20Gi
     gateway:
       enabled: false
@@ -1832,7 +1830,7 @@ git add -A && git commit -m "cleanup: remove temporary ExternalService routes fo
 
 ## Wave 6: AI & Dashboard
 
-Deploy Ollama, Open WebUI, Homepage, Paperless-ngx, and Paperless-GPT — all fresh installs.
+Deploy Ollama, Open WebUI, Homepage, Paperless-ngx, Paperless-ai, and Postiz — all fresh installs.
 
 ### Task 16: Deploy Ollama
 
@@ -1905,7 +1903,7 @@ spec:
             claimName: ollama-models
 ```
 
-PVC on TrueNAS NFS bulk/shared storage, 50Gi for model storage.
+PVC on `truenas-nfs`, 50Gi for model storage.
 
 - [ ] **Step 2: Create Service (ClusterIP only)**
 
@@ -2139,7 +2137,7 @@ spec:
             - name: PAPERLESS_DBENGINE
               value: postgresql
             - name: PAPERLESS_DBHOST
-              value: metagross.internal.svc.cluster.local
+              value: metagross.internal
             - name: PAPERLESS_DBPORT
               value: "5432"
             - name: PAPERLESS_DBNAME
@@ -2199,10 +2197,10 @@ spec:
 Secret (SOPS): `PAPERLESS_DBUSER`, `PAPERLESS_DBPASS`, `PAPERLESS_SECRET_KEY` (generate via `openssl rand -hex 32`), `PAPERLESS_ADMIN_USER`, `PAPERLESS_ADMIN_PASSWORD`
 
 PVCs:
-- `paperless-data` — `local-path`, 5Gi (index, thumbnails, classifier)
-- `paperless-media` — TrueNAS NFS bulk/shared storage, 50Gi (original + archived documents)
-- `paperless-consume` — TrueNAS NFS bulk/shared storage, 5Gi (inbox for new documents)
-- `paperless-export` — TrueNAS NFS bulk/shared storage, 10Gi (document export backups)
+- `paperless-data` — `truenas-nfs`, 5Gi (index, thumbnails, classifier)
+- `paperless-media` — `truenas-nfs`, 50Gi (original + archived documents)
+- `paperless-consume` — `truenas-nfs`, 5Gi (inbox for new documents)
+- `paperless-export` — `truenas-nfs`, 10Gi (document export backups)
 
 IngressRoute on internal entrypoint, host `paperless.home.mcnees.me`. Paperless has its own auth.
 
@@ -2217,46 +2215,46 @@ git commit -m "feat: deploy Paperless-ngx document management with PostgreSQL on
 
 Access `https://paperless.home.mcnees.me`. The `PAPERLESS_ADMIN_USER` and `PAPERLESS_ADMIN_PASSWORD` env vars create the initial superuser. Upload a test document and verify OCR processing.
 
-### Task 20: Deploy Paperless-GPT
+### Task 20: Deploy Paperless-ai
 
 **Files:**
-- Create: `kubernetes/apps/paperless-gpt/deployment.yaml`
-- Create: `kubernetes/apps/paperless-gpt/service.yaml`
-- Create: `kubernetes/apps/paperless-gpt/pvc.yaml`
-- Create: `kubernetes/apps/paperless-gpt/secret.sops.yaml`
-- Create: `kubernetes/apps/paperless-gpt/kustomization.yaml`
+- Create: `kubernetes/apps/paperless-ai/deployment.yaml`
+- Create: `kubernetes/apps/paperless-ai/service.yaml`
+- Create: `kubernetes/apps/paperless-ai/configmap.yaml`
+- Create: `kubernetes/apps/paperless-ai/secret.sops.yaml`
+- Create: `kubernetes/apps/paperless-ai/kustomization.yaml`
 - Modify: `kubernetes/apps/kustomization.yaml`
 
-**Context:** Paperless-GPT is a companion app that generates titles, tags, correspondents, document types, and optional OCR suggestions using Ollama. It connects to both Paperless-ngx (API) and Ollama (inference). It has a small web UI and prompt storage.
+**Context:** Paperless-ai is a companion app that auto-tags and classifies documents using Ollama. It connects to both Paperless-ngx (API) and Ollama (inference). No ingress needed — it runs as a background worker polling Paperless-ngx for new documents.
 
-- [ ] **Step 1: Create Paperless-GPT deployment**
+- [ ] **Step 1: Create Paperless-ai deployment**
 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: paperless-gpt
+  name: paperless-ai
   namespace: apps
   labels:
-    app.kubernetes.io/name: paperless-gpt
+    app.kubernetes.io/name: paperless-ai
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: paperless-gpt
+      app.kubernetes.io/name: paperless-ai
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: paperless-gpt
+        app.kubernetes.io/name: paperless-ai
     spec:
       containers:
-        - name: paperless-gpt
-          image: icereed/paperless-gpt:v0.25.1
+        - name: paperless-ai
+          image: clusterpedia/paperless-ai:v2
           envFrom:
             - configMapRef:
-                name: paperless-gpt-config
+                name: paperless-ai-config
             - secretRef:
-                name: paperless-gpt-secrets
+                name: paperless-ai-secrets
           resources:
             requests:
               memory: 128Mi
@@ -2267,33 +2265,134 @@ spec:
 
 ConfigMap:
 ```yaml
-PAPERLESS_BASE_URL: http://paperless-ngx.apps.svc.cluster.local:8000
-PAPERLESS_PUBLIC_URL: https://paperless.home.mcnees.me
-LLM_PROVIDER: ollama
-LLM_MODEL: qwen3:8b
-OLLAMA_HOST: http://ollama.apps.svc.cluster.local:11434
+PAPERLESS_API_URL: http://paperless-ngx.apps.svc:8000
+OLLAMA_API_URL: http://ollama.apps.svc:11434
+AI_MODEL: llama3.2
 ```
 
 Secret (SOPS): `PAPERLESS_API_TOKEN` (generate from Paperless-ngx admin UI after Task 19)
 
-Ingress is local-only at `paperless-gpt.home.mcnees.me` behind oauth2-proxy. Prompt templates persist on a small local-path PVC mounted at `/app/prompts`.
+No ingress, no PVC — stateless worker.
 
 - [ ] **Step 2: Commit and deploy**
 
 ```bash
-git add kubernetes/apps/paperless-gpt/
-git commit -m "feat: deploy Paperless-GPT companion for Paperless"
+git add kubernetes/apps/paperless-ai/
+git commit -m "feat: deploy Paperless-ai auto-tagger with Ollama backend"
 ```
 
 - [ ] **Step 3: Verify auto-tagging**
 
-Upload a document to Paperless-ngx. Watch Paperless-GPT logs for classification activity:
+Upload a document to Paperless-ngx. Watch Paperless-ai logs for classification activity:
 
 ```bash
-kubectl logs -n apps -l app.kubernetes.io/name=paperless-gpt -f
+kubectl logs -n apps -l app.kubernetes.io/name=paperless-ai -f
 ```
 
 Verify the document gets auto-tagged/classified.
+
+### Task 21: Deploy Postiz
+
+**Files:**
+- Create: `kubernetes/apps/postiz/deployment.yaml`
+- Create: `kubernetes/apps/postiz/service.yaml`
+- Create: `kubernetes/apps/postiz/ingress.yaml`
+- Create: `kubernetes/apps/postiz/certificate.yaml`
+- Create: `kubernetes/apps/postiz/configmap.yaml`
+- Create: `kubernetes/apps/postiz/secret.sops.yaml`
+- Create: `kubernetes/apps/postiz/kustomization.yaml`
+- Modify: `kubernetes/apps/kustomization.yaml`
+
+**Context:** Postiz is an open-source social media scheduling and analytics tool. Uses PostgreSQL on metagross, Redis in the `databases` namespace (DB 3), and an uploads emptyDir. Fresh deploy — no existing data to migrate. Helm chart available at `ghcr.io/gitroomhq/postiz-helmchart` but deploying as plain manifests to match GitOps conventions.
+
+- [ ] **Step 1: Add postiz database to metagross**
+
+Add to the PostgreSQL playbook vars:
+
+```yaml
+  - { name: postiz, owner: postiz }
+```
+
+Run: `task ansible:postgresql`
+
+- [ ] **Step 2: Create Postiz deployment**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postiz
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: postiz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postiz
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postiz
+    spec:
+      containers:
+        - name: postiz
+          image: ghcr.io/gitroomhq/postiz-app:latest
+          ports:
+            - name: http
+              containerPort: 5000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postiz-secrets
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              value: redis://redis.databases.svc:6379/3
+            - name: NEXT_PUBLIC_BACKEND_URL
+              value: https://postiz.home.mcnees.me/api
+            - name: FRONTEND_URL
+              value: https://postiz.home.mcnees.me
+          envFrom:
+            - secretRef:
+                name: postiz-secrets
+          volumeMounts:
+            - name: uploads
+              mountPath: /uploads
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 1Gi
+      volumes:
+        - name: uploads
+          emptyDir: {}
+```
+
+Secret (SOPS): `DATABASE_URL` (`postgres://postiz:pass@metagross.internal:5432/postiz`), `JWT_SECRET` (generate via `openssl rand -hex 32`)
+
+IngressRoute on internal entrypoint, host `postiz.home.mcnees.me`. Postiz has its own auth.
+
+- [ ] **Step 3: Commit and deploy**
+
+```bash
+git add kubernetes/apps/postiz/ ansible/
+git commit -m "feat: deploy Postiz social media scheduler with PostgreSQL on metagross"
+```
+
+- [ ] **Step 4: Create account and verify**
+
+Access `https://postiz.home.mcnees.me`. Create the initial account and verify the app loads.
 
 ---
 
@@ -2301,7 +2400,7 @@ Verify the document gets auto-tagged/classified.
 
 Migrate Tautulli and RomM (data migrations), deploy LazyLibrarian/Readarr and Stash (fresh).
 
-### Task 21: Deploy and migrate Tautulli
+### Task 22: Deploy and migrate Tautulli
 
 **Files:**
 - Create: `kubernetes/media/tautulli/deployment.yaml`
@@ -2387,7 +2486,7 @@ git add kubernetes/media/tautulli/
 git commit -m "feat: deploy Tautulli with data migration from old LXC"
 ```
 
-### Task 22: Deploy and migrate RomM
+### Task 23: Deploy and migrate RomM
 
 **Files:**
 - Create: `kubernetes/media/romm/deployment.yaml`
@@ -2475,14 +2574,14 @@ spec:
 
 ConfigMap:
 ```yaml
-DB_HOST: metagross.internal.svc.cluster.local
+DB_HOST: metagross.internal
 DB_PORT: "5432"
 DB_NAME: romm
 ```
 
 Secret (SOPS): `DB_USER`, `DB_PASSWD`, `ROMM_AUTH_SECRET_KEY`
 
-PVCs: `romm-library` on TrueNAS NFS bulk/shared storage (ROM files), `romm-assets` on `local-path` (cover art, metadata).
+PVCs: `romm-library` on `truenas-nfs-bulk` (ROM files), `romm-assets` on `truenas-nfs` (cover art, metadata).
 
 IngressRoute on internal entrypoint, host `romm.home.mcnees.me`. RomM has its own auth.
 
@@ -2497,7 +2596,7 @@ git commit -m "feat: deploy RomM with PostgreSQL migration to metagross"
 
 Stop the old TrueNAS RomM app after verification.
 
-### Task 23: Deploy LazyLibrarian (or Readarr alternative)
+### Task 24: Deploy LazyLibrarian (or Readarr alternative)
 
 **Files:**
 - Create: `kubernetes/media/lazylibrarian/` (or `kubernetes/media/readarr/`)
@@ -2522,7 +2621,7 @@ If LazyLibrarian:
 
 Follow the established pattern for whichever app is chosen.
 
-### Task 24: Deploy Stash (or alternative)
+### Task 25: Deploy Stash (or alternative)
 
 **Files:**
 - Create: `kubernetes/media/stash/` (or alternative)
@@ -2585,7 +2684,7 @@ spec:
             claimName: stash-media
 ```
 
-PVCs: `stash-config` on `local-path`, `stash-media` on TrueNAS NFS bulk/shared storage.
+PVCs: `stash-config` on `truenas-nfs`, `stash-media` on `truenas-nfs-bulk`.
 IngressRoute on internal entrypoint, host `stash.home.mcnees.me`, OAuth2-Proxy middleware.
 
 - [ ] **Step 2: Commit and deploy**
@@ -2601,50 +2700,9 @@ Delete `tautulli.yaml`, `romm.yaml`, `lazylibrarian.yaml`, `stash.yaml` from tem
 
 ---
 
-## Wave 8: Automation Dogfood
+## Wave 8: Hosting
 
-Deploy Mantle early so it can replace the legacy n8n path and be used by the household before the rest of the migration is complete.
-
-Current note: Mantle does not appear to publish a self-hosted container, Helm chart, Kubernetes manifest, or install guide yet. Do not create a placeholder Kubernetes deployment until a real self-hosted runtime is available. See `docs/runbooks/mantle.md`.
-
-### Task 25: Deploy Mantle
-
-**Files:**
-- Create: `kubernetes/apps/mantle/deployment.yaml`
-- Create: `kubernetes/apps/mantle/service.yaml`
-- Create: `kubernetes/apps/mantle/ingress.yaml`
-- Create: `kubernetes/apps/mantle/secret.sops.yaml`
-- Create: `kubernetes/apps/mantle/configmap.yaml`
-- Create: `kubernetes/apps/mantle/pvc.yaml`
-- Create: `kubernetes/apps/mantle/kustomization.yaml`
-- Modify: `kubernetes/apps/kustomization.yaml`
-- Modify: `kubernetes/apps/external-services/temporary/kustomization.yaml`
-
-**Context:** Mantle replaces n8n rather than migrating n8n data into Kubernetes. Deploy it sooner than the final cleanup waves so we can dogfood it for homelab automation while the rest of the migration is still active. Mantle should use PostgreSQL on metagross if supported, otherwise local-path for app state plus explicit export/backup coverage. Start internal-only behind Pocket ID/OAuth2-Proxy unless a specific public workflow requires exposure later.
-
-- [ ] **Step 1: Confirm Mantle runtime and persistence requirements**
-
-Document image, required environment variables, database support, file storage needs, and auth model before creating manifests.
-
-- [ ] **Step 2: Deploy Mantle to the apps namespace**
-
-Follow the standard GitOps pattern. Prefer `mantle.home.mcnees.me` on the internal entrypoint, with OAuth2-Proxy if Mantle does not provide a complete auth story itself.
-
-- [ ] **Step 3: Dogfood one homelab workflow**
-
-Move one small n8n-style automation or a new low-risk lab automation into Mantle. Verify execution, logs, persistence, and backup coverage.
-
-- [ ] **Step 4: Retire n8n temporary route when replaced**
-
-`n8n.yaml` has been removed from `kubernetes/apps/external-services/temporary/`. Stop the legacy n8n service if it still exists. Re-open the Mantle deployment task only if a real self-hosted runtime becomes available.
-
----
-
-## Wave 9: Hosting
-
-Migrate Pelican Panel to K8s with PostgreSQL data migration, then configure and expose Pelican Wings. Panel comes first because Wings needs a reachable Panel to register with and receive configuration.
-
-**Domain model:** Use `https://games.mcnees.me` for the Panel. Do not mount Panel under a subdirectory such as `/panel`; Pelican expects a root `APP_URL`, and Wings stores that Panel URL in its `remote` configuration. Use `https://wings.games.mcnees.me` for the Wings HTTPS API/control endpoint. Game server allocations can use `games.mcnees.me:<port>` when the game protocol expects direct TCP/UDP traffic. TLS certificates are hostname-based, not path-based, so the Panel and Wings API can both use normal certificates on their own hostnames while allocation ports remain protocol-specific.
+Migrate Pelican Panel to K8s with PostgreSQL data migration.
 
 ### Task 26: Deploy and migrate Pelican Panel
 
@@ -2659,7 +2717,7 @@ Migrate Pelican Panel to K8s with PostgreSQL data migration, then configure and 
 - Create: `kubernetes/apps/pelican-panel/kustomization.yaml`
 - Modify: `kubernetes/apps/kustomization.yaml`
 
-**Context:** Pelican Panel (management UI) moves to K8s. Pelican Wings (game server daemon) stays outside the cluster on the dedicated game-hosting VM/backend. Panel connects to metagross for its database and to Wings over the network. Panel is publicly exposed because users need to reach it for game management.
+**Context:** Pelican Panel (management UI) moves to K8s. Pelican Wings (game server daemon) stays as a VM (pelipper) on latias. Panel connects to metagross for its database and to Wings over the network.
 
 - [ ] **Step 1: Migrate Pelican database to metagross**
 
@@ -2727,15 +2785,15 @@ spec:
             claimName: pelican-panel-data
 ```
 
-ConfigMap: `DB_HOST=metagross.internal.svc.cluster.local`, `DB_PORT=5432`, `DB_DATABASE=pelican`, `APP_URL=https://games.mcnees.me`
+ConfigMap: `DB_HOST=metagross.internal`, `DB_PORT=5432`, `DB_DATABASE=pelican`, `APP_URL=https://panel.home.mcnees.me`
 
 Secret (SOPS): `DB_USERNAME`, `DB_PASSWORD`, `APP_KEY`, `HASHIDS_SALT`
 
-IngressRoute on external entrypoint, host `games.mcnees.me`. Pelican has its own auth.
+IngressRoute on internal entrypoint, host `panel.home.mcnees.me`. Pelican has its own auth.
 
 - [ ] **Step 3: Update Wings configuration**
 
-After the Panel migrates, update the Wings configuration to point at the new Panel URL (`https://games.mcnees.me`) if needed.
+After the Panel migrates, update the Wings LXC configuration to point at the new Panel URL if needed.
 
 - [ ] **Step 4: Verify and commit**
 
@@ -2746,33 +2804,13 @@ git commit -m "feat: deploy Pelican Panel with PostgreSQL migration to metagross
 
 Remove `pelican-panel.yaml` from temporary directory. Destroy old Pelican Panel LXC on Mew after 24 hours.
 
-### Task 27: Configure and expose Pelican Wings
-
-**Files:**
-- Create or update: `kubernetes/apps/external-services/pelican-wings.yaml`
-- Modify: `kubernetes/apps/external-services/kustomization.yaml`
-
-**Context:** Wings is the daemon that runs game instances and should be configured only after Panel is migrated and reachable. Keep an internal route for admin/debug access if useful. Expose the Wings HTTPS API/control endpoint as `wings.games.mcnees.me` on the external Traefik entrypoint, and expose game allocations as direct `games.mcnees.me:<port>` TCP/UDP forwards where required by the game protocol.
-
-- [ ] **Step 1: Register/update Wings against the new Panel URL**
-
-Update Wings configuration with the new Panel URL and credentials/token from the migrated Panel.
-
-- [ ] **Step 2: Verify public reachability**
-
-Confirm `wings.games.mcnees.me` reaches the Wings HTTPS API/control backend through the public Traefik entrypoint, that Panel can communicate with Wings, and that a test game allocation works at `games.mcnees.me:<port>`.
-
-- [ ] **Step 3: Remove old Wings temporary route after stability window**
-
-Remove obsolete temporary Wings routes after Panel and Wings are stable.
-
 ---
 
-## Wave 10: HDF Services
+## Wave 9: HDF Services
 
 Deploy RustFS, Invoice Ninja, and Chatwoot for Hudsonville Digital Foundry. All fresh deploys.
 
-### Task 28: Deploy RustFS
+### Task 27: Deploy RustFS
 
 **Files:**
 - Create: `kubernetes/storage/rustfs/deployment.yaml`
@@ -2872,7 +2910,7 @@ spec:
 
 Secret (SOPS): `RUSTFS_ROOT_USER`, `RUSTFS_ROOT_PASSWORD`
 
-PVC: `rustfs-data` on TrueNAS NFS bulk/shared storage, 50Gi.
+PVC: `rustfs-data` on `truenas-nfs`, 50Gi.
 
 Service: ClusterIP only (ports 9000, 9001).
 
@@ -2912,7 +2950,7 @@ git add kubernetes/storage/ kubernetes/flux-system/storage.yaml kubernetes/flux-
 git commit -m "feat: deploy RustFS S3-compatible object storage with bucket provisioning"
 ```
 
-### Task 29: Deploy Invoice Ninja
+### Task 28: Deploy Invoice Ninja
 
 **Files:**
 - Create: `kubernetes/hdf/invoice-ninja/deployment.yaml`
@@ -2970,7 +3008,7 @@ task ansible:postgresql
 - [ ] **Step 3: Create Invoice Ninja deployment**
 
 Follow the spec exactly. Key env vars:
-- `DB_TYPE=pgsql`, `DB_HOST=metagross.internal.svc.cluster.local`, `DB_DATABASE=invoice_ninja`
+- `DB_TYPE=pgsql`, `DB_HOST=metagross.internal`, `DB_DATABASE=invoice_ninja`
 - `REDIS_HOST=redis.databases.svc`, `REDIS_PORT=6379`, `REDIS_DB=1`
 - `FILESYSTEM_DISK=s3`, `AWS_ENDPOINT=http://rustfs.storage.svc:9000`
 - `AWS_DEFAULT_REGION=us-east-1`, `AWS_USE_PATH_STYLE_ENDPOINT=true`
@@ -2988,7 +3026,7 @@ git add kubernetes/hdf/invoice-ninja/
 git commit -m "feat: deploy Invoice Ninja for HDF client billing"
 ```
 
-### Task 30: Deploy Chatwoot
+### Task 29: Deploy Chatwoot
 
 **Files:**
 - Create: `kubernetes/hdf/chatwoot/deployment-web.yaml`
@@ -3011,7 +3049,7 @@ Run the PostgreSQL playbook (if not already run with the `chatwoot` database).
 - [ ] **Step 2: Create Chatwoot web deployment**
 
 Follow the spec. Key env vars:
-- `DATABASE_URL=postgres://chatwoot:pass@metagross.internal.svc.cluster.local:5432/chatwoot`
+- `DATABASE_URL=postgres://chatwoot:pass@metagross.internal:5432/chatwoot`
 - `REDIS_URL=redis://redis.databases.svc:6379/2`
 - `ACTIVE_STORAGE_SERVICE=amazon`, `S3_BUCKET_NAME=chatwoot`
 - `AWS_ENDPOINT=http://rustfs.storage.svc:9000`, `AWS_REGION=us-east-1`
@@ -3035,7 +3073,7 @@ git add kubernetes/hdf/chatwoot/ kubernetes/hdf/kustomization.yaml kubernetes/fl
 git commit -m "feat: deploy Chatwoot for HDF client support"
 ```
 
-### Task 31: Configure Chatwoot widget in Invoice Ninja
+### Task 30: Configure Chatwoot widget in Invoice Ninja
 
 **Files:** None (manual configuration task)
 
@@ -3060,7 +3098,7 @@ Load the Invoice Ninja client portal in a browser. Verify the Chatwoot widget ap
 
 ## Post-Migration Cleanup
 
-### Task 32: Clean up temporary ExternalService routes
+### Task 31: Clean up temporary ExternalService routes
 
 **Files:**
 - Remove: `kubernetes/apps/external-services/temporary/` (entire directory)
@@ -3084,7 +3122,7 @@ rm -rf kubernetes/apps/external-services/temporary/
 git add -A && git commit -m "cleanup: remove empty temporary ExternalService directory"
 ```
 
-### Task 33: Destroy old LXCs and clean up Mew
+### Task 32: Destroy old LXCs and clean up Mew
 
 **Files:** None (operational task)
 

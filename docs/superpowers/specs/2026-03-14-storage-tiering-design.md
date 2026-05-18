@@ -2,19 +2,19 @@
 
 ## Overview
 
-Redesign of the TrueNAS storage architecture to leverage new hardware while keeping Kubernetes app PVCs on `local-path` volumes backed by the Proxmox `ceph-nvme` VM disks. This supersedes the earlier `flash/k8s` plan: spare SATA SSDs are better reserved for future bulk capacity or Ceph expansion than for a separate TrueNAS default PVC pool.
+Redesign of the TrueNAS storage architecture to leverage new hardware (Intel Optane for SLOG, spare SATA SSDs) and create a tiered storage system. Replaces the "Future Enhancement: NVMe Pool" section from the original redesign spec with a practical approach using Optane for SLOG, NVMe for metadata, and a dedicated SSD pool for performance-sensitive workloads.
 
 ### Goals
 
-- **Ceph-backed app PVCs**: `local-path` is the default Kubernetes StorageClass. Talos VM disks sit on Proxmox `ceph-nvme`, so single-pod app PVCs get fast replicated storage without a TrueNAS dependency.
-- **Improved HDD pool performance**: Optane metadata special vdev eliminates metadata-on-HDD bottleneck. Optane SLOG eliminates synchronous write penalty. NVMe L2ARC provides 2TB read cache for evicted ARC data.
-- **TrueNAS for bulk/shared data**: NFS is reserved for media, downloads, ROMs, documents, archives, backups, and workloads that truly need ReadWriteMany semantics.
+- **Tiered performance**: SSD pool (`flash`) for K8s PVCs and app metadata, HDD pool (`data`) for bulk media and sequential workloads.
+- **Improved HDD pool performance**: NVMe mirrored metadata special vdev eliminates metadata-on-HDD bottleneck. Optane SLOG eliminates synchronous write penalty.
+- **Kubernetes-native storage**: Two democratic-csi StorageClasses with clear use-case boundaries.
 - **Backup tier separation**: PBS dedup index on SSD for fast verify/prune/restore, chunk store on HDD for capacity.
 - **Ceph expansion**: OSDs across 3 nodes (latios, latias, rayquaza) for HA VM/LXC storage.
 
 ### Non-Goals
 
-- Deploying Kubernetes Ceph CSI in this phase. Kubernetes consumes Ceph indirectly through Talos VM disks and `local-path`.
+- Replacing Ceph for VM/LXC storage (Ceph stays as-is for Proxmox workloads).
 - Off-box backup for media (160TB+ is snapshot-only).
 - Changing the HDD vdev layout (existing 2x RAIDZ1 4-wide preserved).
 
@@ -30,7 +30,7 @@ Redesign of the TrueNAS storage architecture to leverage new hardware while keep
 | Motherboard | MSI Pro B650M-P |
 | RAM | 64 GB DDR5-5600 |
 | Boot Drive | Samsung 970 EVO 500GB NVMe (Proxmox OS) |
-| Ceph OSD | 1-2x 1TB SATA SSD per node |
+| Ceph OSD | 2x 1TB SATA SSD per node |
 | NIC | 2.5GbE (onboard) |
 | PSU | EVGA 450BT |
 | Case | Rosewill RSV-Z2700U 2U |
@@ -48,8 +48,9 @@ Redesign of the TrueNAS storage architecture to leverage new hardware while keep
 | RAM — Proxmox host | 4 GB |
 | HBA | Passthrough to snorlax (all SATA drives) |
 | iGPU (i3-13100) | Passthrough to snorlax (Plex transcoding) |
-| NVMe slots (x2) | Passthrough to snorlax (L2ARC) |
-| Ceph OSD | 1-2x 1TB SATA SSD |
+| NVMe slots (x2) | Passthrough to snorlax (2x 1TB NVMe — mirrored metadata special vdev) |
+| PCIe M.2 adapter | 1x Intel Optane 16GB — passthrough to snorlax (SLOG for `data` pool) |
+| Ceph OSD | 2x 1TB SATA SSD |
 | Boot SSD | Proxmox OS (separate from HBA) |
 
 ### Snorlax Boot Disk
@@ -64,6 +65,22 @@ Embedded etcd across 3 server nodes (articuno, zapdos, moltres). Included here t
 
 ho-oh is a K3s agent VM on latias with 20 GB RAM. Moltres is a K3s server VM on rayquaza with 10 GB RAM. Ollama (4-6 GB) scheduling preference should go to lugia (40 GB K3s agent on latios) as the preferred node for large model workloads.
 
+### SSD & Optane Inventory
+
+Available drives recovered from the Dell 3050s and Mew during migration:
+
+| Drive | Qty | Source | Allocation |
+|---|---|---|---|
+| 1TB 2.5" SATA SSD | 4 | Dell 3050s | TrueNAS `flash` pool (RAIDZ1 via HBA) |
+| 1TB 2.5" SATA SSD | 6 | Mew | Ceph OSDs: 2x latios, 2x latias, 2x rayquaza |
+| 1TB 2.5" SATA SSD | 2 | Mew | Cold spares (shelf) |
+| Intel Optane M.2 16GB | 1 | purchased | Rayquaza — SLOG for `data` pool (PCIe M.2 adapter) |
+| Intel Optane M.2 16GB | 3 | purchased | Cold spares (shelf) — discontinued, no longer manufactured |
+| Kioxia P300 500GB NVMe | 3 | Dell 3050s | Spare / resale — M.2 slots better reserved for future use |
+| Kioxia P300 256GB NVMe | 1 | Dell 3050 | Spare / resale |
+
+> **Note:** Drive sourcing from Mew is flexible — the 8x 1TB SATA SSDs in Mew become available as workloads migrate off. The 4x 1TB SSDs from the Dells are available immediately.
+
 ---
 
 ## Section 2: TrueNAS Pool Topology (snorlax)
@@ -73,15 +90,26 @@ ho-oh is a K3s agent VM on latias with 20 GB RAM. Moltres is a K3s server VM on 
 | Component | Configuration | Purpose |
 |---|---|---|
 | 8x 20TB Exos | 2x RAIDZ1 (4-wide) — existing layout preserved | Bulk data storage (~105 TiB usable) |
-| 2x 16GB Intel Optane | Mirrored metadata special vdev | Replaces 1TB NVMes for metadata duty |
-| 2x 16GB Intel Optane | Mirrored SLOG | New — previously all ZIL writes hit HDDs (1.5 TiB observed) |
-| 2x 1TB NVMe | Striped L2ARC | 2TB read cache for ARC evictions (34.7 TiB eligible observed) |
+| 2x 1TB NVMe | Mirrored metadata special vdev | Keeps NVMes in their original metadata role |
+| 1x 16GB Intel Optane | Single SLOG | Eliminates synchronous write penalty (1.5 TiB ZIL writes observed on HDDs) |
 
-### Spare SATA SSDs
+### SSD Pool (`flash`)
 
-The four spare SATA SSDs are no longer allocated to a TrueNAS `flash/k8s` pool. Keep them available for future bulk-capacity strategy, Ceph OSD expansion, or a deliberately scoped TrueNAS SSD pool if a concrete workload appears.
+| Component | Configuration | Purpose |
+|---|---|---|
+| 4x ~1TB SATA SSD | RAIDZ1 (~3TB usable) | Performance-sensitive workloads |
+
+All SATA SSDs connect via the same HBA as the HDDs (passthrough to snorlax).
 
 ### Dataset Distribution
+
+**SSD pool (`flash`):**
+
+| Dataset | Contents |
+|---|---|
+| `flash/k8s/` | All democratic-csi PVCs (default StorageClass target) |
+| `flash/apps/` | TrueNAS app data — Plex metadata/DB, Tdarr cache, SABnzbd temp |
+| `flash/backups/pbs/` | PBS dedup index and database |
 
 **HDD pool (`data`):**
 
@@ -92,8 +120,8 @@ The four spare SATA SSDs are no longer allocated to a TrueNAS `flash/k8s` pool. 
 | `data/isos/` | ISO images for Proxmox |
 | `data/backups/postgresql/` | pg_dump outputs from metagross |
 | `data/backups/timemachine/` | macOS Time Machine targets |
-| `data/backups/pbs-store/` | PBS datastore / chunk store (sequential bulk data) |
-| `data/k8s-bulk/` | Optional NFS-backed bulk/shared Kubernetes datasets |
+| `data/backups/pbs-store/` | PBS chunk store (sequential bulk data) |
+| `data/k8s/` | `truenas-nfs-bulk` PVCs (media references, large sequential data) |
 | `data/photos/` | Photo library (~800 GiB) |
 | `data/documents/` | Documents (~450 GiB) |
 | `data/backups/general/` | General backup data (~1.2 TiB) — renamed from `data/backup/` for consistency |
@@ -101,19 +129,18 @@ The four spare SATA SSDs are no longer allocated to a TrueNAS `flash/k8s` pool. 
 **Datasets to clean up during Stage 5:**
 - `data/nextcloud` — no longer in use
 - `data/recordings` — not in use (no Frigate)
-- `data/docker` — replaced by K8s PVCs on `local-path` plus selected TrueNAS bulk mounts
-- `data/k3s` — old k3s PVCs, replaced by Talos `local-path`
+- `data/docker` — replaced by K8s PVCs on `flash`
+- `data/k3s` — old k3s PVCs, replaced by `flash/k8s/`
 - `data/vms` — VMs use Ceph now
 
 ### ARC Analysis (baseline from 2026-03-14)
 
 | Metric | Value | Implication |
 |---|---|---|
-| ARC hit rate | 99.2% | Excellent — current workload fits well in RAM |
+| ARC hit rate | 99.2% | Excellent — current workload fits well in RAM; L2ARC not needed |
 | ARC size | 36 GB on 62.6 GB RAM | 48 GB snorlax RAM should yield ~36 GB ARC (same) |
-| L2ARC-eligible evictions | 34.7 TiB | Strong case for L2ARC — 2 TB NVMe will absorb hot evictions |
 | ZIL writes (no SLOG) | 1.5 TiB on HDDs | Optane SLOG eliminates synchronous write penalty |
-| ARC composition | 91.5% data / 8.5% metadata | Metadata fits in Optane special vdev + ARC |
+| ARC composition | 91.5% data / 8.5% metadata | Metadata fits in NVMe special vdev + ARC |
 
 ---
 
@@ -121,23 +148,25 @@ The four spare SATA SSDs are no longer allocated to a TrueNAS `flash/k8s` pool. 
 
 ### StorageClass Definitions
 
-| StorageClass | Backend | Location | Access Mode | Use Case |
+| StorageClass | Backend | Pool/Dataset | Access Mode | Use Case |
 |---|---|---|---|---|
-| `local-path` | Rancher local-path-provisioner | Talos VM disks on Proxmox `ceph-nvme` | ReadWriteOnce | **Default.** App configs, caches, Redis persistence, and single-pod service state. Node-bound at the Kubernetes layer. |
-| TrueNAS NFS | Static or future dynamic NFS | `data/media`, `data/downloads`, `data/roms`, `data/documents`, `data/k8s-bulk` | ReadWriteMany | Bulk/shared datasets and workloads needing shared filesystem semantics. |
+| `truenas-nfs` | democratic-csi → TrueNAS NFS | `flash/k8s/` | ReadWriteMany | **Default.** App configs, documents, Ollama models, most PVCs. |
+| `truenas-nfs-bulk` | democratic-csi → TrueNAS NFS | `data/k8s/` | ReadWriteMany | Media references, large sequential data, anything >500GB. |
+| `local-path` | Rancher local-path-provisioner | Ceph (via VM disk) | ReadWriteOnce | Redis persistence, NFS-hostile edge cases. Node-local. |
 
-No `truenas-nfs` default StorageClass is required for the current implementation. Add static PVs or a future NFS provisioner only for concrete bulk/shared workloads.
+democratic-csi requires two NFS share configurations pointing at different parent datasets.
 
 ### Workload Assignment
 
-| `local-path` | TrueNAS NFS |
-|---|---|
-| Redis persistence | Servarr media libraries |
-| App configs and caches | Bulk downloads |
-| SQLite or NFS-hostile edge cases | Paperless document archive |
-| Small single-pod service data | Ollama models, ROM libraries, large assets |
+| `truenas-nfs` (flash) | `truenas-nfs-bulk` (data) | `local-path` |
+|---|---|---|
+| Paperless-ngx documents + OCR | Servarr media libraries | Redis |
+| Ollama models | Bulk downloads (SABnzbd complete) | NFS-hostile edge cases |
+| App configs (all apps) | Anything >500GB | |
+| Outline attachments | | |
+| Booklore/Gramps data | | |
 
-**SABnzbd dual-mount:** Temp/incomplete downloads can use `local-path` if node-bound operation is acceptable; completed downloads live on TrueNAS bulk storage.
+**SABnzbd dual-mount:** Temp/incomplete downloads on `flash` (random I/O during extraction), completed downloads on `data` (sequential bulk). Configured at the app level with two mount paths, not at the StorageClass level.
 
 **LLDAP:** Uses PostgreSQL on metagross — no SQLite fallback, no `local-path` needed.
 
@@ -148,14 +177,14 @@ No `truenas-nfs` default StorageClass is required for the current implementation
 | | Configuration |
 |---|---|
 | OSD nodes | 3 (latios, latias, rayquaza) |
-| Drives per node | 1-2x 1TB SATA SSD |
-| Raw capacity | 3-6 TB (depending on drive count) |
+| Drives per node | 2x 1TB SATA SSD (recovered from Dell 3050s and Mew) |
+| Raw capacity | 6 TB |
 | Replication | 3-way |
-| Usable capacity | ~1-2 TB |
+| Usable capacity | ~2 TB |
 | Min replicas (`min_size`) | 2 |
 | Failure tolerance | 1 node |
 
-Ceph OSDs are distributed across all 3 Proxmox nodes. Each node contributes 1-2x 1TB SATA SSDs. Used for VM/LXC HA storage: metagross PostgreSQL LXC, K3s VM boot disks, snorlax TrueNAS boot disk, etc. CRUSH distributes 3 replicas across 3 hosts automatically.
+Ceph OSDs are distributed across all 3 Proxmox nodes. Each node contributes 2x 1TB SATA SSDs (WAL/DB colocated on each OSD — no dedicated journal device needed at this scale). Used for VM/LXC HA storage: metagross PostgreSQL LXC, K3s VM boot disks, snorlax TrueNAS boot disk, etc. CRUSH distributes 3 replicas across 3 hosts automatically.
 
 ---
 
@@ -174,7 +203,7 @@ PBS supports split-path datastores. The dedup index (heavily random-read) goes o
 
 | Source | What | Frequency | Destination |
 |---|---|---|---|
-| Talos VM disks / `local-path` PVCs | App data, configs, caches | Weekly VM backup, plus app-level exports where needed | PBS via Proxmox VM backups |
+| K3s PVCs (`flash/k8s/`) | App data, configs, documents | Daily | ZFS snapshots for point-in-time recovery + `proxmox-backup-client` file-level backup to PBS |
 | metagross (PostgreSQL) | All databases (pg_dump) | Daily | `data/backups/postgresql/` → PBS |
 | VM/LXC disks (Ceph) | Boot disks for K3s VMs, metagross, snorlax | Weekly | PBS |
 | TrueNAS `data/` | Media, homes, photos | ZFS snapshots only | No off-box backup (too large) |
@@ -193,29 +222,30 @@ Storage changes are interleaved with migration stages. The critical principle: *
 | Stage | Storage Work |
 |---|---|
 | **0B** (Rayquaza conversion) | Install Proxmox on rayquaza. Create snorlax VM with HBA + NVMe + iGPU passthrough. Install TrueNAS. Import existing `data` pool **as-is** — no topology changes. Verify Plex, all TrueNAS apps, NFS shares all working. |
-| **0B+** (Post-conversion, optional) | Add Optane metadata/SLOG and NVMe L2ARC only after TrueNAS is stable. Do not create `flash/k8s`; Kubernetes PVCs use `local-path` on Ceph-backed Talos VM disks. |
+| **0B+** (Post-conversion, new sub-stage) | **Not in the migration spec — inserted between Stage 0 and Stage 1.** Add 1x Optane SLOG via PCIe M.2 adapter. Verify 2x NVMe mirrored metadata special vdev (already in place from current pool). Create `flash` SSD pool (4x 1TB SATA). Create datasets: `flash/k8s/`, `flash/apps/`, `flash/backups/pbs/`. Move Plex metadata → `flash/apps/plex/`. |
 | **1** (Networking) | No storage work. |
-| **2** (K3s Infrastructure) | Add Ceph OSDs across latios, latias, rayquaza (1-2 SATA SSDs per node). |
-| **3** (Core Platform) | Configure `local-path` as the default StorageClass. Add TrueNAS NFS only for concrete bulk/shared workloads. Set up PBS storage paths separately. |
-| **4** (Service Migration) | App config/cache PVCs land on `local-path` by default. Servarr media mounts and other bulk datasets use TrueNAS NFS. |
+| **2** (K3s Infrastructure) | Add Ceph OSDs across latios, latias, rayquaza (2x 1TB SATA SSDs per node). |
+| **3** (Core Platform) | Configure democratic-csi with two NFS provisioners (`truenas-nfs` → `flash/k8s/`, `truenas-nfs-bulk` → `data/k8s/`). Set up PBS datastore on deoxys with split paths. |
+| **4** (Service Migration) | PVCs land on `flash` by default. Servarr wave: media mounts use `truenas-nfs-bulk`. SABnzbd gets dual mounts. |
 | **5** (Cleanup) | Remove stale datasets: `data/nextcloud`, `data/recordings`, `data/docker`, `data/k3s` (old), `data/vms`. |
 
 ### Risk Notes
 
-- **Stage 0B is two-phase:** First prove the snorlax VM works with the existing pool on rayquaza. Then restructure. If Optane/L2ARC/SSD changes go wrong, you still have a working TrueNAS.
-- **Node-bound PVCs:** `local-path` does not provide Kubernetes-native cross-node volume movement. Critical databases stay on metagross; future Ceph CSI can be added if node-bound PVCs become operationally painful.
-- **Optane metadata vdev:** Once added, the metadata special vdev cannot be removed without destroying and recreating the pool. The Optane drives are mirrored, so single-drive failure is survivable.
-- **Optane sourcing:** Intel Optane M.2 16GB drives are discontinued. Buy spares now (they're cheap on the secondary market). If both drives in a mirror fail and no replacement is available, recovery requires: export pool data, destroy pool, recreate without special vdev, reimport. This is disruptive but not data-losing if backups are current.
+- **Stage 0B is two-phase:** First prove the snorlax VM works with the existing pool on rayquaza. Then restructure. If Optane/SSD changes go wrong, you still have a working TrueNAS.
+- **SATA SSDs on HBA:** The flash pool SSDs share the same HBA as the HDDs. If HBA passthrough works for HDDs (required), SSDs will work too. Verify all drives visible in snorlax (TrueNAS) before creating the pool.
+- **NVMe metadata vdev:** The 2x 1TB NVMe mirrored metadata special vdev cannot be removed without destroying and recreating the pool. The drives are mirrored, so single-drive failure is survivable.
+- **Single SLOG (not mirrored):** The Optane SLOG is a single device. If it fails, ZFS falls back to writing the ZIL on the pool vdevs (HDDs) — no data loss, just a return to the synchronous write penalty until replaced. Acceptable risk for a homelab. The remaining 3x Optane 16GB drives are kept as cold spares.
+- **Optane sourcing:** Intel Optane M.2 16GB drives are discontinued. 3 spares on hand. If all spares are exhausted, the cluster simply runs without SLOG — degraded sync write performance but no data risk.
+- **No bifurcation on X13SAE-F-O:** Rayquaza's Supermicro motherboard does not support PCIe bifurcation. Only 1 Optane is visible per PCIe M.2 adapter slot. This is why the Optane SLOG is a single device rather than a mirror.
 
 ---
 
 ## Relationship to Other Specs
 
 This spec **supersedes** the following sections of the [redesign spec](2026-03-11-homelab-redesign-design.md):
-- "Future Enhancement: NVMe Pool + Optane Metadata" — NVMe drives are L2ARC candidates; no `flash/k8s` default PVC pool is planned.
-- Storage class tables in Section 2 — `local-path` becomes the default; TrueNAS NFS is reserved for bulk/shared workloads.
+- "Future Enhancement: NVMe Pool + Optane Metadata" — NVMe pool concept replaced by `flash` SSD pool; NVMe drives stay as mirrored metadata vdev.
+- Storage class tables in Section 2 — `truenas-nfs-bulk` added, `truenas-nfs` retargeted to `flash`.
 - RAM allocation for rayquaza VMs in Section 1 — updated to 48/10/2/4 GB split (snorlax/moltres/metagross/Proxmox).
-- NVMe passthrough description in Section 1 — NVMes no longer serve as metadata vdev; Optane replaces them.
-- Ceph OSD topology — OSDs distributed across latios, latias, rayquaza (1-2x 1TB SATA SSD per node).
+- Ceph OSD topology — OSDs distributed across latios, latias, rayquaza (2x 1TB SATA SSD per node).
 
 Implementation ordering integrates with the [migration spec](2026-03-13-migration-plan-design.md) stage structure. Stage 0B+ is a new sub-stage not present in the migration spec, inserted between Stage 0 (Track B) and Stage 1.

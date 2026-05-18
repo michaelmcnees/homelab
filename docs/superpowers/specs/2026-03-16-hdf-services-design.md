@@ -177,6 +177,7 @@ Both services share the existing Redis instance in the `databases` namespace, us
 | 0 | Outline, Paperless-ngx | Default (session/cache) |
 | 1 | Invoice Ninja | Queue jobs |
 | 2 | Chatwoot | Sidekiq jobs + caching |
+| 3 | Postiz | Queue/cache |
 
 Redis auth is disabled (internal-only, NetworkPolicy-protected).
 
