@@ -73,23 +73,15 @@ spec:
             - name: WT_PASS_FILE
               value: /run/secrets/webtrees/WT_PASS
           readinessProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: http
-              httpHeaders:
-                - name: Host
-                  value: family.mcnees.me
             initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 12
           livenessProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: http
-              httpHeaders:
-                - name: Host
-                  value: family.mcnees.me
             initialDelaySeconds: 180
             periodSeconds: 30
             timeoutSeconds: 5
