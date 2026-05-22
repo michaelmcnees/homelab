@@ -32,7 +32,9 @@ Proxmox has two TrueNAS-backed NFS storages:
 - `nfs-isos`: `10.0.1.1:/mnt/data/homelab/disk-images`
 - `nfs-backups`: `10.0.1.1:/mnt/data/backups/proxmox`
 
-On 2026-05-22, VM `500` (`snorlax`) was running on `rayquaza`, but `10.0.1.1` was unreachable from Proxmox and both NFS storages were inactive. Installed Talos VMs no longer depend on `nfs-isos` at boot; their stale installer ISO attachments were removed and the OpenTofu Proxmox module now boots installed nodes from `scsi0` only.
+On 2026-05-22, VM `500` (`snorlax`) was running on `rayquaza`, but `10.0.1.1` was unreachable from Proxmox and both NFS storages were inactive. The VM was stopped at GRUB, then the default TrueNAS `25.10.3` boot environment kernel-panicked with `VFS: Unable to mount root fs`. Booting `25.10.2.1` restored reachability and NFS; `zectl activate 25.10.2.1` made that boot environment the next reboot target.
+
+Installed Talos VMs no longer depend on `nfs-isos` at boot; their stale installer ISO attachments were removed and the OpenTofu Proxmox module now boots installed nodes from `scsi0` only.
 
 Useful checks from a Proxmox node:
 
@@ -40,6 +42,18 @@ Useful checks from a Proxmox node:
 ping -c 2 10.0.1.1
 showmount -e 10.0.1.1
 pvesm status
+```
+
+If `snorlax` is running but `10.0.1.1` does not answer ARP, capture the VM console from `rayquaza` and confirm it is not stopped at GRUB or panicked:
+
+```bash
+printf 'screendump /tmp/snorlax.ppm\nquit\n' | qm monitor 500
+```
+
+From the TrueNAS console, option `8` opens a Linux shell. The boot environments can be checked with:
+
+```bash
+zectl list
 ```
 
 For a non-root admin account, set these in `ansible/inventory/host_vars/truenas.yml`:
