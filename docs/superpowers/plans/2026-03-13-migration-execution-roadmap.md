@@ -131,6 +131,8 @@ Each wave follows: export data → deploy to K3s → import data → verify → 
 
 McLan decommission blockers are tracked in `docs/runbooks/networking.md`.
 
+Remaining project completion work is tracked in `docs/runbooks/project-completion.md`.
+
 ---
 
 ## Legend

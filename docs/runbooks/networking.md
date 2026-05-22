@@ -38,6 +38,14 @@ The WLAN resources intentionally ignore passphrases and provider-noisy rate/MAC-
 
 UniFi DHCP reservations are managed with `unifi_user.static_ips`.
 
+Before importing or applying UniFi reservation changes, run the local state audit:
+
+```bash
+scripts/unifi-static-ip-state-audit.sh
+```
+
+The audit is read-only and compares `terraform/unifi/static_ips.tf` with local OpenTofu state. Use `docs/runbooks/unifi-import-prep.md` for the import sequence and migration-era entries that need reclassification before any apply.
+
 Proxmox hosts configure their own static IPs, but UniFi still owns matching MAC/IP reservations so DHCP will not hand those addresses to other devices:
 
 | Host | IP |
@@ -87,7 +95,16 @@ Remove the McLan management IP from the Switch Lite-side NICs before applying th
 
 ## McLan Decommission Checklist
 
-The latest UniFi audit on 2026-05-11 found 17 active McLan clients plus UniFi infrastructure devices still using `10.0.0.0/22`. Do not disable McLan DHCP or remove the network until these are resolved.
+The latest read-only UniFi audit on 2026-05-22 used `unpoller_client_uptime_seconds` and `unpoller_device_info` from Prometheus. It found 11 current McLan client entries plus UniFi infrastructure devices still using `10.0.0.0/22`. Do not disable McLan DHCP or remove the network until these are resolved.
+
+Current UniFi client counts by network:
+
+| Network | Current client entries |
+| --- | ---: |
+| McLan | 11 |
+| K8s | 8 |
+| Trusted | 24 |
+| IoT | 16 |
 
 ### UniFi Infrastructure Still On McLan
 
@@ -102,13 +119,24 @@ The latest UniFi audit on 2026-05-11 found 17 active McLan clients plus UniFi in
 
 ### Keep As Host-Static Or Infrastructure
 
-| IP | Name | Notes |
-| --- | --- | --- |
-| `10.0.0.17` | Central Command | UniFi console. Move only with a planned controller management change. |
-| `10.0.1.1` | TrueNAS | Storage endpoint used by NFS/PVCs and external services. |
-| `10.0.1.100` | rayquaza | Proxmox host-static IP. |
-| `10.0.3.40` | latias | Proxmox host-static IP. |
-| `10.0.3.196` | latios | Proxmox host-static IP. |
+| IP | Name | Current path | Notes |
+| --- | --- | --- | --- |
+| `10.0.0.17` | Central Command | Switch Lite port 8 | UniFi console. Move only with a planned controller management change. |
+| `10.0.1.1` | TrueNAS | USW Flex XG port 2 | Storage endpoint used by NFS/PVCs and external services. |
+| `10.0.1.100` | rayquaza | USW Flex XG port 2 | Proxmox host-static IP. |
+| `10.0.3.40` | latias | USW Flex XG port 5 | Proxmox host-static IP. |
+| `10.0.3.196` | latios | USW Flex XG port 4 | Proxmox host-static IP. |
+
+### Current McLan Clients To Move Or Retire
+
+| IP | Name | MAC | Current path | Expected action |
+| --- | --- | --- | --- | --- |
+| `10.0.2.3` | pxe-pikachu | `14:b3:1f:1a:3b:51` | US-24-G1 port 6 | Decide whether this is still needed for PXE/Proxmox access. It is the only `10.0.2.x` PXE endpoint visible as a current UniFi client. |
+| `10.0.3.181` | driveway | `e4:38:83:0b:ab:3b` | Switch Lite port 4 | Was expected on IoT after 2026-05-11 cleanup; recheck switch port/VLAN assignment. |
+| `10.0.3.250` | office | `74:83:c2:3f:94:22` | Switch Lite port 1 | Classify before assigning a final VLAN. |
+| `10.0.3.253` | basement | `74:83:c2:3f:95:e4` | Switch Lite port 6 | Classify before assigning a final VLAN. |
+| No current IP label | pxe-latios | `d8:43:ae:cb:41:65` | Switch Lite port 11 | Duplicate/alternate path for latios. Remove McLan management from this NIC before tightening latios reservations. |
+| No current IP label | Unknown | `34:5a:60:b4:ac:5a` | Switch Lite port 9 | Duplicate/alternate path for latias. Remove McLan management from this NIC before tightening latias reservations. |
 
 ### Moved During 2026-05-11 Cleanup
 
@@ -128,7 +156,7 @@ The latest UniFi audit on 2026-05-11 found 17 active McLan clients plus UniFi in
 
 | IP | Name | Expected action |
 | --- | --- | --- |
-| `10.0.2.3` | adguard | Old AdGuard endpoint still visible on US-24-G1 port 6. Disable/unplug after confirming no clients depend on it. |
+| `10.0.2.3` | pxe-pikachu | Old temporary PXE/Proxmox endpoint still visible on US-24-G1 port 6. Retire after confirming the temporary PXE route is no longer needed. |
 
 ### Wired Devices To Classify
 
@@ -136,8 +164,8 @@ The latest UniFi audit on 2026-05-11 found 17 active McLan clients plus UniFi in
 | --- | --- | --- |
 | `10.0.3.250` | office | Verify whether AP/switch/client before moving. |
 | `10.0.3.253` | basement | Verify whether AP/switch/client before moving. |
-| `10.0.3.201` | Unknown `78:20:a5:8e:eb:92` | Classify before assigning a final VLAN. |
-| `10.0.3.79` | Kiljarl | Classify before assigning a final VLAN. |
+| `10.0.30.150` | Unknown `78:20:a5:8e:eb:92` | Current audit shows this on IoT, not McLan. Keep classified as IoT unless a fresh audit says otherwise. |
+| `10.0.30.205` | Kiljarl | Current audit shows this on IoT, not McLan. Keep classified as IoT unless a fresh audit says otherwise. |
 
 ## Decommission Procedure
 
