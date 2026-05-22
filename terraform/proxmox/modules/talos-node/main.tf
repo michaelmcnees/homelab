@@ -7,7 +7,7 @@ resource "proxmox_virtual_environment_vm" "talos_node" {
   tags      = var.tags
 
   bios          = "seabios"
-  boot_order    = ["scsi0", "ide2"]
+  boot_order    = ["scsi0"]
   machine       = "q35"
   scsi_hardware = "virtio-scsi-single"
 
@@ -30,11 +30,6 @@ resource "proxmox_virtual_environment_vm" "talos_node" {
     size         = var.disk_size
     discard      = "on"
     ssd          = true
-  }
-
-  cdrom {
-    file_id   = var.talos_iso_file_id
-    interface = "ide2"
   }
 
   network_device {

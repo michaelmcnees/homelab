@@ -264,11 +264,6 @@ locals {
       mac      = "14:b3:1f:1a:3b:45"
       fixed_ip = "10.0.2.1"
     }
-    pxe_pikachu_1a3b51 = {
-      name     = "pxe-pikachu"
-      mac      = "14:b3:1f:1a:3b:51"
-      fixed_ip = "10.0.2.3"
-    }
     px_mew_f109a8 = {
       name     = "px-mew"
       mac      = "bc:30:5b:f1:09:a8"

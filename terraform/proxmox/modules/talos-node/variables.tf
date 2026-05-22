@@ -42,11 +42,6 @@ variable "ip_address" {
   type        = string
 }
 
-variable "talos_iso_file_id" {
-  description = "Proxmox file ID for the Talos ISO attached to this VM."
-  type        = string
-}
-
 variable "bridge" {
   description = "Network bridge for the VM."
   type        = string

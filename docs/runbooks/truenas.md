@@ -25,6 +25,23 @@ ssh root@10.0.1.1 midclt call system.info
 
 If TrueNAS root SSH is disabled, enable SSH for an administrative account that can run `midclt`, then update `ansible/inventory/hosts.yml` or local inventory vars accordingly.
 
+## Proxmox NFS Storage
+
+Proxmox has two TrueNAS-backed NFS storages:
+
+- `nfs-isos`: `10.0.1.1:/mnt/data/homelab/disk-images`
+- `nfs-backups`: `10.0.1.1:/mnt/data/backups/proxmox`
+
+On 2026-05-22, VM `500` (`snorlax`) was running on `rayquaza`, but `10.0.1.1` was unreachable from Proxmox and both NFS storages were inactive. Installed Talos VMs no longer depend on `nfs-isos` at boot; their stale installer ISO attachments were removed and the OpenTofu Proxmox module now boots installed nodes from `scsi0` only.
+
+Useful checks from a Proxmox node:
+
+```bash
+ping -c 2 10.0.1.1
+showmount -e 10.0.1.1
+pvesm status
+```
+
 For a non-root admin account, set these in `ansible/inventory/host_vars/truenas.yml`:
 
 ```yaml

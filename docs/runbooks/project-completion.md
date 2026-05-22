@@ -16,11 +16,14 @@ This is the remaining work to call the homelab migration complete. Items are gro
 ## Needs Live Operator Work
 
 - [x] Run a fresh UniFi client audit and classify remaining McLan clients from `docs/runbooks/networking.md`.
-- [ ] Import or create the `pxe-pikachu` UniFi reservation for `10.0.2.3`, then choose Pikachu's final VLAN/IP before McLan is removed.
-- [ ] Resolve the latios/latias duplicate-IP paths before tightening reservations or bridge config.
+- [x] Remove retired Dell mini nodes from Proxmox cluster membership with `pvecm delnode`.
+- [ ] Disconnect the latios/latias secondary management links from Switch Lite ports 11 and 9.
+- [ ] Remove retired `pxe-pikachu` UniFi reservation/state now that Pikachu is shut down.
+- [ ] Restore TrueNAS/snorlax NFS reachability for Proxmox `nfs-isos` and `nfs-backups`; `10.0.1.1` was unreachable from Proxmox on 2026-05-22 even though VM `500` was running on rayquaza.
 - [ ] Finish McLan decommissioning: shrink or disable DHCP, monitor, then remove the legacy flat `/22` only after rollback is no longer needed.
 - [ ] Confirm whether `https_cf`, `satisfactory`, `ldap`, and `xbox_live` port forwards still point to intended live destinations.
 - [x] Confirm temporary PXE endpoints are no longer needed, then delete the live routes and remove the repo manifests.
+- [x] Detach Talos installer ISOs from installed Proxmox VMs so control-plane restarts do not depend on the TrueNAS-backed `nfs-isos` datastore.
 - [ ] Create and configure the PBS LXC (`deoxys`) and backup jobs.
 - [ ] Create or migrate the Pelican Wings VM on pikachu/rayquaza if that is still the intended final topology.
 

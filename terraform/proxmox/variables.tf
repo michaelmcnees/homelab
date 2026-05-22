@@ -16,32 +16,6 @@ variable "proxmox_password" {
   sensitive   = true
 }
 
-# --- Talos Image ---
-
-variable "talos_version" {
-  description = "Talos Linux version for VM boot media"
-  type        = string
-  default     = "v1.12.6"
-}
-
-variable "talos_iso_url" {
-  description = "Talos ISO URL. Override with an Image Factory ISO URL when adding system extensions."
-  type        = string
-  default     = "https://github.com/siderolabs/talos/releases/download/v1.12.6/metal-amd64.iso"
-}
-
-variable "talos_iso_datastore" {
-  description = "Shared Proxmox datastore used for the Talos ISO"
-  type        = string
-  default     = "nfs-isos"
-}
-
-variable "talos_iso_file_id" {
-  description = "Proxmox file ID for the pre-seeded Talos ISO"
-  type        = string
-  default     = "nfs-isos:iso/talos-1.12.6-metal-amd64.iso"
-}
-
 # --- VM Defaults ---
 
 variable "vm_default_storage" {

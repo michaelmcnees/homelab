@@ -131,12 +131,12 @@ Current UniFi client counts by network:
 
 | IP | Name | MAC | Current path | Expected action |
 | --- | --- | --- | --- | --- |
-| `10.0.2.3` | pxe-pikachu | `14:b3:1f:1a:3b:51` | US-24-G1 port 6 | Keep while Pikachu remains live. Added to UniFi IaC so it can be imported or created deliberately. |
-| `10.0.3.181` | driveway | `e4:38:83:0b:ab:3b` | Switch Lite port 4 | Was expected on IoT after 2026-05-11 cleanup; recheck switch port/VLAN assignment. |
-| `10.0.3.250` | office | `74:83:c2:3f:94:22` | Switch Lite port 1 | Classify before assigning a final VLAN. |
-| `10.0.3.253` | basement | `74:83:c2:3f:95:e4` | Switch Lite port 6 | Classify before assigning a final VLAN. |
-| No current IP label | pxe-latios | `d8:43:ae:cb:41:65` | Switch Lite port 11 | Duplicate/alternate path for latios. Remove McLan management from this NIC before tightening latios reservations. |
-| No current IP label | Unknown | `34:5a:60:b4:ac:5a` | Switch Lite port 9 | Duplicate/alternate path for latias. Remove McLan management from this NIC before tightening latias reservations. |
+| `10.0.2.3` | pxe-pikachu | `14:b3:1f:1a:3b:51` | US-24-G1 port 6 | Retired 2026-05-22; node was shut down and removed from Proxmox cluster membership. |
+| `10.0.3.181` | driveway | `e4:38:83:0b:ab:3b` | Switch Lite port 4 | UniFi camera. Keep with UniFi infrastructure/management devices, not IoT. |
+| `10.0.3.250` | office | `74:83:c2:3f:94:22` | Switch Lite port 1 | UniFi camera. Keep with UniFi infrastructure/management devices, not IoT. |
+| `10.0.3.253` | basement | `74:83:c2:3f:95:e4` | Switch Lite port 6 | UniFi camera. Keep with UniFi infrastructure/management devices, not IoT. |
+| No current IP label | pxe-latios | `d8:43:ae:cb:41:65` | Switch Lite port 11 | Old secondary latios management path. Cut this second connection entirely. |
+| No current IP label | Unknown | `34:5a:60:b4:ac:5a` | Switch Lite port 9 | Old secondary latias management path. Cut this second connection entirely. |
 
 ### Moved During 2026-05-11 Cleanup
 
@@ -150,20 +150,20 @@ Current UniFi client counts by network:
 | `10.0.30.51` | HDHomeRun | IoT/media; US-24-G1 port 3 moved to native IoT. |
 | `10.0.30.52` | Lutron | IoT; US-24-G1 port 1 moved to native IoT. |
 | `10.0.30.62` | Living-Room | IoT/media; US-24-G1 port 5 moved to native IoT. |
-| `10.0.30.181` | driveway | IoT/security; DHCP reservation moved to IoT. |
+| `10.0.3.181` | driveway | Reclassified as UniFi camera/infrastructure on 2026-05-22; keep with UniFi management devices. |
 
 ### Legacy Services To Retire Or Move
 
 | IP | Name | Expected action |
 | --- | --- | --- |
-| `10.0.2.3` | pxe-pikachu | Live old node still visible on US-24-G1 port 6. Keep/import the reservation while Pikachu remains active; retire only after the node is gone or moved. |
+| `10.0.2.3` | pxe-pikachu | Retired 2026-05-22. Proxmox membership is removed; remove UniFi reservation/state after confirming it stays shut down. |
 
 ### Wired Devices To Classify
 
 | IP | Name | Likely action |
 | --- | --- | --- |
-| `10.0.3.250` | office | Verify whether AP/switch/client before moving. |
-| `10.0.3.253` | basement | Verify whether AP/switch/client before moving. |
+| `10.0.3.250` | office | UniFi camera; keep with UniFi infrastructure/management devices. |
+| `10.0.3.253` | basement | UniFi camera; keep with UniFi infrastructure/management devices. |
 | `10.0.30.150` | Unknown `78:20:a5:8e:eb:92` | Current audit shows this on IoT, not McLan. Keep classified as IoT unless a fresh audit says otherwise. |
 | `10.0.30.205` | Kiljarl | Current audit shows this on IoT, not McLan. Keep classified as IoT unless a fresh audit says otherwise. |
 
