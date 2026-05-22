@@ -9,8 +9,8 @@ The 2026-05-22 read-only audit found:
 - 11 current McLan client entries.
 - 6 UniFi infrastructure devices still managed on McLan.
 - 5 expected host-static or infrastructure addresses still on McLan.
-- Temporary PXE routes still deployed in `kubernetes/apps/external-services/temporary`.
-- Only `pxe-pikachu` at `10.0.2.3` currently visible from the temporary PXE endpoint set.
+- Temporary PXE routes were removed from `kubernetes/apps/external-services` and pruned from the live cluster on 2026-05-22.
+- `pxe-pikachu` at `10.0.2.3` remains visible as a live McLan client; keep its reservation while Pikachu remains active.
 - In-cluster HTTPS probes to `10.0.2.0:8006` through `10.0.2.4:8006` failed, so the temporary PXE routes are cleanup candidates.
 
 ## Pre-Window Checklist
@@ -18,7 +18,7 @@ The 2026-05-22 read-only audit found:
 - [ ] Confirm Central Command, TrueNAS, rayquaza, latios, and latias are intentionally staying on McLan for this window.
 - [ ] Confirm UniFi infrastructure management migration is out of scope for this window, or prepare a separate controller/switch/AP management migration plan.
 - [ ] Re-run the Prometheus UniFi query and confirm McLan clients match `docs/runbooks/networking.md`.
-- [ ] Confirm temporary PXE hosts are no longer needed, or explicitly keep the relevant route manifests.
+- [x] Confirm temporary PXE routes are removed from the cluster; Pikachu remains live as a host, not as an ingress route.
 - [ ] Confirm `driveway` should be on IoT and fix its switch/VLAN path before McLan DHCP is touched.
 - [ ] Remove McLan management from the Switch Lite-side latios and latias paths.
 - [ ] Confirm backups and DNS are healthy before the window.
@@ -56,10 +56,10 @@ kubectl -n observability exec prometheus-kube-prometheus-stack-prometheus-0 -c p
    - Classify `office` and `basement`.
    - Retire or move `pxe-pikachu`.
    - Remove McLan management from the alternate latios/latias paths.
-2. Decide temporary PXE route fate:
-   - If unused, remove the route manifests from `kubernetes/apps/external-services/temporary`.
+2. Keep Pikachu explicitly tracked:
+   - Import or create the `pxe_pikachu_1a3b51` UniFi reservation.
+   - Pick a final VLAN/IP for Pikachu if it should survive McLan decommission.
    - Keep the wildcard certificates in `kubernetes/apps/external-services/certificates.yaml`; other `apps` ingresses use those secrets.
-   - If still needed, document the owner and expected retirement date.
 3. Run `scripts/unifi-static-ip-state-audit.sh` and confirm no local IaC/state drift.
 4. Run `tofu plan -parallelism=1` in `terraform/unifi` and review network changes.
 5. During the window, shrink or disable McLan DHCP in UniFi.

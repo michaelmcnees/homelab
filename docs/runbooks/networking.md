@@ -131,7 +131,7 @@ Current UniFi client counts by network:
 
 | IP | Name | MAC | Current path | Expected action |
 | --- | --- | --- | --- | --- |
-| `10.0.2.3` | pxe-pikachu | `14:b3:1f:1a:3b:51` | US-24-G1 port 6 | Decide whether this is still needed for PXE/Proxmox access. It is the only `10.0.2.x` PXE endpoint visible as a current UniFi client. |
+| `10.0.2.3` | pxe-pikachu | `14:b3:1f:1a:3b:51` | US-24-G1 port 6 | Keep while Pikachu remains live. Added to UniFi IaC so it can be imported or created deliberately. |
 | `10.0.3.181` | driveway | `e4:38:83:0b:ab:3b` | Switch Lite port 4 | Was expected on IoT after 2026-05-11 cleanup; recheck switch port/VLAN assignment. |
 | `10.0.3.250` | office | `74:83:c2:3f:94:22` | Switch Lite port 1 | Classify before assigning a final VLAN. |
 | `10.0.3.253` | basement | `74:83:c2:3f:95:e4` | Switch Lite port 6 | Classify before assigning a final VLAN. |
@@ -156,7 +156,7 @@ Current UniFi client counts by network:
 
 | IP | Name | Expected action |
 | --- | --- | --- |
-| `10.0.2.3` | pxe-pikachu | Old temporary PXE/Proxmox endpoint still visible on US-24-G1 port 6. Retire after confirming the temporary PXE route is no longer needed. |
+| `10.0.2.3` | pxe-pikachu | Live old node still visible on US-24-G1 port 6. Keep/import the reservation while Pikachu remains active; retire only after the node is gone or moved. |
 
 ### Wired Devices To Classify
 

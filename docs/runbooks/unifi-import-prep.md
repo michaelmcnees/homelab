@@ -17,7 +17,7 @@ The script compares:
 
 It reports reservations that are declared but not tracked, and it prints import command templates for those missing entries.
 
-The latest local prep audit reported 69 declared reservations, 69 tracked reservations, 0 missing entries, and 0 stale entries. Treat that as a local-state result, not proof that UniFi live state is ready for apply.
+The 2026-05-22 local prep audit initially reported 69 declared reservations, 69 tracked reservations, 0 missing entries, and 0 stale entries. After the live McLan audit, `pxe-pikachu` was added to IaC because it is the only old PXE node still live on McLan and was not declared. Expect the next audit to show that reservation as missing from local state until it is imported or created deliberately.
 
 Local state IDs for existing `unifi_user.static_ips` resources are UniFi client/user object IDs, not MAC addresses. Before importing a missing reservation, collect the matching UniFi object ID from the controller UI or API and replace `<unifi-client-object-id>` in the generated command template.
 
@@ -49,7 +49,7 @@ These declarations or related network paths are migration-era candidates. Confir
 | Area | Examples | Decision needed |
 | --- | --- | --- |
 | Legacy app LXCs | `adguard_home`, `lldap`, `pocketid`, `traefik`, `oauth2_proxy`, `outline`, `postgresql`, `mariadb`, `redis`, `influxdb`, `n8n`, `ollama`, `openwebui`, `overseerr`, `wizarr`, `booklore`, `lazylibrarian`, `pelican_panel` | Keep only if the LXC still exists or is needed as rollback. |
-| Old K3s and PXE entries | `k3s_*`, `pxe_*`, `px_mew` | Remove after confirming no temporary external routes or PXE workflows still depend on them. |
+| Old K3s and PXE entries | `k3s_*`, `pxe_bulbasaur`, `pxe_squirtle`, `px_mew` | Remove after confirming no temporary external routes or PXE workflows still depend on them. Keep/import `pxe_pikachu` while Pikachu remains live. |
 | Host-static infrastructure | `truenas`, `rayquaza`, `latios`, `latias`, `central_command` | Keep as collision guards until their management networks are deliberately migrated. |
 | Port forwards to legacy IPs | `https_cf`, `satisfactory`, `ldap`, `xbox_live` | Confirm destination ownership before any cleanup. |
 

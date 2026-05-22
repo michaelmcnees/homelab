@@ -9,17 +9,18 @@ This is the remaining work to call the homelab migration complete. Items are gro
 - [x] Turn the McLan decommission checklist into a final maintenance-window runbook once the active-client list is fresh.
 - [x] Decide which temporary PXE routes in `kubernetes/apps/external-services/temporary` should be removed versus retained.
 - [x] Prepare cleanup patches for retired external services, but hold them until live route usage is verified.
+- [x] Remove stale, unreferenced Homebridge external-service manifest that pointed at old `10.0.2.5`.
 - [ ] Add final "break glass" documentation for DNS, Flux, SOPS, Talos, UniFi, and storage access.
 - [ ] Add an "in case of death" operator guide with account locations, recovery order, and service ownership.
 
 ## Needs Live Operator Work
 
 - [x] Run a fresh UniFi client audit and classify remaining McLan clients from `docs/runbooks/networking.md`.
-- [ ] Move or retire the old AdGuard endpoint at `10.0.2.3` after confirming clients use the dual Kubernetes VIPs.
+- [ ] Import or create the `pxe-pikachu` UniFi reservation for `10.0.2.3`, then choose Pikachu's final VLAN/IP before McLan is removed.
 - [ ] Resolve the latios/latias duplicate-IP paths before tightening reservations or bridge config.
 - [ ] Finish McLan decommissioning: shrink or disable DHCP, monitor, then remove the legacy flat `/22` only after rollback is no longer needed.
 - [ ] Confirm whether `https_cf`, `satisfactory`, `ldap`, and `xbox_live` port forwards still point to intended live destinations.
-- [ ] Confirm temporary PXE endpoints are no longer needed, then delete the live routes and remove the repo manifests.
+- [x] Confirm temporary PXE endpoints are no longer needed, then delete the live routes and remove the repo manifests.
 - [ ] Create and configure the PBS LXC (`deoxys`) and backup jobs.
 - [ ] Create or migrate the Pelican Wings VM on pikachu/rayquaza if that is still the intended final topology.
 
