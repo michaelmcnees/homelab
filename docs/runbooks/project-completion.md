@@ -7,8 +7,8 @@ This is the remaining work to call the homelab migration complete. Items are gro
 - [x] Add a read-only UniFi static reservation audit helper: `scripts/unifi-static-ip-state-audit.sh`.
 - [x] Document the safe UniFi import workflow: `docs/runbooks/unifi-import-prep.md`.
 - [x] Turn the McLan decommission checklist into a final maintenance-window runbook once the active-client list is fresh.
-- [ ] Decide which temporary PXE routes in `kubernetes/apps/external-services/temporary` should be removed versus retained.
-- [ ] Prepare cleanup patches for retired external services, but hold them until live route usage is verified.
+- [x] Decide which temporary PXE routes in `kubernetes/apps/external-services/temporary` should be removed versus retained.
+- [x] Prepare cleanup patches for retired external services, but hold them until live route usage is verified.
 - [ ] Add final "break glass" documentation for DNS, Flux, SOPS, Talos, UniFi, and storage access.
 - [ ] Add an "in case of death" operator guide with account locations, recovery order, and service ownership.
 

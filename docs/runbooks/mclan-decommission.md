@@ -11,6 +11,7 @@ The 2026-05-22 read-only audit found:
 - 5 expected host-static or infrastructure addresses still on McLan.
 - Temporary PXE routes still deployed in `kubernetes/apps/external-services/temporary`.
 - Only `pxe-pikachu` at `10.0.2.3` currently visible from the temporary PXE endpoint set.
+- In-cluster HTTPS probes to `10.0.2.0:8006` through `10.0.2.4:8006` failed, so the temporary PXE routes are cleanup candidates.
 
 ## Pre-Window Checklist
 
@@ -57,6 +58,7 @@ kubectl -n observability exec prometheus-kube-prometheus-stack-prometheus-0 -c p
    - Remove McLan management from the alternate latios/latias paths.
 2. Decide temporary PXE route fate:
    - If unused, remove the route manifests from `kubernetes/apps/external-services/temporary`.
+   - Keep the wildcard certificates in `kubernetes/apps/external-services/certificates.yaml`; other `apps` ingresses use those secrets.
    - If still needed, document the owner and expected retirement date.
 3. Run `scripts/unifi-static-ip-state-audit.sh` and confirm no local IaC/state drift.
 4. Run `tofu plan -parallelism=1` in `terraform/unifi` and review network changes.
