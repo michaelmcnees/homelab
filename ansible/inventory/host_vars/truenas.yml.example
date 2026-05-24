@@ -44,6 +44,16 @@ truenas_datasets:
     mode: "0775"
     owner: k8s-backup
     group: k8s-backup
+  - name: data/k8s/apps/immich
+    comment: Immich storage root
+    mode: "0775"
+    owner: k8s-backup
+    group: k8s-backup
+  - name: data/k8s/apps/immich/library
+    comment: Immich photo and video library
+    mode: "0775"
+    owner: k8s-backup
+    group: k8s-backup
   - name: data/k8s/apps/paperless
     comment: Paperless-ngx storage root
     mode: "0775"
@@ -72,6 +82,10 @@ truenas_nfs_shares:
     mapall_group: k8s-backup
   - path: /mnt/data/backups/restic-homelab
     comment: Restic repositories for Kubernetes backup jobs
+    mapall_user: k8s-backup
+    mapall_group: k8s-backup
+  - path: /mnt/data/k8s/apps/immich/library
+    comment: Immich photo and video library
     mapall_user: k8s-backup
     mapall_group: k8s-backup
   - path: /mnt/data/k8s/apps/paperless/media

@@ -88,3 +88,13 @@ Paperless currently expects these TrueNAS exports:
 ```
 
 Those desired datasets and shares are included in the example vars file. After `task ansible:truenas` succeeds, Paperless can be enabled in the root apps Kustomization.
+
+## Immich Dataset
+
+Immich expects this TrueNAS export:
+
+```text
+10.0.1.1:/mnt/data/k8s/apps/immich/library
+```
+
+The desired `data/k8s/apps/immich` parent dataset, `data/k8s/apps/immich/library` child dataset, and NFS share are included in the example vars file. Run `task ansible:truenas` after adding or changing the Immich Kubernetes manifests.

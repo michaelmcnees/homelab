@@ -4,8 +4,8 @@ TriliumNext runs in the `apps` namespace at `https://notes.mcnees.me`.
 
 ## Components
 
-- App: `triliumnext/trilium:rootless`
-- Storage: `trilium-data` local-path PVC mounted at `/home/trilium/trilium-data`
+- App: `triliumnext/trilium:v0.103.0`
+- Storage: `trilium-data` local-path PVC mounted at `/home/node/trilium-data`
 - Auth: Trilium's built-in login flow
 
 The route is intentionally not behind oauth2-proxy so browser sessions, API access, and mobile clients can authenticate directly with Trilium.
