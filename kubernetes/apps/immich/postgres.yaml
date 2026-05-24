@@ -43,11 +43,6 @@ spec:
                   key: DB_PASSWORD
             - name: DB_STORAGE_TYPE
               value: SSD
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
           readinessProbe:
             exec:
               command:
