@@ -71,6 +71,10 @@ spec:
         accessModes:
           - ReadWriteOnce
         size: 5Gi
+      sidecar:
+        datasources:
+          alertmanager:
+            enabled: false
       grafana.ini:
         server:
           root_url: https://grafana.home.mcnees.me
