@@ -8,3 +8,7 @@ data:
     model:
       provider: openai-codex
       default: gpt-5.3-codex
+    mcp_servers:
+      honeydew:
+        url: https://mcp.honeydewdone.app
+        auth: oauth
