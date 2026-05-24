@@ -13,7 +13,9 @@ Hermes is deployed as an experimental in-cluster agent at `https://hermes.home.m
 - Workspace PVC: `hermes-workspace` mounted at `/workspace`
 - Default provider: `openai-codex`
 - Default model: `gpt-5.3-codex`
-- MCP servers: Honeydew at `https://mcp.honeydewdone.app` using OAuth
+- MCP servers:
+  - Honeydew at `https://mcp.honeydewdone.app` using OAuth
+  - Outline at `https://docs.mcnees.me/mcp` using OAuth
 
 The Hermes Docker docs warn against exposing the dashboard directly. Keep it local-only and oauth-protected unless we intentionally design a safer public gateway.
 
@@ -50,7 +52,7 @@ kubectl --kubeconfig talos/kubeconfig exec -n apps deployment/hermes -- \
 
 ## MCP Servers
 
-Honeydew is configured as a remote HTTP MCP server with Hermes-managed OAuth. After the ConfigMap is reconciled, authorize it from Hermes on first use. Hermes persists MCP OAuth tokens on the `hermes-data` PVC and reuses them across restarts.
+Honeydew and Outline are configured as remote HTTP MCP servers with Hermes-managed OAuth. After the ConfigMap is reconciled, authorize each server from Hermes on first use. Hermes persists MCP OAuth tokens on the `hermes-data` PVC and reuses them across restarts.
 
 Reload MCP servers from inside Hermes after config changes:
 

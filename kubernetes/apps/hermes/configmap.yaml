@@ -12,3 +12,6 @@ data:
       honeydew:
         url: https://mcp.honeydewdone.app
         auth: oauth
+      outline:
+        url: https://docs.mcnees.me/mcp
+        auth: oauth
