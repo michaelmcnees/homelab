@@ -7,6 +7,7 @@ resources:
   - ./grimmory
   - ./hermes
   - ./homepage
+  - ./immich
   - ./mantle
   - ./ollama
   - ./open-webui
@@ -16,5 +17,6 @@ resources:
   - ./paperless-ngx
   - ./recyclarr
   - ./syncthing
+  - ./trilium
   - ./uptime-kuma
   - ./webtrees

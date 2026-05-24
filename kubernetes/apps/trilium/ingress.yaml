@@ -1,0 +1,19 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: trilium
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure-external
+  routes:
+    - match: Host(`notes.mcnees.me`)
+      kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
+      services:
+        - name: trilium
+          port: 8080
+  tls:
+    secretName: legacy-public-wildcard-tls

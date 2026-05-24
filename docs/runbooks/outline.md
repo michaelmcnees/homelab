@@ -4,11 +4,12 @@ Outline runs in the `apps` namespace at `https://docs.mcnees.me`.
 
 ## Components
 
-- App: `docker.getoutline.com/outlinewiki/outline`
+- App: `docker.getoutline.com/outlinewiki/outline:1.7.1`
 - Database: PostgreSQL database `outline` on metagross
 - Redis: shared Redis at `redis-master.databases.svc.cluster.local`, DB index `4`
 - File storage: RustFS S3 bucket `outline`
 - Auth: Pocket ID OIDC
+- MCP: built-in endpoint at `https://docs.mcnees.me/mcp`
 
 ## Pocket ID Client
 
@@ -23,6 +24,25 @@ Save the client ID and client secret into
 
 The Kubernetes manifests are included from `kubernetes/apps/kustomization.yaml`.
 The old temporary external route should stay removed after cutover.
+
+## MCP
+
+Outline includes a built-in MCP server at:
+
+```text
+https://docs.mcnees.me/mcp
+```
+
+MCP is controlled at the workspace level under Settings -> AI. Existing
+workspaces may have MCP disabled after upgrading, so enable it there before
+connecting Codex, Claude, Hermes, or other MCP clients.
+
+Default MCP auth uses OAuth. API key auth is also available by generating an
+Outline API key and sending it as:
+
+```text
+Authorization: Bearer <api-key>
+```
 
 ## Migration Notes
 
