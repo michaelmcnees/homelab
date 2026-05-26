@@ -21,6 +21,8 @@ spec:
     remediation:
       retries: 3
   values:
+    image:
+      tag: v0.8.1
     args:
       - --cert-dir=/tmp
       - --secure-port=10250

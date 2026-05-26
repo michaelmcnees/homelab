@@ -2,3 +2,4 @@ machine:
   network:
     nameservers:
       - 10.0.10.201
+      - 10.0.10.202
