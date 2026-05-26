@@ -76,6 +76,8 @@ spec:
           alertmanager:
             enabled: false
       grafana.ini:
+        feature_toggles:
+          provisioning: false
         server:
           root_url: https://grafana.home.mcnees.me
         auth:
