@@ -37,7 +37,7 @@ spec:
                 - ALL
       containers:
         - name: pelican-panel
-          image: ghcr.io/pelican-dev/panel:latest
+          image: ghcr.io/pelican-dev/panel:v1.0.0-beta34
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
