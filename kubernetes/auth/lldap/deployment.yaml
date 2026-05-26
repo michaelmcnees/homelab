@@ -19,7 +19,7 @@ spec:
       priorityClassName: critical
       containers:
         - name: lldap
-          image: lldap/lldap:v0.6.2
+          image: lldap/lldap:v0.6.3
           imagePullPolicy: IfNotPresent
           ports:
             - name: ldap
