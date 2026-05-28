@@ -177,9 +177,75 @@ spec:
         - name: hermes
           image: nousresearch/hermes-agent:latest
           imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
           args:
-            - gateway
-            - run
+            - |
+              /opt/hermes/.venv/bin/python - <<'PY'
+              from pathlib import Path
+
+              path = Path("/opt/hermes/run_agent.py")
+              text = path.read_text(encoding="utf-8")
+              marker = "Codex SDK None-output stream hotfix"
+              old = "\n".join([
+                  "            except RuntimeError as exc:",
+                  "                err_text = str(exc)",
+              ]) + "\n"
+              new = "\n".join([
+                  "            except TypeError as exc:",
+                  "                err_text = str(exc)",
+                  "                if \"'NoneType' object is not iterable\" in err_text:",
+                  "                    # Codex SDK None-output stream hotfix:",
+                  "                    # chatgpt.com/backend-api/codex can emit response.completed",
+                  "                    # with response.output=None after it has already streamed",
+                  "                    # response.output_item.done events. openai==2.33.0 raises",
+                  "                    # while parsing that terminal event, before Hermes can call",
+                  "                    # get_final_response(). Preserve the collected stream output",
+                  "                    # so Telegram and cron callers receive the answer.",
+                  "                    if collected_output_items:",
+                  "                        logger.warning(",
+                  "                            \"Codex stream SDK raised TypeError on terminal output=None; \"",
+                  "                            \"synthesizing response from %d collected output item(s). %s\",",
+                  "                            len(collected_output_items),",
+                  "                            self._client_log_context(),",
+                  "                        )",
+                  "                        return SimpleNamespace(",
+                  "                            output=list(collected_output_items),",
+                  "                            output_text=\"\".join(self._codex_streamed_text_parts),",
+                  "                            status=\"completed\",",
+                  "                        )",
+                  "                    if self._codex_streamed_text_parts and not has_tool_calls:",
+                  "                        assembled = \"\".join(self._codex_streamed_text_parts)",
+                  "                        logger.warning(",
+                  "                            \"Codex stream SDK raised TypeError on terminal output=None; \"",
+                  "                            \"synthesizing response from %d text delta(s). %s\",",
+                  "                            len(self._codex_streamed_text_parts),",
+                  "                            self._client_log_context(),",
+                  "                        )",
+                  "                        return SimpleNamespace(",
+                  "                            output=[SimpleNamespace(",
+                  "                                type=\"message\",",
+                  "                                role=\"assistant\",",
+                  "                                status=\"completed\",",
+                  "                                content=[SimpleNamespace(type=\"output_text\", text=assembled)],",
+                  "                            )],",
+                  "                            output_text=assembled,",
+                  "                            status=\"completed\",",
+                  "                        )",
+                  "                raise",
+                  "            except RuntimeError as exc:",
+                  "                err_text = str(exc)",
+              ]) + "\n"
+              if marker not in text:
+                  if old not in text:
+                      raise SystemExit("Hermes Codex stream hotfix anchor not found")
+                  path.write_text(text.replace(old, new, 1), encoding="utf-8")
+                  print("Applied Hermes Codex stream hotfix")
+              else:
+                  print("Hermes Codex stream hotfix already present")
+              PY
+              exec /opt/hermes/docker/entrypoint.sh gateway run
           ports:
             - name: gateway
               containerPort: 8642
