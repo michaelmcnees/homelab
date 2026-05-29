@@ -182,6 +182,8 @@ spec:
             - -c
           args:
             - |
+              chown 10000:10000 /opt/data/auth.json /opt/data/auth.json.corrupt 2>/dev/null || true
+              chmod 600 /opt/data/auth.json /opt/data/auth.json.corrupt 2>/dev/null || true
               /opt/hermes/.venv/bin/python - <<'PY'
               from pathlib import Path
 

@@ -46,8 +46,15 @@ Supported placeholders:
 Codex OAuth is not stored in SOPS. It is created inside the running Hermes pod and persisted on the `hermes-data` PVC:
 
 ```sh
-kubectl --kubeconfig talos/kubeconfig exec -n apps deployment/hermes -- \
-  /opt/hermes/.venv/bin/hermes auth add openai-codex --type oauth --no-browser --timeout 300
+kubectl --kubeconfig talos/kubeconfig exec -n apps deployment/hermes -- sh -c \
+  'su hermes -s /bin/sh -c "/opt/hermes/.venv/bin/hermes auth add openai-codex --type oauth --no-browser --timeout 300"'
+```
+
+Run Hermes auth commands as the `hermes` user. `kubectl exec` enters this image as root, and root-owned `/opt/data/auth.json` files are unreadable by the long-running Hermes process. If Codex jobs report `No Codex credentials stored` while logs also show `Permission denied: '/opt/data/auth.json'`, repair ownership without printing token contents:
+
+```sh
+kubectl --kubeconfig talos/kubeconfig exec -n apps deployment/hermes -- sh -c \
+  'chown 10000:10000 /opt/data/auth.json && chmod 600 /opt/data/auth.json'
 ```
 
 ## MCP Servers
