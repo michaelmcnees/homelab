@@ -105,6 +105,29 @@ After changing tag ownership in the tailnet policy, the operator usually retries
 kubectl --kubeconfig talos/kubeconfig annotate connector homelab-subnet-router tailscale.mcnees.me/retry-at="$(date -u +%Y%m%d%H%M%S)" --overwrite
 ```
 
+### High Availability
+
+The subnet router should run with `spec.replicas: 2` so a single worker loss does not remove admin access to lab subnets. Both generated Tailscale devices must advertise the same routes. Route auto-approval should be handled by `tag:homelab-admin-router`, but confirm the generated devices are approved in the Tailscale admin console after changes.
+
+Shared Kenway ingress proxies use the `homelab-shared-ingress` `ProxyGroup` with two replicas. Each Tailscale `Ingress` in `kubernetes/auth/oauth2-proxy-kenway-arr` should set:
+
+```yaml
+tailscale.com/proxy-group: homelab-shared-ingress
+```
+
+Failover drill:
+
+```bash
+kubectl --kubeconfig talos/kubeconfig cordon lugia
+kubectl --kubeconfig talos/kubeconfig get pods -n tailscale -o wide
+kubectl --kubeconfig talos/kubeconfig delete pod -n tailscale <one-subnet-router-pod>
+kubectl --kubeconfig talos/kubeconfig delete pod -n tailscale <one-shared-ingress-proxy-pod>
+kubectl --kubeconfig talos/kubeconfig get pods -n tailscale -o wide
+kubectl --kubeconfig talos/kubeconfig uncordon lugia
+```
+
+During the drill, verify admin subnet access plus the Kenway shared Arr URLs. Do not leave `lugia` cordoned after the test.
+
 ## Shared Services
 
 Tailscale can expose individual Kubernetes workloads using a `tailscale` `Ingress` or `LoadBalancer` service. Use this only when the auth story is explicit.

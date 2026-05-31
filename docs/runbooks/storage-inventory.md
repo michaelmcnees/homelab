@@ -60,6 +60,41 @@ Large or important allocations:
 
 The live cluster also has retained released PVs for old `storage/rustfs-data`, `apps/outline-data`, and `apps/paperless-ai-next-data` claims. Clean those up only after confirming they are intentionally abandoned.
 
+### Lugia Outage on 2026-05-29
+
+`lugia` stopped serving Kubernetes workloads because Proxmox host `latios` OOM-killed VM `143`, not because the VM was intentionally disabled.
+
+Evidence from `latios`:
+
+```bash
+journalctl --unit 143.scope --since "2026-05-29 00:00:00" --until "2026-05-31 16:00:00"
+journalctl --since "2026-05-29 23:35:00" --until "2026-05-29 23:50:00" | grep -E "oom|Out of memory|143.scope|Killed process|ceph"
+qm config 143
+```
+
+Key lines:
+
+```text
+May 29 23:44:51 latios systemd[1]: 143.scope: A process of this unit has been killed by the OOM killer.
+May 29 23:44:51 latios kernel: Out of memory: Killed process ... (kvm) ... task_memcg=/qemu.slice/143.scope
+```
+
+`qm config 143` had `onboot: 1`, so the VM should restart with the host but will not automatically recover from every OOM kill. At the OOM event, `lugia` was roughly 27 GiB RSS and two `ceph ... --help` commands from an Ansible/Ceph provisioning session were each reported around 10.8 GiB RSS.
+
+Critical state should not remain on `local-path` unless a workload is explicitly allowed to be node-bound. `apps/trilium-data`, `apps/hermes-data`, and `apps/hermes-workspace` now have Ceph RBD target PVCs for freeze/copy/switch migration.
+
+### Local-Path Migration Priority
+
+After the `lugia` outage, prioritize local-path migrations by user-facing blast radius:
+
+1. Personal core workflows: `apps/trilium-data`, `apps/hermes-data`, `apps/hermes-workspace`, `apps/uptime-kuma-data`.
+2. Routing and DNS support state: `apps/adguard-config`, `apps/adguard-work`, `apps/adguard-b-config`, `apps/adguard-b-work`.
+3. App databases and durable app state: `apps/immich-postgres-data`, `apps/paperless-data`, `apps/open-webui-data`, `object-storage/rustfs-data`.
+4. Observability state: Prometheus, Loki, Alertmanager, Grafana, and Beszel PVCs.
+5. Media support state: Arr app configs, RomM support volumes, Stash, Tautulli, and Wizarr.
+
+Use Ceph RBD for RWO app-private state. Keep TrueNAS NFS PVCs where the backing data is canonical shared media, backup, or the Obsidian vault.
+
 ## Backup State
 
 - PostgreSQL logical backups write to `internal/postgresql-logical-backups`, backed by `/mnt/data/backups/postgresql` on TrueNAS.

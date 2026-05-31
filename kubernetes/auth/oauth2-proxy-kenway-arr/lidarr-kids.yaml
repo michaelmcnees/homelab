@@ -116,6 +116,7 @@ metadata:
   name: kenway-lidarr-kids
   namespace: auth
   annotations:
+    tailscale.com/proxy-group: homelab-shared-ingress
     tailscale.com/tags: tag:homelab-shared-service
 spec:
   ingressClassName: tailscale

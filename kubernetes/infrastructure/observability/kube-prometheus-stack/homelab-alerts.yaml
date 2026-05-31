@@ -107,6 +107,24 @@ spec:
             summary: "Expected Proxmox guest {{ $labels.id }} is down"
             description: "The Proxmox guest {{ $labels.id }} is marked on-boot but is not running."
             runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#proxmox-metrics"
+        - alert: HomelabLugiaVMDown
+          expr: max by (id, name, node) (pve_up{id="qemu/143"} * on (instance, id) group_left(name, node, type) pve_guest_info{type="qemu"}) == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "lugia VM is down on Proxmox"
+            description: "The Proxmox exporter reports {{ $labels.name }} ({{ $labels.id }}) on {{ $labels.node }} as offline."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#proxmox-metrics"
+        - alert: HomelabProxmoxNodeMemoryHigh
+          expr: max by (id) (pve_memory_usage_bytes{id=~"node/(latios|latias|rayquaza)"} / pve_memory_size_bytes{id=~"node/(latios|latias|rayquaza)"}) > 0.90
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Proxmox node {{ $labels.id }} memory is over 90%"
+            description: "The Proxmox node {{ $labels.id }} has reported over 90% memory usage for 10 minutes."
+            runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/observability.md#proxmox-metrics"
         - alert: HomelabProxmoxStorageFillingUp
           expr: max by (id) (pve_disk_usage_bytes{id=~"storage/.*"} / pve_disk_size_bytes{id=~"storage/.*"}) > 0.85
           for: 15m

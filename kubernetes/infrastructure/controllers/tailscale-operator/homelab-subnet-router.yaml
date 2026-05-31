@@ -3,7 +3,7 @@ kind: Connector
 metadata:
   name: homelab-subnet-router
 spec:
-  replicas: 1
+  replicas: 2
   hostnamePrefix: homelab-subnet
   tags:
     - tag:homelab-admin-router
