@@ -1,0 +1,55 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ceph-csi-cephfs
+  namespace: storage
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: ceph-csi-cephfs
+      version: "3.17.0"
+      sourceRef:
+        kind: HelmRepository
+        name: ceph-csi
+        namespace: flux-system
+      interval: 12h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    csiConfig:
+      - clusterID: "940ec7cc-501f-4b4c-b938-4b304f133c04"
+        monitors:
+          - "10.0.3.196:6789"
+          - "10.0.1.100:6789"
+          - "10.0.3.40:6789"
+        cephFS:
+          subvolumeGroup: csi
+    configMapName: ceph-csi-cephfs-config
+    cephConfConfigMapName: ceph-csi-cephfs-ceph-config
+    kmsConfigMapName: ceph-csi-cephfs-kms-config
+    provisioner:
+      replicaCount: 1
+    storageClass:
+      create: true
+      name: ceph-cephfs
+      clusterID: "940ec7cc-501f-4b4c-b938-4b304f133c04"
+      fsName: k8s-cephfs
+      pool: k8s-cephfs-data
+      provisionerSecret: csi-cephfs-secret
+      provisionerSecretNamespace: storage
+      controllerExpandSecret: csi-cephfs-secret
+      controllerExpandSecretNamespace: storage
+      controllerPublishSecret: csi-cephfs-secret
+      controllerPublishSecretNamespace: storage
+      nodeStageSecret: csi-cephfs-secret
+      nodeStageSecretNamespace: storage
+      reclaimPolicy: Delete
+      allowVolumeExpansion: true
+    secret:
+      create: false
+      name: csi-cephfs-secret

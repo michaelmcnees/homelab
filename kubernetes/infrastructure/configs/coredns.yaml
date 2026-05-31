@@ -21,7 +21,7 @@ data:
             fallthrough in-addr.arpa ip6.arpa
             ttl 30
         }
-        forward . 10.0.10.201 {
+        forward . 10.0.10.201 10.0.10.202 {
            max_concurrent 1000
         }
         cache 30 {

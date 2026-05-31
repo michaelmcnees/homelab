@@ -15,6 +15,7 @@ resources:
   - ./pelican-panel
   - ./paperless-gpt
   - ./paperless-ngx
+  - ./penpot
   - ./recyclarr
   - ./syncthing
   - ./trilium

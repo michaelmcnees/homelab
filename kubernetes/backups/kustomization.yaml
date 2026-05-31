@@ -6,5 +6,7 @@ resources:
   - mariadb-grimmory-credentials.sops.yaml
   - mariadb-grimmory-cronjob.yaml
   - adguard-config-backup-cronjob.yaml
+  - immich-library-restic-cronjob.yaml
+  - paperless-restic-cronjob.yaml
   - backup-metrics-exporter.yaml
   - backup-alerts.yaml

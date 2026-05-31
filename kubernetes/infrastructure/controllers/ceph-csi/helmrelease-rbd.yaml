@@ -1,0 +1,56 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ceph-csi-rbd
+  namespace: storage
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: ceph-csi-rbd
+      version: "3.17.0"
+      sourceRef:
+        kind: HelmRepository
+        name: ceph-csi
+        namespace: flux-system
+      interval: 12h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    csiConfig:
+      - clusterID: "940ec7cc-501f-4b4c-b938-4b304f133c04"
+        monitors:
+          - "10.0.3.196:6789"
+          - "10.0.1.100:6789"
+          - "10.0.3.40:6789"
+    configMapName: ceph-csi-rbd-config
+    cephConfConfigMapName: ceph-csi-rbd-ceph-config
+    kmsConfigMapName: ceph-csi-rbd-kms-config
+    provisioner:
+      replicaCount: 1
+    storageClass:
+      create: true
+      name: ceph-rbd
+      clusterID: "940ec7cc-501f-4b4c-b938-4b304f133c04"
+      pool: kubernetes-rbd
+      imageFeatures: "layering"
+      provisionerSecret: csi-rbd-secret
+      provisionerSecretNamespace: storage
+      controllerExpandSecret: csi-rbd-secret
+      controllerExpandSecretNamespace: storage
+      controllerPublishSecret: csi-rbd-secret
+      controllerPublishSecretNamespace: storage
+      nodeStageSecret: csi-rbd-secret
+      nodeStageSecretNamespace: storage
+      fstype: ext4
+      reclaimPolicy: Delete
+      allowVolumeExpansion: true
+      mountOptions:
+        - discard
+    secret:
+      create: false
+      name: csi-rbd-secret

@@ -6,3 +6,4 @@ resources:
   - deployment.yaml
   - service.yaml
   - job-create-buckets.yaml
+  - job-create-bucket-penpot.yaml

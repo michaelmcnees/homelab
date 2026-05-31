@@ -14,6 +14,8 @@ Central backup pipeline for the homelab cluster. See the design doc:
 | `mariadb-grimmory-cronjob.yaml` | Example of an app-aware backup (dump-then-restic). |
 | `mariadb-grimmory-credentials.sops.yaml` | Read-only DB user for the dump. |
 | `adguard-config-backup-cronjob.yaml` | Example of a PVC-mount backup (restic the live PVC contents). |
+| `immich-library-restic-cronjob.yaml` | Backs up the unused Immich library PVC for backup/restore rehearsal. |
+| `paperless-restic-cronjob.yaml` | Backs up Paperless media, consume, and export PVCs before storage migration. |
 
 ## Onboarding a new PVC to backups
 
@@ -57,4 +59,9 @@ restic restore latest --tag <workload> --target /tmp/restore
 
 ## TrueNAS-side ZFS snapshots
 
-The bulk-data NFS shares (paperless, grimmory, romm libraries, plex media) are **not** backed up by this pipeline — they're covered by ZFS Periodic Snapshot Tasks on TrueNAS. See [docs/runbooks/truenas.md](../../docs/runbooks/truenas.md). Hourly×24 / daily×14 / weekly×8 / monthly×6 on `tank/k8s` and `tank/media`.
+Some bulk-data NFS shares are now backed up by this restic pipeline when they are active migration candidates:
+
+- Paperless media, consume, and export PVCs.
+- Immich library rehearsal data.
+
+Other canonical bulk libraries, such as grimmory books, romm libraries, and plex media, are still covered by ZFS Periodic Snapshot Tasks on TrueNAS rather than restic. See [docs/runbooks/truenas.md](../../docs/runbooks/truenas.md). Hourly×24 / daily×14 / weekly×8 / monthly×6 on `tank/k8s` and `tank/media`.

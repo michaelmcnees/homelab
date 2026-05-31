@@ -13,12 +13,12 @@ UniFi networks are managed in `terraform/unifi`.
 | Storage | 40 | `10.0.40.0/24` | Storage/backend traffic |
 | Guest | 50 | `10.0.50.0/24` | Guest WiFi |
 
-DHCP on the managed VLANs points clients at AdGuard's Kubernetes VIP: `10.0.10.201`.
+DHCP on the managed VLANs points clients at AdGuard's Kubernetes VIPs: `10.0.10.201` and `10.0.10.202`.
 
-Cluster DNS is intentionally pinned to the same VIP in two places:
+Cluster DNS is intentionally pinned to AdGuard in two places:
 
 - `talos/patches/common.yaml` sets Talos host nameservers for node-level resolution.
-- `kubernetes/infrastructure/configs/coredns.yaml` makes CoreDNS forward directly to `10.0.10.201`, so pod DNS does not depend on the Talos host resolver path.
+- `kubernetes/infrastructure/configs/coredns.yaml` makes CoreDNS forward directly to `10.0.10.201` and `10.0.10.202`, so pod DNS does not depend on the Talos host resolver path and can survive one AdGuard replica being unavailable.
 
 Do not regenerate Talos configs for an existing cluster without the original `talos/secrets.yaml`; that file is the Talos cluster identity source. If the local `talos/talosconfig` is replaced with one generated from new secrets, it will not authenticate to the live nodes.
 

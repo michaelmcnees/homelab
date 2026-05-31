@@ -58,6 +58,8 @@
         owner: openwebui
       - name: mantle
         owner: mantle
+      - name: penpot
+        owner: penpot
     postgresql_extensions:
       - database: chatwoot
         extension: pg_stat_statements
