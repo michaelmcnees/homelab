@@ -36,22 +36,16 @@ spec:
               value: America/Detroit
           readinessProbe:
             httpGet:
-              path: /
+              path: /api/health-check
               port: http
-              httpHeaders:
-                - name: Host
-                  value: notes.mcnees.me
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 12
           livenessProbe:
             httpGet:
-              path: /
+              path: /api/health-check
               port: http
-              httpHeaders:
-                - name: Host
-                  value: notes.mcnees.me
             initialDelaySeconds: 120
             periodSeconds: 30
             timeoutSeconds: 5
