@@ -98,7 +98,7 @@ Critical state should not remain on `local-path` unless a workload is explicitly
 | `apps/open-webui-data` | `apps/open-webui-data-ceph` | 85 entries copied, deployment switched, rollout healthy. |
 | `apps/paperless-gpt-prompts` | `apps/paperless-gpt-prompts-ceph` | 8 entries copied, deployment switched, rollout healthy. |
 
-The old local-path PVCs are retained for rollback. Do not delete them until the Ceph-backed deployments have survived a backup and a `lugia` failover drill.
+The old local-path PVCs listed above were pruned on 2026-06-01 after the Ceph-backed deployments were verified healthy. Future migrations should retain rollback PVCs only until the workload has passed a backup check and at least one restart or failover validation.
 
 2026-05-31 failover drill:
 
