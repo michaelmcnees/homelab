@@ -16,6 +16,7 @@ resources:
   - ./paperless-gpt
   - ./paperless-ngx
   - ./penpot
+  - ./questboard
   - ./recyclarr
   - ./syncthing
   - ./trilium

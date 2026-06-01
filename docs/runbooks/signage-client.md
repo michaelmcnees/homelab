@@ -43,7 +43,7 @@ ansible_host: 10.0.10.50
 ansible_user: mcnees
 ansible_become: true
 
-signage_url: "https://signage.home.mcnees.me/display/kitchen"
+signage_url: "https://questboard.home.mcnees.me"
 signage_enable_host_monitoring: false
 ```
 

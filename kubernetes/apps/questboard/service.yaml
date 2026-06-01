@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: questboard
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: questboard
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8099
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: questboard
