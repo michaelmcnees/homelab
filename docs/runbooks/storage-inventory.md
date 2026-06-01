@@ -90,6 +90,7 @@ Critical state should not remain on `local-path` unless a workload is explicitly
 | `apps/trilium-data` | `apps/trilium-data-ceph` | 12 entries copied, deployment switched, rollout healthy. |
 | `apps/hermes-data` | `apps/hermes-data-ceph` | 19,704 entries copied, deployment switched, rollout healthy. |
 | `apps/hermes-workspace` | `apps/hermes-workspace-ceph` | 24 entries copied, deployment switched, rollout healthy. |
+| `apps/uptime-kuma-data` | `apps/uptime-kuma-data-ceph` | 5 entries copied, deployment switched, rollout healthy. |
 
 The old local-path PVCs are retained for rollback. Do not delete them until the Ceph-backed deployments have survived a backup and a `lugia` failover drill.
 

@@ -59,4 +59,4 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: uptime-kuma-data
+            claimName: uptime-kuma-data-ceph
