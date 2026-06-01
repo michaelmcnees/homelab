@@ -93,6 +93,14 @@ Critical state should not remain on `local-path` unless a workload is explicitly
 
 The old local-path PVCs are retained for rollback. Do not delete them until the Ceph-backed deployments have survived a backup and a `lugia` failover drill.
 
+2026-05-31 failover drill:
+
+- `lugia` was cordoned.
+- Trilium and Hermes pods were deleted and rescheduled onto `ho-oh`.
+- Ceph RBD detached and reattached the RWO volumes successfully.
+- Hermes initially failed on `ho-oh` because the node pulled a newer `nousresearch/hermes-agent:latest` digest with incompatible entrypoint/runtime behavior. The deployment now pins the known-good digest `sha256:5731e3f580a850e0810605b27c61198cc43288bd7fefccf1168f386487683c5f`.
+- Final state: Trilium and Hermes were both Ready on `ho-oh`; `lugia` was uncordoned after the drill.
+
 ### Local-Path Migration Priority
 
 After the `lugia` outage, prioritize local-path migrations by user-facing blast radius:

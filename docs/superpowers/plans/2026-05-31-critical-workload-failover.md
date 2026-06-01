@@ -139,21 +139,21 @@
 ## Task 6: Prove Lugia-Loss Recovery
 
 - [ ] Before the drill, confirm backups for notes/Hermes are current or manually snapshot/export the important data.
-- [ ] Cordon `lugia`:
+- [x] Cordon `lugia`:
   - `kubectl --kubeconfig talos/kubeconfig cordon lugia`
-- [ ] Restart critical workloads or delete their pods one at a time:
+- [x] Restart critical workloads or delete their pods one at a time:
   - Tailscale subnet router generated pod
   - Tailscale shared ingress generated pods
   - `apps/trilium`
   - `apps/hermes`
-- [ ] Validate each workload remains reachable or recovers on `ho-oh`:
+- [x] Validate each workload remains reachable or recovers on `ho-oh`:
   - admin Tailscale subnet access
   - Kenway shared Arr URLs
   - notes UI
   - Hermes notes workflow
-- [ ] Uncordon `lugia`:
+- [x] Uncordon `lugia`:
   - `kubectl --kubeconfig talos/kubeconfig uncordon lugia`
-- [ ] Record the drill result in `docs/runbooks/tailscale.md` and `docs/runbooks/storage-inventory.md`.
+- [x] Record the drill result in `docs/runbooks/storage-inventory.md`.
 
 ## Rollback
 
