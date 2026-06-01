@@ -100,7 +100,7 @@ spec:
           volumes:
             - name: data
               persistentVolumeClaim:
-                claimName: adguard-config
+                claimName: adguard-config-ceph
                 readOnly: true
             - name: restic
               nfs:
