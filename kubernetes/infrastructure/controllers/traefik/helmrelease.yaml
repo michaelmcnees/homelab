@@ -26,6 +26,13 @@ spec:
     remediation:
       retries: 3
   values:
+    additionalArguments:
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+      - --entrypoints.web-external.http.redirections.entrypoint.to=websecure-external
+      - --entrypoints.web-external.http.redirections.entrypoint.scheme=https
+      - --entrypoints.web-external.http.redirections.entrypoint.permanent=true
     deployment:
       kind: DaemonSet
     tolerations:
@@ -67,11 +74,6 @@ spec:
           default: true
         exposedPort: 80
         protocol: TCP
-        redirections:
-          entryPoint:
-            to: websecure
-            scheme: https
-            permanent: true
       websecure:
         port: 8443
         expose:
@@ -84,11 +86,6 @@ spec:
           default: true
         exposedPort: 81
         protocol: TCP
-        redirections:
-          entryPoint:
-            to: websecure-external
-            scheme: https
-            permanent: true
       websecure-external:
         port: 8444
         expose:
