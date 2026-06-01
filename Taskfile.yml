@@ -69,6 +69,11 @@ tasks:
     dir: ansible
     cmd: ansible-playbook playbooks/truenas-setup.yml
 
+  ansible:signage-client:
+    desc: Configure Debian signage kiosk clients
+    dir: ansible
+    cmd: ansible-playbook playbooks/signage-client.yml
+
   talos:gen-secrets:
     desc: Generate a new Talos secrets bundle for a fresh cluster only
     cmd: |

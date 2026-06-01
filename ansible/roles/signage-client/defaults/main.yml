@@ -1,0 +1,37 @@
+---
+signage_user: signage
+signage_url: "about:blank"
+
+signage_packages:
+  - chromium
+  - dbus-x11
+  - fonts-noto-color-emoji
+  - openbox
+  - unclutter
+  - x11-xserver-utils
+  - xinit
+  - xserver-xorg
+  - xserver-xorg-legacy
+
+signage_browser_command: /usr/bin/chromium
+signage_chromium_flags:
+  - --no-first-run
+  - --disable-infobars
+  - --disable-session-crashed-bubble
+  - --disable-features=TranslateUI
+  - --autoplay-policy=no-user-gesture-required
+  - --check-for-update-interval=31536000
+  - --user-data-dir=/home/signage/.config/chromium-signage
+signage_extra_chromium_flags: []
+
+signage_disable_sleep: true
+signage_disable_getty_tty1: true
+signage_enable_service: true
+signage_kiosk_restart_sec: 5
+
+# Debian's Xorg wrapper otherwise limits non-root X starts to logged-in console
+# users. This kiosk service owns tty1, so allow the dedicated signage user.
+signage_xorg_allowed_users: anybody
+signage_xorg_needs_root_rights: "yes"
+
+signage_enable_host_monitoring: false

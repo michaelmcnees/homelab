@@ -17,6 +17,7 @@ ansible/inventory/group_vars/mariadb.yml
 ansible/inventory/group_vars/postgresql.yml
 ansible/inventory/group_vars/truenas.yml
 ansible/inventory/host_vars/truenas.yml
+ansible/inventory/host_vars/signage-optiplex.yml
 
 # Talos
 talos/generated/

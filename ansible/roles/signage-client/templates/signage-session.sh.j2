@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+source /etc/signage-client/signage.env
+
+export HOME="/home/{{ signage_user }}"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/runtime-{{ signage_user }}}"
+
+mkdir -p "${XDG_RUNTIME_DIR}"
+chmod 700 "${XDG_RUNTIME_DIR}"
+
+xset s off || true
+xset s noblank || true
+xset -dpms || true
+
+openbox >/tmp/signage-openbox.log 2>&1 &
+
+if command -v unclutter >/dev/null 2>&1; then
+  unclutter -idle 2 -root >/tmp/signage-unclutter.log 2>&1 &
+fi
+
+read -r -a chromium_flags <<< "${SIGNAGE_CHROMIUM_FLAGS:-}"
+
+exec "${SIGNAGE_BROWSER}" "${chromium_flags[@]}" --kiosk "${SIGNAGE_URL}"

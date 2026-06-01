@@ -1,0 +1,8 @@
+---
+- name: restart signage-kiosk
+  ansible.builtin.systemd:
+    name: signage-kiosk.service
+    state: restarted
+    enabled: true
+    daemon_reload: true
+  when: signage_enable_service | bool

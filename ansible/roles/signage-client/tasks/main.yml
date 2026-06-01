@@ -1,0 +1,127 @@
+---
+- name: Assert supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == 'Debian'
+    fail_msg: "The signage-client role currently supports Debian-family hosts only."
+
+- name: Install kiosk packages
+  ansible.builtin.apt:
+    name: "{{ signage_packages }}"
+    state: present
+    update_cache: true
+
+- name: Create signage user
+  ansible.builtin.user:
+    name: "{{ signage_user }}"
+    shell: /bin/bash
+    create_home: true
+    groups:
+      - audio
+      - input
+      - render
+      - video
+    append: true
+    state: present
+
+- name: Create signage config directory
+  ansible.builtin.file:
+    path: /etc/signage-client
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create chromium profile directory
+  ansible.builtin.file:
+    path: "/home/{{ signage_user }}/.config/chromium-signage"
+    state: directory
+    owner: "{{ signage_user }}"
+    group: "{{ signage_user }}"
+    mode: "0750"
+
+- name: Configure Xorg wrapper for kiosk service
+  ansible.builtin.template:
+    src: Xwrapper.config.j2
+    dest: /etc/X11/Xwrapper.config
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart signage-kiosk
+
+- name: Render signage environment
+  ansible.builtin.template:
+    src: signage.env.j2
+    dest: /etc/signage-client/signage.env
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart signage-kiosk
+
+- name: Install kiosk session launcher
+  ansible.builtin.template:
+    src: signage-session.sh.j2
+    dest: /usr/local/bin/signage-session
+    owner: root
+    group: root
+    mode: "0755"
+  notify: restart signage-kiosk
+
+- name: Install signage kiosk systemd unit
+  ansible.builtin.template:
+    src: signage-kiosk.service.j2
+    dest: /etc/systemd/system/signage-kiosk.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart signage-kiosk
+
+- name: Stop getty on tty1 for kiosk ownership
+  ansible.builtin.systemd:
+    name: getty@tty1.service
+    enabled: false
+    state: stopped
+  when: signage_disable_getty_tty1 | bool
+
+- name: Mask sleep targets
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    masked: true
+  loop:
+    - sleep.target
+    - suspend.target
+    - hibernate.target
+    - hybrid-sleep.target
+  when: signage_disable_sleep | bool
+
+- name: Configure logind to ignore idle actions
+  ansible.builtin.file:
+    path: /etc/systemd/logind.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: signage_disable_sleep | bool
+
+- name: Install logind idle policy
+  ansible.builtin.copy:
+    dest: /etc/systemd/logind.conf.d/90-signage-client.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Login]
+      IdleAction=ignore
+      HandlePowerKey=ignore
+      HandleSuspendKey=ignore
+      HandleHibernateKey=ignore
+      HandleLidSwitch=ignore
+  when: signage_disable_sleep | bool
+
+- name: Enable and start signage kiosk
+  ansible.builtin.systemd:
+    name: signage-kiosk.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: signage_enable_service | bool

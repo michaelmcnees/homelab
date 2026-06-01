@@ -1,0 +1,13 @@
+---
+- name: Configure signage kiosk clients
+  hosts: signage_clients
+  gather_facts: true
+  become: true
+  roles:
+    - signage-client
+
+  tasks:
+    - name: Install host monitoring when configured
+      ansible.builtin.include_role:
+        name: host-monitoring
+      when: signage_enable_host_monitoring | bool

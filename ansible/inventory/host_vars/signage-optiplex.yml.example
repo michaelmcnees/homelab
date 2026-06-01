@@ -1,0 +1,13 @@
+---
+# Copy this file to signage-optiplex.yml after Debian is installed, then update
+# ansible_host to the Optiplex reservation or DNS name.
+ansible_host: 10.0.10.50
+ansible_user: mcnees
+ansible_become: true
+
+signage_url: "https://signage.home.mcnees.me/display/kitchen"
+
+# Leave monitoring disabled until the host has a Beszel key.
+signage_enable_host_monitoring: false
+# host_monitoring_beszel_hub_url: "http://beszel.home.mcnees.me:8090"
+# host_monitoring_beszel_agent_key: "REPLACE_ME_FROM_BESZEL"

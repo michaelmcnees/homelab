@@ -1,0 +1,30 @@
+[Unit]
+Description=Signage kiosk browser
+After=network-online.target systemd-user-sessions.service
+Wants=network-online.target
+{% if signage_disable_getty_tty1 | bool %}
+Conflicts=getty@tty1.service
+{% endif %}
+
+[Service]
+User={{ signage_user }}
+Group={{ signage_user }}
+SupplementaryGroups=audio input render video
+WorkingDirectory=/home/{{ signage_user }}
+Environment=HOME=/home/{{ signage_user }}
+Environment=USER={{ signage_user }}
+Environment=DISPLAY=:0
+PAMName=login
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+ExecStart=/usr/bin/startx /usr/local/bin/signage-session -- :0 vt1 -nolisten tcp -keeptty
+Restart=always
+RestartSec={{ signage_kiosk_restart_sec }}
+
+[Install]
+WantedBy=multi-user.target
