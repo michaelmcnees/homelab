@@ -74,7 +74,7 @@ spec:
       volumes:
         - name: config
           persistentVolumeClaim:
-            claimName: adguard-config
+            claimName: adguard-config-ceph
         - name: work
           persistentVolumeClaim:
-            claimName: adguard-work
+            claimName: adguard-work-ceph

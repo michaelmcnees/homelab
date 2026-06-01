@@ -16,6 +16,21 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  name: adguard-config-ceph
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: adguard
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ceph-rbd
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
   name: adguard-work
   namespace: apps
   labels:
@@ -24,6 +39,21 @@ spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: adguard-work-ceph
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: adguard
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ceph-rbd
   resources:
     requests:
       storage: 10Gi

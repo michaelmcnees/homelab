@@ -91,6 +91,12 @@ Critical state should not remain on `local-path` unless a workload is explicitly
 | `apps/hermes-data` | `apps/hermes-data-ceph` | 19,704 entries copied, deployment switched, rollout healthy. |
 | `apps/hermes-workspace` | `apps/hermes-workspace-ceph` | 24 entries copied, deployment switched, rollout healthy. |
 | `apps/uptime-kuma-data` | `apps/uptime-kuma-data-ceph` | 5 entries copied, deployment switched, rollout healthy. |
+| `apps/adguard-config` | `apps/adguard-config-ceph` | 1 entry copied, deployment switched, DNS check passed. |
+| `apps/adguard-work` | `apps/adguard-work-ceph` | 9 entries copied, deployment switched, DNS check passed. |
+| `apps/adguard-b-config` | `apps/adguard-b-config-ceph` | 1 entry copied, deployment switched, DNS check passed. |
+| `apps/adguard-b-work` | `apps/adguard-b-work-ceph` | 9 entries copied, deployment switched, DNS check passed. |
+| `apps/open-webui-data` | `apps/open-webui-data-ceph` | 85 entries copied, deployment switched, rollout healthy. |
+| `apps/paperless-gpt-prompts` | `apps/paperless-gpt-prompts-ceph` | 8 entries copied, deployment switched, rollout healthy. |
 
 The old local-path PVCs are retained for rollback. Do not delete them until the Ceph-backed deployments have survived a backup and a `lugia` failover drill.
 
