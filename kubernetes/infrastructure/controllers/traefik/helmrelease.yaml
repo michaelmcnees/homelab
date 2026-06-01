@@ -67,6 +67,11 @@ spec:
           default: true
         exposedPort: 80
         protocol: TCP
+        redirections:
+          entryPoint:
+            to: websecure
+            scheme: https
+            permanent: true
       websecure:
         port: 8443
         expose:
@@ -79,6 +84,11 @@ spec:
           default: true
         exposedPort: 81
         protocol: TCP
+        redirections:
+          entryPoint:
+            to: websecure-external
+            scheme: https
+            permanent: true
       websecure-external:
         port: 8444
         expose:
