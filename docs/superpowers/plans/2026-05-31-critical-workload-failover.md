@@ -99,24 +99,24 @@
   - `apps/hermes-workspace-ceph`, 20 Gi, `ceph-rbd`, RWO
 - [x] Confirm fresh PVCs bind:
   - `kubectl --kubeconfig talos/kubeconfig -n apps get pvc trilium-data-ceph hermes-data-ceph hermes-workspace-ceph -o wide`
-- [ ] Schedule a short write freeze:
+- [x] Schedule a short write freeze:
   - `kubectl --kubeconfig talos/kubeconfig -n apps scale deploy/trilium deploy/hermes --replicas=0`
   - wait until both pods are gone.
-- [ ] Run one-off copy jobs that mount old and new PVCs in the same pod and preserve ownership/permissions with tar or rsync:
+- [x] Run one-off copy jobs that mount old and new PVCs in the same pod and preserve ownership/permissions with tar or rsync:
   - `trilium-data` to `trilium-data-ceph`
   - `hermes-data` to `hermes-data-ceph`
   - `hermes-workspace` to `hermes-workspace-ceph`
-- [ ] Compare source and destination sizes/file counts from inside the copy jobs before switching deployments.
-- [ ] Update deployment claim names:
+- [x] Compare source and destination sizes/file counts from inside the copy jobs before switching deployments.
+- [x] Update deployment claim names:
   - `trilium-data` mount uses `trilium-data-ceph`
   - `hermes-data` mount uses `hermes-data-ceph`
   - `hermes-workspace` mount uses `hermes-workspace-ceph`
-- [ ] Reconcile, start workloads, and validate:
+- [x] Reconcile, start workloads, and validate:
   - `kubectl --kubeconfig talos/kubeconfig -n apps rollout status deploy/trilium`
   - `kubectl --kubeconfig talos/kubeconfig -n apps rollout status deploy/hermes`
   - notes endpoint loads and recent notes are present
   - Hermes can read/write the Obsidian vault and workspace.
-- [ ] Keep the old local-path PVCs retained until at least one successful backup and one failover drill have completed.
+- [x] Keep the old local-path PVCs retained until at least one successful backup and one failover drill have completed.
 
 ## Task 4: Make New Critical State Avoid Local-Path by Default
 

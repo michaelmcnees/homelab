@@ -83,6 +83,16 @@ May 29 23:44:51 latios kernel: Out of memory: Killed process ... (kvm) ... task_
 
 Critical state should not remain on `local-path` unless a workload is explicitly allowed to be node-bound. `apps/trilium-data`, `apps/hermes-data`, and `apps/hermes-workspace` now have Ceph RBD target PVCs for freeze/copy/switch migration.
 
+2026-05-31 migration result:
+
+| Source PVC | Target PVC | Result |
+| --- | --- | --- |
+| `apps/trilium-data` | `apps/trilium-data-ceph` | 12 entries copied, deployment switched, rollout healthy. |
+| `apps/hermes-data` | `apps/hermes-data-ceph` | 19,704 entries copied, deployment switched, rollout healthy. |
+| `apps/hermes-workspace` | `apps/hermes-workspace-ceph` | 24 entries copied, deployment switched, rollout healthy. |
+
+The old local-path PVCs are retained for rollback. Do not delete them until the Ceph-backed deployments have survived a backup and a `lugia` failover drill.
+
 ### Local-Path Migration Priority
 
 After the `lugia` outage, prioritize local-path migrations by user-facing blast radius:

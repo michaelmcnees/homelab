@@ -358,10 +358,10 @@ spec:
             name: hermes-config
         - name: data
           persistentVolumeClaim:
-            claimName: hermes-data
+            claimName: hermes-data-ceph
         - name: workspace
           persistentVolumeClaim:
-            claimName: hermes-workspace
+            claimName: hermes-workspace-ceph
         - name: obsidian-vault
           persistentVolumeClaim:
             claimName: obsidian-vault
