@@ -1,4 +1,5 @@
 ---
+host_monitoring_enable_beszel: true
 host_monitoring_beszel_hub_url: ""
 host_monitoring_beszel_agent_key: ""
 host_monitoring_beszel_agent_port: 45876

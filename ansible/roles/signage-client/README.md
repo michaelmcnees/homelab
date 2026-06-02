@@ -22,6 +22,7 @@ Micro paired with a touch monitor.
 | `signage_extra_chromium_flags` | `[]` | Additional Chromium flags appended to the default kiosk flags. |
 | `signage_disable_sleep` | `true` | Masks sleep targets and writes logind idle policy. |
 | `signage_enable_host_monitoring` | `false` | Includes the existing `host-monitoring` role when true. |
+| `signage_enable_cockpit` | `false` | Includes the `cockpit` role when true. |
 
 ## Operating notes
 

@@ -13,7 +13,7 @@
         state: present
         update_cache: true
       when: ansible_facts['os_family'] == 'Debian'
-      register: _hm_node_pkg
+      register: _hm_node_pkg_debian
       ignore_errors: true
 
     - name: Try dnf (Fedora/RHEL)
@@ -21,7 +21,7 @@
         name: golang-github-prometheus-node-exporter
         state: present
       when: ansible_facts['os_family'] == 'RedHat'
-      register: _hm_node_pkg
+      register: _hm_node_pkg_redhat
       ignore_errors: true
 
     - name: Try pacman (Arch)
@@ -29,11 +29,45 @@
         name: prometheus-node-exporter
         state: present
       when: ansible_facts['os_family'] == 'Archlinux'
-      register: _hm_node_pkg
+      register: _hm_node_pkg_arch
       ignore_errors: true
 
+- name: Record node_exporter package install result
+  ansible.builtin.set_fact:
+    _hm_node_exporter_packaged: >-
+      {{
+        (
+          _hm_node_pkg_debian is defined
+          and not (_hm_node_pkg_debian.skipped | default(false))
+          and not (_hm_node_pkg_debian.failed | default(false))
+        )
+        or (
+          _hm_node_pkg_redhat is defined
+          and not (_hm_node_pkg_redhat.skipped | default(false))
+          and not (_hm_node_pkg_redhat.failed | default(false))
+        )
+        or (
+          _hm_node_pkg_arch is defined
+          and not (_hm_node_pkg_arch.skipped | default(false))
+          and not (_hm_node_pkg_arch.failed | default(false))
+        )
+      }}
+    _hm_node_exporter_package_service: >-
+      {{
+        'prometheus-node-exporter'
+        if ansible_facts['os_family'] in ['Debian', 'Archlinux']
+        else 'node_exporter'
+      }}
+
+- name: Enable + start packaged node_exporter
+  when: _hm_node_exporter_packaged | bool
+  ansible.builtin.systemd:
+    name: "{{ _hm_node_exporter_package_service }}"
+    enabled: true
+    state: started
+
 - name: Fall back to release tarball if no package
-  when: _hm_node_pkg is not defined or _hm_node_pkg.failed | default(true)
+  when: not (_hm_node_exporter_packaged | bool)
   block:
     - name: Create node_exporter user
       ansible.builtin.user:
@@ -90,38 +124,39 @@
         state: started
         daemon_reload: true
 
-# ---- beszel-agent ----
+- name: Install beszel-agent
+  when: host_monitoring_enable_beszel | bool
+  block:
+    - name: Create beszel-agent user
+      ansible.builtin.user:
+        name: beszel
+        system: true
+        shell: /sbin/nologin
+        create_home: false
+        state: present
 
-- name: Create beszel-agent user
-  ansible.builtin.user:
-    name: beszel
-    system: true
-    shell: /sbin/nologin
-    create_home: false
-    state: present
+    - name: Install beszel-agent via convenience script (idempotent)
+      ansible.builtin.shell: |
+        set -e
+        curl -sL https://get.beszel.dev | bash -s -- agent --hub-url '{{ host_monitoring_beszel_hub_url }}' --key '{{ host_monitoring_beszel_agent_key }}' --port '{{ host_monitoring_beszel_agent_port }}' --noninteractive
+      args:
+        creates: /usr/local/bin/beszel-agent
 
-- name: Install beszel-agent via convenience script (idempotent)
-  ansible.builtin.shell: |
-    set -e
-    curl -sL https://get.beszel.dev | bash -s -- agent --hub-url '{{ host_monitoring_beszel_hub_url }}' --key '{{ host_monitoring_beszel_agent_key }}' --port '{{ host_monitoring_beszel_agent_port }}' --noninteractive
-  args:
-    creates: /usr/local/bin/beszel-agent
+    - name: Render beszel-agent systemd env override
+      ansible.builtin.copy:
+        dest: /etc/default/beszel-agent
+        mode: "0640"
+        owner: root
+        group: beszel
+        content: |
+          KEY={{ host_monitoring_beszel_agent_key }}
+          HUB_URL={{ host_monitoring_beszel_hub_url }}
+          PORT={{ host_monitoring_beszel_agent_port }}
+      notify: restart beszel-agent
 
-- name: Render beszel-agent systemd env override
-  ansible.builtin.copy:
-    dest: /etc/default/beszel-agent
-    mode: "0640"
-    owner: root
-    group: beszel
-    content: |
-      KEY={{ host_monitoring_beszel_agent_key }}
-      HUB_URL={{ host_monitoring_beszel_hub_url }}
-      PORT={{ host_monitoring_beszel_agent_port }}
-  notify: restart beszel-agent
-
-- name: Ensure beszel-agent enabled + started
-  ansible.builtin.systemd:
-    name: beszel-agent
-    enabled: true
-    state: started
-    daemon_reload: true
+    - name: Ensure beszel-agent enabled + started
+      ansible.builtin.systemd:
+        name: beszel-agent
+        enabled: true
+        state: started
+        daemon_reload: true

@@ -35,3 +35,4 @@ signage_xorg_allowed_users: anybody
 signage_xorg_needs_root_rights: "yes"
 
 signage_enable_host_monitoring: false
+signage_enable_cockpit: false

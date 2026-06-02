@@ -12,8 +12,8 @@ spec:
   metricsPath: /metrics
   staticConfigs:
     # Add a target per host onboarded by the ansible host-monitoring role.
-    # Use the host's tailnet hostname (MagicDNS) so the cluster can reach it
-    # over Tailscale regardless of where the host is.
+    # Prefer tailnet hostnames when available. LAN-only clients can use stable
+    # DHCP reservations as long as the cluster can route to that subnet.
     # Example:
     # - targets:
     #     - "michael-mbp.tail-scale.ts.net:9100"
@@ -21,11 +21,14 @@ spec:
     #   labels:
     #     job: household_compute
     #     household_role: workstation
-    - targets: []
+    - targets:
+        - "10.0.30.183:9100"
       labels:
         job: household_compute
+        household_role: signage
+        host: rotom
   relabelings:
-    - sourceLabels: [__address__]
+    - sourceLabels: [host]
       targetLabel: instance
-      regex: '([^.]+).*'
+      regex: '(.+)'
       replacement: '$1'

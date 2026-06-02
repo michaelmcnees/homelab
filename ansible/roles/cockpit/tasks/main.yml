@@ -1,0 +1,13 @@
+---
+- name: Install Cockpit packages on Debian
+  ansible.builtin.apt:
+    name: "{{ cockpit_packages }}"
+    state: present
+    update_cache: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Enable + start Cockpit socket
+  ansible.builtin.systemd:
+    name: "{{ cockpit_socket_name }}"
+    enabled: true
+    state: started

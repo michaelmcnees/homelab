@@ -22,7 +22,7 @@ data:
       Media Cabinet:
         style: row
         columns: 4
-      Machine Room:
+      Servers:
         style: row
         columns: 4
       Bonus Stage:
@@ -140,7 +140,7 @@ data:
             icon: tautulli.png
             href: https://tautulli.home.mcnees.me
             description: Plex analytics
-    - Machine Room:
+    - Servers:
         - Proxmox Latios:
             icon: proxmox.png
             href: https://latios.home.mcnees.me
@@ -157,6 +157,10 @@ data:
             icon: truenas.png
             href: https://truenas.home.mcnees.me
             description: Bulk storage
+        - Rotom Cockpit:
+            icon: mdi-monitor-dashboard
+            href: https://rotom.home.mcnees.me
+            description: Signage client management
         - Pelican:
             icon: pelican-panel.png
             href: https://games.mcnees.me

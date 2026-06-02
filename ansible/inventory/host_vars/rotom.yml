@@ -4,4 +4,8 @@ ansible_user: mmcnees
 ansible_become: true
 
 signage_url: "https://questboard.home.mcnees.me"
-signage_enable_host_monitoring: false
+signage_enable_host_monitoring: true
+signage_enable_cockpit: true
+
+host_monitoring_enable_beszel: false
+host_monitoring_node_exporter_listen: "0.0.0.0:9100"

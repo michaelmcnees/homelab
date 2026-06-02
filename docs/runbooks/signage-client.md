@@ -90,15 +90,27 @@ sudo systemctl restart signage-kiosk.service
 
 ## Monitoring
 
-Once the client is visible in Beszel, set these host vars:
+For Prometheus-only monitoring, enable the monitoring role and disable Beszel:
 
 ```yaml
 signage_enable_host_monitoring: true
+host_monitoring_enable_beszel: false
+host_monitoring_node_exporter_listen: "0.0.0.0:9100"
+```
+
+Once the client is visible in Beszel, keep monitoring enabled and add the Beszel vars:
+
+```yaml
+signage_enable_host_monitoring: true
+host_monitoring_enable_beszel: true
 host_monitoring_beszel_hub_url: "http://beszel.home.mcnees.me:8090"
 host_monitoring_beszel_agent_key: "<key-from-beszel>"
 ```
 
 Then rerun `task ansible:signage-client`.
+
+Set `signage_enable_cockpit: true` when the client should expose Cockpit on
+port `9090` for browser-based administration.
 
 ## Netboot Follow-Up
 

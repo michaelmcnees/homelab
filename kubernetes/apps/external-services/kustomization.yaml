@@ -8,6 +8,7 @@ resources:
   - pelican-dnsendpoints.yaml
   - pelican-wings.yaml
   - truenas.yaml
+  - rotom-cockpit.yaml
   - proxmox-transport.yaml
   - proxmox-latios.yaml
   - proxmox-latias.yaml

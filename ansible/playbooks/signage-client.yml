@@ -11,3 +11,8 @@
       ansible.builtin.include_role:
         name: host-monitoring
       when: signage_enable_host_monitoring | bool
+
+    - name: Install Cockpit when configured
+      ansible.builtin.include_role:
+        name: cockpit
+      when: signage_enable_cockpit | bool

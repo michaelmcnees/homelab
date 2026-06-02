@@ -1,0 +1,62 @@
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: cockpit-insecure
+  namespace: apps
+spec:
+  insecureSkipVerify: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rotom-cockpit-external
+  namespace: apps
+spec:
+  ports:
+    - name: https
+      port: 9090
+      targetPort: 9090
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: rotom-cockpit-external
+  namespace: apps
+subsets:
+  - addresses:
+      - ip: 10.0.30.183
+    ports:
+      - name: https
+        port: 9090
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: rotom-cockpit
+  namespace: apps
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`rotom.home.mcnees.me`)
+      kind: Rule
+      services:
+        - name: rotom-cockpit-external
+          port: 9090
+          scheme: https
+          serversTransport: cockpit-insecure
+  tls:
+    secretName: rotom-cockpit-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rotom-cockpit
+  namespace: apps
+spec:
+  secretName: rotom-cockpit-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - rotom.home.mcnees.me

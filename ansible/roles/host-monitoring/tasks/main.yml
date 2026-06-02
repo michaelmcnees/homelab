@@ -5,6 +5,7 @@
       - host_monitoring_beszel_hub_url | length > 0
       - host_monitoring_beszel_agent_key | length > 0
     fail_msg: "host_monitoring_beszel_hub_url and host_monitoring_beszel_agent_key must be set per host."
+  when: host_monitoring_enable_beszel | bool
 
 - name: Detect platform family
   ansible.builtin.set_fact:
