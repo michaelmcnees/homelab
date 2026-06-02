@@ -1,0 +1,7 @@
+---
+ansible_host: 10.0.30.183
+ansible_user: mmcnees
+ansible_become: true
+
+signage_url: "https://questboard.home.mcnees.me"
+signage_enable_host_monitoring: false

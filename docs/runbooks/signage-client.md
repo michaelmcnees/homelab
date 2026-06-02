@@ -1,7 +1,7 @@
 # Signage Client
 
-This runbook covers Debian-based signage clients such as the Dell Optiplex
-Micro attached to the ViewSonic TD2230 touch display.
+This runbook covers Debian-based signage clients such as `rotom`, the Dell
+Optiplex Micro attached to the ViewSonic TD2230 touch display.
 
 ## Goal
 
@@ -28,31 +28,24 @@ ssh mcnees@<optiplex-ip-or-dns>
 
 ## Inventory
 
-Copy the example host vars and edit the address:
-
-```sh
-cp ansible/inventory/host_vars/signage-optiplex.yml.example \
-  ansible/inventory/host_vars/signage-optiplex.yml
-```
-
-Edit `ansible/inventory/host_vars/signage-optiplex.yml`:
-
-```yaml
----
-ansible_host: 10.0.10.50
-ansible_user: mcnees
-ansible_become: true
-
-signage_url: "https://questboard.home.mcnees.me"
-signage_enable_host_monitoring: false
-```
-
-Then add the host to `ansible/inventory/hosts.yml`:
+Rotom is tracked in Ansible as a real host:
 
 ```yaml
 signage_clients:
   hosts:
-    signage-optiplex: {}
+    rotom: {}
+```
+
+Its host vars live in `ansible/inventory/host_vars/rotom.yml`:
+
+```yaml
+---
+ansible_host: 10.0.30.183
+ansible_user: mmcnees
+ansible_become: true
+
+signage_url: "https://questboard.home.mcnees.me"
+signage_enable_host_monitoring: false
 ```
 
 ## Apply
@@ -66,6 +59,10 @@ task ansible:signage-client
 The playbook installs Chromium, Xorg, Openbox, a dedicated `signage` user, and a
 `signage-kiosk.service` systemd unit. The service owns `tty1`, disables display
 blanking inside X, and restarts the browser if it exits.
+
+Rotom's hidden-SSID Wi-Fi is configured locally on the host with
+`wpa_supplicant@wlp1s0.service` and `systemd-networkd`; the Wi-Fi secret is not
+stored in this repository.
 
 ## Change Displayed Content
 

@@ -23,8 +23,10 @@ StandardInput=tty
 StandardOutput=journal
 StandardError=journal
 ExecStart=/usr/bin/startx /usr/local/bin/signage-session -- :0 vt1 -nolisten tcp -keeptty
+KillMode=mixed
 Restart=always
 RestartSec={{ signage_kiosk_restart_sec }}
+TimeoutStopSec=10
 
 [Install]
 WantedBy=multi-user.target
