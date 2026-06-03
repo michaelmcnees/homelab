@@ -24,6 +24,8 @@ Micro paired with a touch monitor.
 | `signage_wait_for_url` | `true` | Waits for HTTP(S) `signage_url` to return before launching Chromium. |
 | `signage_url_check_interval_sec` | `10` | Seconds between URL readiness checks. |
 | `signage_url_check_timeout_sec` | `10` | Per-request URL readiness timeout. |
+| `signage_manage_network_stack` | `false` | Disables ifupdown/NetworkManager and lets systemd-networkd own client networking. |
+| `signage_wifi_interface` | `""` | Wi-Fi interface to manage with systemd-networkd and `wpa_supplicant@`. |
 | `signage_enable_host_monitoring` | `false` | Includes the existing `host-monitoring` role when true. |
 | `signage_enable_cockpit` | `false` | Includes the `cockpit` role when true. |
 

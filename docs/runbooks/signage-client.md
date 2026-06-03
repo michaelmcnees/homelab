@@ -68,6 +68,11 @@ Rotom's hidden-SSID Wi-Fi is configured locally on the host with
 `wpa_supplicant@wlp1s0.service` and `systemd-networkd`; the Wi-Fi secret is not
 stored in this repository.
 
+Rotom opts into `signage_manage_network_stack`, so Ansible disables
+ifupdown/`networking.service`, NetworkManager, and
+`systemd-networkd-wait-online.service`. The kiosk does its own URL readiness
+check instead of delaying boot on `network-online.target`.
+
 ## Change Displayed Content
 
 Change `signage_url` in the host vars file, then rerun:

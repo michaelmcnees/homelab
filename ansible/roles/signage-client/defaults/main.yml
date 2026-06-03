@@ -33,6 +33,9 @@ signage_wait_for_url: true
 signage_url_check_interval_sec: 10
 signage_url_check_timeout_sec: 10
 
+signage_manage_network_stack: false
+signage_wifi_interface: ""
+
 # Debian's Xorg wrapper otherwise limits non-root X starts to logged-in console
 # users. This kiosk service owns tty1, so allow the dedicated signage user.
 signage_xorg_allowed_users: anybody

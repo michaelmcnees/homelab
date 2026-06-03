@@ -5,6 +5,85 @@
       - ansible_facts['os_family'] == 'Debian'
     fail_msg: "The signage-client role currently supports Debian-family hosts only."
 
+- name: Disable competing network managers
+  when: signage_manage_network_stack | bool
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop:
+    - NetworkManager.service
+    - networking.service
+    - systemd-networkd-wait-online.service
+  failed_when: false
+
+- name: Keep ifupdown from managing client interfaces
+  when: signage_manage_network_stack | bool
+  ansible.builtin.copy:
+    dest: /etc/network/interfaces
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible. Signage client interfaces are owned by systemd-networkd.
+      source /etc/network/interfaces.d/*
+
+      auto lo
+      iface lo inet loopback
+
+- name: Configure wired interfaces for systemd-networkd
+  when: signage_manage_network_stack | bool
+  ansible.builtin.copy:
+    dest: /etc/systemd/network/20-wired.network
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Match]
+      Type=ether
+
+      [Network]
+      DHCP=ipv4
+  notify: restart systemd-networkd
+
+- name: Configure Wi-Fi interface for systemd-networkd
+  when:
+    - signage_manage_network_stack | bool
+    - signage_wifi_interface | length > 0
+  ansible.builtin.copy:
+    dest: /etc/systemd/network/25-wifi.network
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Match]
+      Name={{ signage_wifi_interface }}
+
+      [Link]
+      RequiredForOnline=routable
+
+      [Network]
+      DHCP=ipv4
+      IPv6AcceptRA=yes
+      LinkLocalAddressing=ipv6
+  notify: restart systemd-networkd
+
+- name: Enable systemd-networkd
+  when: signage_manage_network_stack | bool
+  ansible.builtin.systemd:
+    name: systemd-networkd.service
+    enabled: true
+    state: started
+
+- name: Enable interface-specific Wi-Fi supplicant
+  when:
+    - signage_manage_network_stack | bool
+    - signage_wifi_interface | length > 0
+  ansible.builtin.systemd:
+    name: "wpa_supplicant@{{ signage_wifi_interface }}.service"
+    enabled: true
+    state: started
+
 - name: Install kiosk packages
   ansible.builtin.apt:
     name: "{{ signage_packages }}"

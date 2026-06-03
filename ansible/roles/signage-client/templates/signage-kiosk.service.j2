@@ -1,7 +1,6 @@
 [Unit]
 Description=Signage kiosk browser
-After=network-online.target systemd-user-sessions.service
-Wants=network-online.target
+After=systemd-user-sessions.service
 {% if signage_disable_getty_tty1 | bool %}
 Conflicts=getty@tty1.service
 {% endif %}

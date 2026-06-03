@@ -1,4 +1,9 @@
 ---
+- name: restart systemd-networkd
+  ansible.builtin.systemd:
+    name: systemd-networkd.service
+    state: restarted
+
 - name: restart signage-kiosk
   ansible.builtin.systemd:
     name: signage-kiosk.service

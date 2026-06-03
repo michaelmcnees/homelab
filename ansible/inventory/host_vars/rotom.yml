@@ -4,6 +4,8 @@ ansible_user: mmcnees
 ansible_become: true
 
 signage_url: "https://questboard.home.mcnees.me"
+signage_manage_network_stack: true
+signage_wifi_interface: wlp1s0
 signage_enable_host_monitoring: true
 signage_enable_cockpit: true
 
