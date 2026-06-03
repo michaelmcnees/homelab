@@ -21,4 +21,11 @@ fi
 
 read -r -a chromium_flags <<< "${SIGNAGE_CHROMIUM_FLAGS:-}"
 
+if [[ "${SIGNAGE_WAIT_FOR_URL:-true}" == "true" && "${SIGNAGE_URL}" =~ ^https?:// ]]; then
+  until curl --fail --location --silent --show-error --max-time "${SIGNAGE_URL_CHECK_TIMEOUT:-10}" --output /dev/null "${SIGNAGE_URL}"; do
+    echo "Waiting for signage URL to become reachable: ${SIGNAGE_URL}" >&2
+    sleep "${SIGNAGE_URL_CHECK_INTERVAL:-10}"
+  done
+fi
+
 exec "${SIGNAGE_BROWSER}" "${chromium_flags[@]}" --kiosk "${SIGNAGE_URL}"

@@ -21,6 +21,9 @@ Micro paired with a touch monitor.
 | `signage_user` | `signage` | Local unprivileged user that runs Xorg/Chromium. |
 | `signage_extra_chromium_flags` | `[]` | Additional Chromium flags appended to the default kiosk flags. |
 | `signage_disable_sleep` | `true` | Masks sleep targets and writes logind idle policy. |
+| `signage_wait_for_url` | `true` | Waits for HTTP(S) `signage_url` to return before launching Chromium. |
+| `signage_url_check_interval_sec` | `10` | Seconds between URL readiness checks. |
+| `signage_url_check_timeout_sec` | `10` | Per-request URL readiness timeout. |
 | `signage_enable_host_monitoring` | `false` | Includes the existing `host-monitoring` role when true. |
 | `signage_enable_cockpit` | `false` | Includes the `cockpit` role when true. |
 

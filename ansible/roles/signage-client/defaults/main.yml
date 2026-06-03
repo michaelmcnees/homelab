@@ -4,6 +4,7 @@ signage_url: "about:blank"
 
 signage_packages:
   - chromium
+  - curl
   - dbus-x11
   - fonts-noto-color-emoji
   - openbox
@@ -28,6 +29,9 @@ signage_disable_sleep: true
 signage_disable_getty_tty1: true
 signage_enable_service: true
 signage_kiosk_restart_sec: 5
+signage_wait_for_url: true
+signage_url_check_interval_sec: 10
+signage_url_check_timeout_sec: 10
 
 # Debian's Xorg wrapper otherwise limits non-root X starts to logged-in console
 # users. This kiosk service owns tty1, so allow the dedicated signage user.

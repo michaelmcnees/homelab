@@ -60,6 +60,10 @@ The playbook installs Chromium, Xorg, Openbox, a dedicated `signage` user, and a
 `signage-kiosk.service` systemd unit. The service owns `tty1`, disables display
 blanking inside X, and restarts the browser if it exits.
 
+The session waits for HTTP(S) `signage_url` to become reachable before launching
+Chromium, which avoids stranding the display on Chrome's offline page when Wi-Fi
+or DNS comes up after X starts.
+
 Rotom's hidden-SSID Wi-Fi is configured locally on the host with
 `wpa_supplicant@wlp1s0.service` and `systemd-networkd`; the Wi-Fi secret is not
 stored in this repository.
@@ -80,6 +84,15 @@ On the client:
 systemctl status signage-kiosk.service
 journalctl -u signage-kiosk.service -b
 cat /etc/signage-client/signage.env
+```
+
+If the display shows Chrome's offline page after moving or rebooting the client,
+first verify the host still has a usable address:
+
+```sh
+ip -br addr show wlp1s0
+ip route
+curl -I https://questboard.home.mcnees.me
 ```
 
 To restart the kiosk after changing local display settings:
