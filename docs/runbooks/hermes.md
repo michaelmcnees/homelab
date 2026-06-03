@@ -27,6 +27,8 @@ Hermes requires at least 64k context. Local Ollama is configured with `OLLAMA_CO
 
 The default provider is `openai-codex` so Hermes can use the ChatGPT/Codex OAuth credential stored on the `hermes-data` PVC. Keep local Ollama available for private/offline experiments, not the default Telegram chat path. The ChatGPT Codex model allow list changes over time; if Hermes starts returning HTTP 400 for the default model, test the replacement with a one-shot command before updating this runbook.
 
+When changing the default model in `kubernetes/apps/hermes/configmap.yaml`, also update `hermes.mcnees.me/config-revision` in `kubernetes/apps/hermes/deployment.yaml`. Hermes mounts `config.yaml` with `subPath`, so Flux updating the ConfigMap alone will not refresh the file inside an existing pod.
+
 Edit the SOPS secret:
 
 ```sh

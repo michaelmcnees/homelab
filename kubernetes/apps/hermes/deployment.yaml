@@ -14,6 +14,8 @@ spec:
     type: Recreate
   template:
     metadata:
+      annotations:
+        hermes.mcnees.me/config-revision: gpt-5.5
       labels:
         app.kubernetes.io/name: hermes
     spec:
