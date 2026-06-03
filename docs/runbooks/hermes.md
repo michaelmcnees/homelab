@@ -12,7 +12,7 @@ Hermes is deployed as an experimental in-cluster agent at `https://hermes.home.m
 - Config: `hermes-config` mounted at `/opt/data/config.yaml`
 - Workspace PVC: `hermes-workspace` mounted at `/workspace`
 - Default provider: `openai-codex`
-- Default model: `gpt-5.3-codex`
+- Default model: `gpt-5.5`
 - MCP servers:
   - Honeydew at `https://mcp.honeydewdone.app` using OAuth
   - Outline at `https://docs.mcnees.me/mcp` using OAuth
@@ -25,7 +25,7 @@ Provider keys are optional for initial boot, but Hermes will need at least one u
 
 Hermes requires at least 64k context. Local Ollama is configured with `OLLAMA_CONTEXT_LENGTH=64000`, but Telegram proved too slow through the local CPU path: even a small message can send a multi-thousand-token agent prompt and hit the 120 second client timeout.
 
-The default provider is `openai-codex` so Hermes can use the ChatGPT/Codex OAuth credential stored on the `hermes-data` PVC. Keep local Ollama available for private/offline experiments, not the default Telegram chat path.
+The default provider is `openai-codex` so Hermes can use the ChatGPT/Codex OAuth credential stored on the `hermes-data` PVC. Keep local Ollama available for private/offline experiments, not the default Telegram chat path. The ChatGPT Codex model allow list changes over time; if Hermes starts returning HTTP 400 for the default model, test the replacement with a one-shot command before updating this runbook.
 
 Edit the SOPS secret:
 
