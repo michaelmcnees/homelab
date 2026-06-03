@@ -2,7 +2,7 @@
 
 ## Overview
 
-Syncthing provides file synchronization for the Obsidian vault. The canonical vault lives on TrueNAS NFS at `/mnt/data/reference/obsidian`. Both Syncthing and Hermes mount this path.
+Syncthing provides file synchronization for the Obsidian vault. The canonical vault lives on TrueNAS NFS at `/mnt/data/reference/obsidian`.
 
 ## Access
 
@@ -27,7 +27,7 @@ Syncthing provides file synchronization for the Obsidian vault. The canonical va
 
 ## Hermes Integration
 
-Hermes mounts the vault at `/workspace/obsidian` (read/write). Files written by Hermes appear in Syncthing automatically and sync to connected devices.
+Hermes no longer mounts the Obsidian vault. Use Outline MCP for Hermes-accessible notes and docs.
 
 ## Troubleshooting
 
@@ -37,15 +37,7 @@ Hermes mounts the vault at `/workspace/obsidian` (read/write). Files written by 
 3. Check pod logs: `kubectl logs -n apps deploy/syncthing`
 
 ### Permission errors
-Both Syncthing and Hermes run as UID/GID 10000. The init container fixes NFS permissions on startup. If permissions drift, restart the pod.
-
-### Changes written by Hermes not syncing
-NFS does not support inotify, so Syncthing's filesystem watcher cannot detect changes. The rescan interval (`rescanIntervalS`) is set to 60 seconds in the running config. If outbound sync seems stalled, trigger a manual rescan:
-```bash
-API_KEY=$(kubectl exec -n apps deploy/syncthing -- grep apikey /var/syncthing/config/config.xml | sed 's/.*<apikey>\(.*\)<\/apikey>.*/\1/')
-FOLDER_ID=$(kubectl exec -n apps deploy/syncthing -- grep 'folder id=' /var/syncthing/config/config.xml | head -1 | sed 's/.*id="\([^"]*\)".*/\1/')
-kubectl exec -n apps deploy/syncthing -- wget -qO- --header="X-API-Key: $API_KEY" --post-data '' "http://localhost:8384/rest/db/scan?folder=$FOLDER_ID"
-```
+Syncthing runs as UID/GID 10000. If permissions drift, restart the pod.
 
 ### Remote sync slow
 Default uses Syncthing relay servers for off-LAN sync. For faster remote sync, port-forward 22000/TCP on the router to the MetalLB VIP.

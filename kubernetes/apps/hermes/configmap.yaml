@@ -8,3 +8,8 @@ data:
     model:
       provider: openai-codex
       default: gpt-5.5
+    mcp_servers:
+      outline:
+        url: https://docs.mcnees.me/mcp
+        auth: oauth
+        enabled: true

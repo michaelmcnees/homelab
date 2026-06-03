@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       annotations:
-        hermes.mcnees.me/config-revision: gpt-5.5
+        hermes.mcnees.me/config-revision: gpt-5.5-outline-mcp
       labels:
         app.kubernetes.io/name: hermes
     spec:
@@ -30,7 +30,7 @@ spec:
           command:
             - sh
             - -c
-            - chown -R 10000:10000 /opt/data && find /workspace -xdev -not -path /workspace/obsidian -exec chown 10000:10000 {} +
+            - chown -R 10000:10000 /opt/data /workspace
           securityContext:
             runAsUser: 0
             allowPrivilegeEscalation: false
@@ -44,8 +44,6 @@ spec:
               mountPath: /opt/data
             - name: workspace
               mountPath: /workspace
-            - name: obsidian-vault
-              mountPath: /workspace/obsidian
         - name: inject-icloud-config
           image: curlimages/curl:8.13.0
           imagePullPolicy: IfNotPresent
@@ -428,8 +426,6 @@ spec:
               readOnly: true
             - name: workspace
               mountPath: /workspace
-            - name: obsidian-vault
-              mountPath: /workspace/obsidian
       volumes:
         - name: config
           configMap:
@@ -440,6 +436,3 @@ spec:
         - name: workspace
           persistentVolumeClaim:
             claimName: hermes-workspace-ceph
-        - name: obsidian-vault
-          persistentVolumeClaim:
-            claimName: obsidian-vault
