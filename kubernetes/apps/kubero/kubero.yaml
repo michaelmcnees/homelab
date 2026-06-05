@@ -13,6 +13,9 @@ spec:
     enabled: false
   kubero:
     context: inClusterContext
+    database:
+      storageClassName: ceph-rbd
+      size: 1Gi
     namespace: kubero
     webhook_url: https://kubero.home.mcnees.me/api/repo/webhooks
     config:
