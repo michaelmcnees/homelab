@@ -2,3 +2,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - https://raw.githubusercontent.com/kubero-dev/kubero-operator/v0.2.2/deploy/operator.yaml
+patches:
+  - target:
+      kind: Deployment
+      name: kubero-operator-controller-manager
+      namespace: kubero-operator-system
+    patch: |-
+      - op: remove
+        path: /spec/template/spec/containers/0
