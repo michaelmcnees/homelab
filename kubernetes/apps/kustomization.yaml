@@ -8,6 +8,7 @@ resources:
   - ./hermes
   - ./homepage
   - ./immich
+  - ./kubero
   - ./mantle
   - ./ollama
   - ./open-webui
