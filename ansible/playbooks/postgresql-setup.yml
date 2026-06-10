@@ -60,6 +60,14 @@
         owner: mantle
       - name: penpot
         owner: penpot
+      - name: orchestrator
+        owner: postgres
+      - name: lens
+        owner: postgres
+      - name: git_sensor
+        owner: postgres
+      - name: casbin
+        owner: postgres
     postgresql_extensions:
       - database: chatwoot
         extension: pg_stat_statements
@@ -148,6 +156,15 @@
         password: "{{ lookup('vars', 'pg_password_' + item.owner) }}"
         state: present
       loop: "{{ postgresql_databases }}"
+      no_log: true
+
+    - name: Ensure postgres superuser password for Devtron
+      become_user: postgres
+      community.postgresql.postgresql_user:
+        name: postgres
+        password: "{{ pg_password_postgres }}"
+        role_attr_flags: SUPERUSER,CREATEROLE,CREATEDB,REPLICATION,BYPASSRLS,LOGIN
+        state: present
       no_log: true
 
     - name: Collect existing PostgreSQL databases
