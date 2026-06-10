@@ -4,7 +4,6 @@ resources:
   - ceph-csi
   - cert-manager
   - external-dns
-  - kubero-operator
   - local-path-provisioner
   - metallb
   - metrics-server
