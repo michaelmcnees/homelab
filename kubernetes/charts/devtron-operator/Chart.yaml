@@ -1,0 +1,30 @@
+apiVersion: v2
+appVersion: 2.1.1
+dependencies:
+- condition: argo-cd.enabled
+  name: argo-cd
+  repository: https://argoproj.github.io/argo-helm
+  version: 7.7.15
+- condition: security.enabled
+  name: security
+  repository: https://helm.devtron.ai
+  version: 0.x.x
+description: Chart to configure and install Devtron. Devtron is a Kubernetes Orchestration
+  system.
+home: https://devtron.ai
+icon: https://s3-ap-southeast-1.amazonaws.com/devtron.ai/images/devtron-sqr-logo.png
+keywords:
+- Devtron
+- Kubernetes
+- Orchestration
+- K8s
+- Deployment
+- argocd
+- Hyperion
+maintainers:
+- email: prakarsh@devtron.ai
+  name: Prakarsh
+name: devtron-operator
+sources:
+- https://github.com/devtron-labs/charts
+version: 0.23.2
