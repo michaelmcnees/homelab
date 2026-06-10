@@ -519,9 +519,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   namespace: devtroncd
-  name: postgresql-create-databases-{{ randAlphaNum 5 | lower }}
-  annotations:
-    "helm.sh/hook": pre-install
+  name: postgresql-create-databases
 spec:
   activeDeadlineSeconds: 1500
   ttlSecondsAfterFinished: 1000

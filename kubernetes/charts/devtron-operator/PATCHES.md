@@ -24,3 +24,15 @@ This vendored copy renders `batch/v1` directly in:
 - `templates/cost-sync-job.yaml`
 - `templates/grafana.yaml`
 - `templates/migrator.yaml`
+
+## External PostgreSQL database creator hook patch
+
+The upstream external PostgreSQL database creator Job was a `pre-install` hook,
+but it referenced normal chart resources such as `devtron-default-sa`,
+`devtron-cm`, `devtron-custom-cm`, and `devtron-common-cm`. Helm runs
+pre-install hooks before normal resources, so the Job could not create its pod on
+a fresh install.
+
+Metagross databases are prepared by Ansible before Devtron is installed, so this
+vendored copy renders that database creator as a normal, deterministically named
+Job instead of a randomly named pre-install hook.
