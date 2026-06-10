@@ -26,6 +26,7 @@ spec:
   values:
     domainFilters:
       - mcnees.me
+      - dvflw.co
     env:
       - name: CF_API_TOKEN
         valueFrom:
