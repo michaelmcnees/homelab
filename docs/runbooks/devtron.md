@@ -111,8 +111,8 @@ flux --kubeconfig talos/kubeconfig reconcile kustomization apps -n flux-system -
 Watch the RustFS bucket job:
 
 ```sh
-kubectl --kubeconfig talos/kubeconfig -n object-storage get job create-bucket-devtron
-kubectl --kubeconfig talos/kubeconfig -n object-storage logs job/create-bucket-devtron
+kubectl --kubeconfig talos/kubeconfig -n object-storage get job rustfs-create-bucket-devtron
+kubectl --kubeconfig talos/kubeconfig -n object-storage logs job/rustfs-create-bucket-devtron
 ```
 
 Watch Devtron:
