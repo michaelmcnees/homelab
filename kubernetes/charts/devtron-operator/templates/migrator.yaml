@@ -1,10 +1,6 @@
 {{- with .Values.components.migrator }}
 {{- if  and $.Values.devtronEnterprise.enabled $.Values.devtronEnterprise.finops.enabled}}
-{{- if $.Capabilities.APIVersions.Has "batch/v1/Job" }}
 apiVersion: batch/v1
-{{- else }}
-apiVersion: batch/v1beta1
-{{- end }}
 kind: Job
 metadata:
   name: postgresql-migrate-finops-{{ randAlphaNum 5 | lower }}
@@ -93,11 +89,7 @@ spec:
   activeDeadlineSeconds: 1500
 {{- end }}  
 ---
-{{- if $.Capabilities.APIVersions.Has "batch/v1/Job" }}
 apiVersion: batch/v1
-{{- else }}
-apiVersion: batch/v1beta1
-{{- end }}
 kind: Job
 metadata:
   name: postgresql-migrate-devtron-{{ randAlphaNum 5 | lower }}
@@ -208,11 +200,7 @@ spec:
   backoffLimit: 20
   activeDeadlineSeconds: 1500
 ---
-{{- if $.Capabilities.APIVersions.Has "batch/v1/Job" }}
 apiVersion: batch/v1
-{{- else }}
-apiVersion: batch/v1beta1
-{{- end }}
 kind: Job
 metadata:
   name: postgresql-migrate-casbin-{{ randAlphaNum 5 | lower }}
@@ -314,11 +302,7 @@ spec:
 {{- if $.Values.installer.modules }}
 {{- if has "cicd" $.Values.installer.modules }}
 ---
-{{- if $.Capabilities.APIVersions.Has "batch/v1/Job" }}
 apiVersion: batch/v1
-{{- else }}
-apiVersion: batch/v1beta1
-{{- end }}
 kind: Job
 metadata:
   name: postgresql-migrate-gitsensor-{{ randAlphaNum 5 | lower }}
@@ -394,11 +378,7 @@ spec:
   activeDeadlineSeconds: 1500
 {{- if $.Values.devtronEnterprise.enabled }}
 ---
-{{- if $.Capabilities.APIVersions.Has "batch/v1/Job" }}
 apiVersion: batch/v1
-{{- else }}
-apiVersion: batch/v1beta1
-{{- end }}
 kind: Job
 metadata:
   namespace: devtroncd
@@ -456,11 +436,7 @@ spec:
           name: shared-volume
 {{- end }}
 ---
-{{- if $.Capabilities.APIVersions.Has "batch/v1/Job" }}
 apiVersion: batch/v1
-{{- else }}
-apiVersion: batch/v1beta1
-{{- end }}
 kind: Job
 metadata:
   name: postgresql-migrate-lens-{{ randAlphaNum 5 | lower }}
@@ -539,11 +515,7 @@ spec:
 {{- end }}
 {{- if and $.Values.global.externalPostgres $.Values.global.externalPostgres.enabled }}
 ---
-{{- if $.Capabilities.APIVersions.Has "batch/v1/Job" }}
 apiVersion: batch/v1
-{{- else }}
-apiVersion: batch/v1beta1
-{{- end }}
 kind: Job
 metadata:
   namespace: devtroncd

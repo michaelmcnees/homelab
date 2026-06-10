@@ -3,11 +3,7 @@
 {{- if $.Values.monitoring }}
 {{- if $.Values.monitoring.grafana }}
 {{- if $.Values.monitoring.grafana.enabled }}
-{{- if .Capabilities.APIVersions.Has "batch/v1/Job" }}
 apiVersion: batch/v1
-{{- else -}}
-apiVersion: batch/v1beta1
-{{- end }}
 kind: Job
 metadata:
   name: grafana-org-job
