@@ -15,6 +15,7 @@ spec:
   wait: true
   dependsOn:
     - name: infrastructure-configs
+    - name: databases
     - name: storage
   decryption:
     provider: sops
