@@ -1,0 +1,58 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: devtron
+  namespace: devtroncd
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: ./kubernetes/charts/devtron-operator
+      sourceRef:
+        kind: GitRepository
+        name: flux-system
+        namespace: flux-system
+      interval: 12h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  valuesFrom:
+    - kind: Secret
+      name: devtron-values
+      valuesKey: values.yaml
+  values:
+    global:
+      storageClass: ceph-rbd
+      externalPostgres:
+        enabled: true
+        PG_ADDR: metagross.internal.svc.cluster.local
+      dbConfig:
+        PG_ADDR: metagross.internal.svc.cluster.local
+        PG_PORT: "5432"
+        PG_USER: postgres
+        PG_DATABASE: orchestrator
+    installer:
+      modules:
+        - cicd
+    configs:
+      BLOB_STORAGE_PROVIDER: S3
+      BLOB_STORAGE_S3_ENDPOINT: http://rustfs.object-storage.svc.cluster.local:9000
+      BLOB_STORAGE_S3_ENDPOINT_INSECURE: "true"
+      DEFAULT_BUILD_LOGS_BUCKET: devtron
+      DEFAULT_CACHE_BUCKET: devtron
+      DEFAULT_CACHE_BUCKET_REGION: us-east-1
+      DEFAULT_CD_LOGS_BUCKET_REGION: us-east-1
+      BASE_URL_SCHEME: HTTPS
+      BASE_URL: cloud.dvflw.co
+      PROMETHEUS_URL: http://kube-prometheus-stack-prometheus.observability.svc.cluster.local:9090
+    components:
+      devtron:
+        service:
+          type: ClusterIP
+        ingress:
+          enabled: false
+    argo-cd:
+      enabled: true

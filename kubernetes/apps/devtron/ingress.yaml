@@ -1,0 +1,32 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: devtron
+  namespace: devtroncd
+spec:
+  entryPoints:
+    - websecure-external
+  routes:
+    - match: Host(`cloud.dvflw.co`)
+      kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
+      services:
+        - name: devtron-service
+          port: 80
+  tls:
+    secretName: devtron-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: devtron
+  namespace: devtroncd
+spec:
+  secretName: devtron-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - cloud.dvflw.co
