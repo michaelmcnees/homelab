@@ -156,6 +156,7 @@
         password: "{{ lookup('vars', 'pg_password_' + item.owner) }}"
         state: present
       loop: "{{ postgresql_databases }}"
+      when: item.owner != "postgres"
       no_log: true
 
     - name: Ensure postgres superuser password for Devtron
