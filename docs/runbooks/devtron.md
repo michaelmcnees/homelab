@@ -52,6 +52,7 @@ Current local patches:
 
 - `gitsensor`, `lens`, and `casbin` omit `global.dbConfig.PG_DATABASE` before merging component configs. This prevents duplicate `PG_DATABASE` keys when external PostgreSQL is enabled.
 - chart templates that previously selected `batch/v1beta1` now render `batch/v1` for Kubernetes compatibility.
+- the external PostgreSQL database creator renders as a normal Job, not a `pre-install` hook, so it can reference chart-created service accounts and config maps.
 
 Before upgrading the chart, reapply or retire those patches deliberately and run the render checks below.
 
@@ -123,6 +124,35 @@ kubectl --kubeconfig talos/kubeconfig -n devtroncd get pods
 kubectl --kubeconfig talos/kubeconfig -n devtroncd get jobs
 kubectl --kubeconfig talos/kubeconfig -n devtroncd get certificate devtron
 kubectl --kubeconfig talos/kubeconfig -n devtroncd get ingressroute devtron -o yaml
+```
+
+The HelmRelease sets `install.disableWaitForJobs` and `upgrade.disableWaitForJobs` because `app-sync-job-*` imports chart data and can run longer than the install timeout. Treat `HelmRelease/devtron` plus the workload deployments/statefulsets as the install health signal; `app-sync-job-*` may continue after Helm is Ready.
+
+## DNS and TLS
+
+The `cloud.dvflw.co` route depends on the shared Cloudflare API token in:
+
+```text
+infrastructure/cloudflare-api-token
+```
+
+That token must be able to read and edit the `dvflw.co` zone. If the certificate stays pending, inspect the ACME challenge:
+
+```sh
+kubectl --kubeconfig talos/kubeconfig -n devtroncd describe challenge
+```
+
+This error means the token cannot see the `dvflw.co` zone:
+
+```text
+Found no Zones for domain _acme-challenge.cloud.dvflw.co.
+```
+
+Update the Cloudflare token scope/account, then re-run:
+
+```sh
+flux --kubeconfig talos/kubeconfig reconcile kustomization infrastructure -n flux-system --with-source
+flux --kubeconfig talos/kubeconfig reconcile kustomization apps -n flux-system --with-source
 ```
 
 ## Login
