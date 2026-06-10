@@ -5,6 +5,7 @@ metadata:
   namespace: devtroncd
 spec:
   interval: 30m
+  timeout: 30m
   chart:
     spec:
       chart: ./kubernetes/charts/devtron-operator
@@ -45,7 +46,7 @@ spec:
       DEFAULT_CACHE_BUCKET: devtron
       DEFAULT_CACHE_BUCKET_REGION: us-east-1
       DEFAULT_CD_LOGS_BUCKET_REGION: us-east-1
-      BASE_URL_SCHEME: HTTPS
+      BASE_URL_SCHEME: https
       BASE_URL: cloud.dvflw.co
       PROMETHEUS_URL: http://kube-prometheus-stack-prometheus.observability.svc.cluster.local:9090
     components:
