@@ -2,7 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - namespace.yaml
+  - namespace-ci.yaml
   - secret.sops.yaml
   - helmrelease.yaml
   - ingress.yaml
   - dnsendpoint.yaml
+  - demo-dnsendpoint.yaml

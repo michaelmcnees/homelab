@@ -1,0 +1,11 @@
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: mcnees-me-demo
+  namespace: devtron-demo
+spec:
+  endpoints:
+    - dnsName: demo.mcnees.me
+      recordType: A
+      targets:
+        - 104.14.105.18
