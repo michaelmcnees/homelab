@@ -29,11 +29,12 @@ For first contact, one of these must already be true:
 - You connect as an existing sudo-capable local user and let the role create or
   update `mmcnees`.
 
-For the alternate user path, pass that existing user with `-u`:
+For the alternate user path, override the inventory connection user with
+`-e ansible_user=<existing_user>`:
 
 ```bash
 cd ansible
-ansible-playbook playbooks/bootstrap-linux-desktops.yml --limit lucas-minimint -u <existing_user> --ask-pass --ask-become-pass
+ansible-playbook playbooks/bootstrap-linux-desktops.yml --limit lucas-minimint -e ansible_user=<existing_user> --ask-pass --ask-become-pass
 ```
 
 After bootstrap, routine Ansible runs should use SSH key auth and passwordless
