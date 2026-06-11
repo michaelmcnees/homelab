@@ -201,6 +201,11 @@ locals {
       mac      = "a4:fc:14:0a:6d:ab"
       fixed_ip = "10.0.20.99"
     }
+    lucas_minimint_b6c466 = {
+      name     = "lucas-minimint"
+      mac      = "bc:a8:a6:b6:c4:66"
+      fixed_ip = "10.0.20.98"
+    }
     k3s_eevee_8d8da0 = {
       name     = "k3s-eevee"
       mac      = "bc:24:11:8d:8d:a0"
