@@ -5,6 +5,12 @@
       - ansible_facts['os_family'] == 'Debian'
     fail_msg: "linux-desktop-bootstrap currently supports Debian-family hosts only."
 
+- name: Assert admin username is safe
+  ansible.builtin.assert:
+    that:
+      - linux_desktop_bootstrap_admin_user is match('^[a-z_][a-z0-9_-]*[$]?$')
+    fail_msg: "linux_desktop_bootstrap_admin_user must be a normal Linux username."
+
 - name: Assert local SSH public key exists
   ansible.builtin.stat:
     path: "{{ linux_desktop_bootstrap_authorized_key_file }}"
@@ -26,6 +32,7 @@
       - sudo
     state: present
     update_cache: true
+    cache_valid_time: 3600
 
 - name: Enable and start SSH
   ansible.builtin.systemd:
