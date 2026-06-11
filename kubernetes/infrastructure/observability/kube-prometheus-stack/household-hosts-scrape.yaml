@@ -27,6 +27,12 @@ spec:
         job: household_compute
         household_role: signage
         host: rotom
+    - targets:
+        - "10.0.20.98:9100"
+      labels:
+        job: household_compute
+        household_role: personal_desktop
+        host: lucas-minimint
   relabelings:
     - sourceLabels: [host]
       targetLabel: instance
