@@ -1,0 +1,12 @@
+---
+linux_mint_desktop_enable_cockpit: true
+linux_mint_desktop_enable_host_monitoring: true
+linux_mint_desktop_launchers: []
+
+linux_mint_desktop_packages:
+  - curl
+  - git
+  - htop
+  - openssh-client
+  - rsync
+  - vim

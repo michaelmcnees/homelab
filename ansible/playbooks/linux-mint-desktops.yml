@@ -1,0 +1,18 @@
+---
+- name: Configure Linux Mint personal desktops
+  hosts: personal_desktops
+  gather_facts: true
+  become: true
+  roles:
+    - linux-mint-desktop
+
+  tasks:
+    - name: Install Cockpit when configured
+      ansible.builtin.include_role:
+        name: cockpit
+      when: linux_mint_desktop_enable_cockpit | bool
+
+    - name: Install host monitoring when configured
+      ansible.builtin.include_role:
+        name: host-monitoring
+      when: linux_mint_desktop_enable_host_monitoring | bool
