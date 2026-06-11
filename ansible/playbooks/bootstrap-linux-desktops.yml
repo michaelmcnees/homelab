@@ -1,0 +1,7 @@
+---
+- name: Bootstrap Linux desktop SSH and sudo access
+  hosts: personal_desktops
+  gather_facts: true
+  become: true
+  roles:
+    - linux-desktop-bootstrap

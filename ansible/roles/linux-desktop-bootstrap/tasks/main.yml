@@ -1,0 +1,60 @@
+---
+- name: Assert supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == 'Debian'
+    fail_msg: "linux-desktop-bootstrap currently supports Debian-family hosts only."
+
+- name: Assert local SSH public key exists
+  ansible.builtin.stat:
+    path: "{{ linux_desktop_bootstrap_authorized_key_file }}"
+  delegate_to: localhost
+  become: false
+  register: _linux_desktop_bootstrap_key
+
+- name: Fail when local SSH public key is missing
+  ansible.builtin.assert:
+    that:
+      - _linux_desktop_bootstrap_key.stat.exists
+      - _linux_desktop_bootstrap_key.stat.isreg
+    fail_msg: "Expected SSH public key at {{ linux_desktop_bootstrap_authorized_key_file }}."
+
+- name: Install OpenSSH server and sudo
+  ansible.builtin.apt:
+    name:
+      - openssh-server
+      - sudo
+    state: present
+    update_cache: true
+
+- name: Enable and start SSH
+  ansible.builtin.systemd:
+    name: ssh.service
+    enabled: true
+    state: started
+
+- name: Ensure admin user exists
+  ansible.builtin.user:
+    name: "{{ linux_desktop_bootstrap_admin_user }}"
+    shell: /bin/bash
+    create_home: true
+    groups:
+      - sudo
+    append: true
+    state: present
+
+- name: Install admin authorized key
+  ansible.posix.authorized_key:
+    user: "{{ linux_desktop_bootstrap_admin_user }}"
+    key: "{{ lookup('file', linux_desktop_bootstrap_authorized_key_file) }}"
+    state: present
+
+- name: Install passwordless sudo rule
+  ansible.builtin.copy:
+    dest: "{{ linux_desktop_bootstrap_sudoers_file }}"
+    owner: root
+    group: root
+    mode: "0440"
+    content: |
+      {{ linux_desktop_bootstrap_admin_user }} ALL=(ALL) NOPASSWD:ALL
+    validate: /usr/sbin/visudo -cf %s
