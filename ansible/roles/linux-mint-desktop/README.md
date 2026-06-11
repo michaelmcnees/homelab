@@ -19,3 +19,5 @@ pass.
 Future launcher entries should use a structured shape with fields such as
 `name`, `desktop_file`, `command`, `icon`, `working_directory`, and
 `categories`.
+
+Desktops without Beszel credentials should set `host_monitoring_enable_beszel: false`, as `lucas-minimint` does in host vars.

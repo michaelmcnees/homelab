@@ -5,14 +5,15 @@
       - ansible_facts['os_family'] == 'Debian'
     fail_msg: "linux-mint-desktop currently supports Debian-family hosts only."
 
-- name: Install baseline desktop management packages
-  ansible.builtin.apt:
-    name: "{{ linux_mint_desktop_packages }}"
-    state: present
-    update_cache: true
-
 - name: Validate launcher configuration is intentionally empty for first pass
   ansible.builtin.assert:
     that:
       - linux_mint_desktop_launchers | length == 0
     fail_msg: "Desktop launcher management is not implemented in this first pass."
+
+- name: Install baseline desktop management packages
+  ansible.builtin.apt:
+    name: "{{ linux_mint_desktop_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
