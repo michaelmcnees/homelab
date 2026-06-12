@@ -11,7 +11,7 @@ exposes a Gmail virtual MCP route for shared agent access.
 - Operator release: `kubernetes/infrastructure/controllers/toolhive/helmrelease.yaml`
 - Namespace: `toolhive-system`
 - Version: `0.29.3`
-- Gmail virtual MCP endpoint: `https://gmail-mcp.home.mcnees.me/mcp`
+- Gmail virtual MCP endpoint: `https://gmail-mcp.mcnees.me/mcp`
 
 The operator is configured with namespace-scoped RBAC for `toolhive-system`
 only. Keep backend MCP resources and virtual MCP gateways in that namespace
@@ -55,7 +55,7 @@ clients can eventually share the same governed endpoint:
 - `MCPExternalAuthConfig/gmail-google-upstream-token` injects the Google
   upstream access token as the backend `Authorization: Bearer` token.
 - `VirtualMCPServer/gmail-mcp` publishes
-  `https://gmail-mcp.home.mcnees.me/mcp`.
+  `https://gmail-mcp.mcnees.me/mcp`.
 - `Secret/gmail-mcp-auth` stores the Google upstream client secret and stable
   ToolHive signing/HMAC material. It is managed by
   `gmail-mcp-secret.sops.yaml`.
@@ -63,7 +63,7 @@ clients can eventually share the same governed endpoint:
 The Google OAuth client used by ToolHive must allow this redirect URI:
 
 ```text
-https://gmail-mcp.home.mcnees.me/oauth/callback
+https://gmail-mcp.mcnees.me/oauth/callback
 ```
 
 If the current client is still an installed-app client, create or switch to a

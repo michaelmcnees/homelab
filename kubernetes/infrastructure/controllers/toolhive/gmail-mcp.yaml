@@ -37,7 +37,7 @@ metadata:
 spec:
   type: inline
   inline:
-    issuer: https://gmail-mcp.home.mcnees.me
+    issuer: https://gmail-mcp.mcnees.me
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: VirtualMCPServer
@@ -52,15 +52,15 @@ spec:
     type: oidc
     oidcConfigRef:
       name: gmail-mcp
-      audience: https://gmail-mcp.home.mcnees.me/mcp
-      resourceUrl: https://gmail-mcp.home.mcnees.me/mcp
+      audience: https://gmail-mcp.mcnees.me/mcp
+      resourceUrl: https://gmail-mcp.mcnees.me/mcp
       scopes:
         - openid
         - email
         - profile
   authServerConfig:
-    issuer: https://gmail-mcp.home.mcnees.me
-    authorizationEndpointBaseUrl: https://gmail-mcp.home.mcnees.me
+    issuer: https://gmail-mcp.mcnees.me
+    authorizationEndpointBaseUrl: https://gmail-mcp.mcnees.me
     primaryUpstreamProvider: google
     baselineClientScopes:
       - openid
@@ -83,7 +83,7 @@ spec:
           clientSecretRef:
             name: gmail-mcp-auth
             key: google-client-secret
-          redirectUri: https://gmail-mcp.home.mcnees.me/oauth/callback
+          redirectUri: https://gmail-mcp.mcnees.me/oauth/callback
           scopes:
             - openid
             - email
@@ -104,7 +104,7 @@ metadata:
 spec:
   secretName: gmail-mcp-tls
   dnsNames:
-    - gmail-mcp.home.mcnees.me
+    - gmail-mcp.mcnees.me
   issuerRef:
     kind: ClusterIssuer
     name: letsencrypt-production
@@ -117,8 +117,9 @@ metadata:
 spec:
   entryPoints:
     - websecure
+    - websecure-external
   routes:
-    - match: Host(`gmail-mcp.home.mcnees.me`)
+    - match: Host(`gmail-mcp.mcnees.me`)
       kind: Rule
       services:
         - name: vmcp-gmail-mcp
