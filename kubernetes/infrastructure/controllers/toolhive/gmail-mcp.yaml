@@ -52,7 +52,7 @@ spec:
     type: oidc
     oidcConfigRef:
       name: gmail-mcp
-      audience: https://gmail-mcp.home.mcnees.me
+      audience: https://gmail-mcp.home.mcnees.me/mcp
       resourceUrl: https://gmail-mcp.home.mcnees.me/mcp
       scopes:
         - openid
