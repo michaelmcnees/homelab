@@ -15,7 +15,7 @@ Hermes is deployed as an experimental in-cluster agent at `https://hermes.home.m
 - Default model: `gpt-5.5`
 - MCP servers:
   - Outline at `https://docs.mcnees.me/mcp` using OAuth
-  - Gmail at `https://gmail-mcp.mcnees.me/mcp` through ToolHive, which
+  - Gmail at `https://toolhive.home.mcnees.me/mcp` through ToolHive, which
     forwards to Google's remote Workspace MCP server
 
 The Hermes Docker docs warn against exposing the dashboard directly. Keep it on the internal Traefik entrypoint and oauth-protected unless we intentionally design a safer public gateway. The pod still runs the dashboard with Hermes' `--insecure` flag internally, so `NetworkPolicy/hermes-ingress` restricts dashboard ingress to Traefik.
@@ -148,14 +148,14 @@ For first-time OAuth in Kubernetes, use a port-forward to the pod-local callback
 
 Tokens are stored under `/opt/data/mcp-tokens`. Treat those files like credentials; do not paste or hand-edit their contents.
 
-Gmail uses the ToolHive virtual MCP endpoint:
+Gmail uses the shared ToolHive virtual MCP endpoint:
 
-- Endpoint: `https://gmail-mcp.mcnees.me/mcp`
+- Endpoint: `https://toolhive.home.mcnees.me/mcp`
 - Backend: Google's remote Workspace MCP endpoint at
   `https://gmailmcp.googleapis.com/mcp/v1`
 - Scopes: `https://www.googleapis.com/auth/gmail.readonly` and
   `https://www.googleapis.com/auth/gmail.compose`
-- Google upstream callback: `https://gmail-mcp.mcnees.me/oauth/callback`
+- Google upstream callback: `https://toolhive.home.mcnees.me/oauth/callback`
 - Hermes token files: `/opt/data/mcp-tokens/gmail.json` and
   `/opt/data/mcp-tokens/gmail.client.json`
 
@@ -175,7 +175,7 @@ kubectl --kubeconfig talos/kubeconfig -n apps exec deployment/hermes -- \
 
 If Google returns `redirect_uri_mismatch`, update the OAuth client in the
 Google Cloud project to allow the ToolHive callback
-`https://gmail-mcp.mcnees.me/oauth/callback`, then rerun
+`https://toolhive.home.mcnees.me/oauth/callback`, then rerun
 `hermes mcp login gmail`.
 
 ## Telegram

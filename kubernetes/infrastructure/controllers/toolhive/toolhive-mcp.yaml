@@ -1,10 +1,10 @@
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPGroup
 metadata:
-  name: gmail-mcp
+  name: agent-tools
   namespace: toolhive-system
 spec:
-  description: Google Workspace Gmail MCP backends for shared agent access.
+  description: Shared MCP backends for agent access through ToolHive.
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig
@@ -23,7 +23,7 @@ metadata:
   namespace: toolhive-system
 spec:
   groupRef:
-    name: gmail-mcp
+    name: agent-tools
   remoteUrl: https://gmailmcp.googleapis.com/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
@@ -32,38 +32,49 @@ spec:
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPOIDCConfig
 metadata:
-  name: gmail-mcp
+  name: agent-tools
   namespace: toolhive-system
 spec:
   type: inline
   inline:
-    issuer: https://gmail-mcp.mcnees.me
+    issuer: https://toolhive.home.mcnees.me
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: VirtualMCPServer
 metadata:
-  name: gmail-mcp
+  name: agent-tools
   namespace: toolhive-system
 spec:
   groupRef:
-    name: gmail-mcp
+    name: agent-tools
+  embeddingServerRef:
+    name: agent-tools
   serviceType: ClusterIP
   incomingAuth:
     type: oidc
     oidcConfigRef:
-      name: gmail-mcp
-      audience: https://gmail-mcp.mcnees.me/mcp
-      resourceUrl: https://gmail-mcp.mcnees.me/mcp
+      name: agent-tools
+      audience: https://toolhive.home.mcnees.me/mcp
+      resourceUrl: https://toolhive.home.mcnees.me/mcp
       scopes:
         - openid
         - email
         - profile
+        - offline_access
+  config:
+    aggregation:
+      conflictResolution: prefix
+      conflictResolutionConfig:
+        prefixFormat: "{workload}_{tool}"
+    optimizer:
+      maxToolsToReturn: 8
   authServerConfig:
-    issuer: https://gmail-mcp.mcnees.me
-    authorizationEndpointBaseUrl: https://gmail-mcp.mcnees.me
+    issuer: https://toolhive.home.mcnees.me
+    authorizationEndpointBaseUrl: https://toolhive.home.mcnees.me
     primaryUpstreamProvider: google
     baselineClientScopes:
       - openid
+      - offline_access
     signingKeySecretRefs:
       - name: gmail-mcp-auth
         key: signing-key.pem
@@ -83,7 +94,7 @@ spec:
           clientSecretRef:
             name: gmail-mcp-auth
             key: google-client-secret
-          redirectUri: https://gmail-mcp.mcnees.me/oauth/callback
+          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
           scopes:
             - openid
             - email
@@ -96,15 +107,28 @@ spec:
   outgoingAuth:
     source: discovered
 ---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: EmbeddingServer
+metadata:
+  name: agent-tools
+  namespace: toolhive-system
+spec:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: gmail-mcp
+  name: agent-tools
   namespace: toolhive-system
 spec:
-  secretName: gmail-mcp-tls
+  secretName: agent-tools-tls
   dnsNames:
-    - gmail-mcp.mcnees.me
+    - toolhive.home.mcnees.me
   issuerRef:
     kind: ClusterIssuer
     name: letsencrypt-production
@@ -112,29 +136,16 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: gmail-mcp
+  name: agent-tools
   namespace: toolhive-system
 spec:
   entryPoints:
     - websecure
-    - websecure-external
   routes:
-    - match: Host(`gmail-mcp.mcnees.me`)
+    - match: Host(`toolhive.home.mcnees.me`)
       kind: Rule
       services:
-        - name: vmcp-gmail-mcp
+        - name: vmcp-agent-tools
           port: 4483
   tls:
-    secretName: gmail-mcp-tls
----
-apiVersion: externaldns.k8s.io/v1alpha1
-kind: DNSEndpoint
-metadata:
-  name: gmail-mcp-public
-  namespace: toolhive-system
-spec:
-  endpoints:
-    - dnsName: gmail-mcp.mcnees.me
-      recordType: A
-      targets:
-        - 104.14.105.18
+    secretName: agent-tools-tls

@@ -16,6 +16,6 @@ data:
         auth: oauth
         enabled: true
       gmail:
-        url: https://gmail-mcp.mcnees.me/mcp
+        url: https://toolhive.home.mcnees.me/mcp
         auth: oauth
         enabled: true
