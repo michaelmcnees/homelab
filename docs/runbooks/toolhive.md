@@ -2,7 +2,7 @@
 
 ToolHive is deployed as a Kubernetes operator in the `toolhive-system`
 namespace. This initial install is a pilot for central MCP management and does
-not expose any MCP gateway routes yet.
+exposes a Gmail virtual MCP route for shared agent access.
 
 ## Components
 
@@ -11,6 +11,7 @@ not expose any MCP gateway routes yet.
 - Operator release: `kubernetes/infrastructure/controllers/toolhive/helmrelease.yaml`
 - Namespace: `toolhive-system`
 - Version: `0.29.3`
+- Gmail virtual MCP endpoint: `https://gmail-mcp.home.mcnees.me/mcp`
 
 The operator is configured with namespace-scoped RBAC for `toolhive-system`
 only. Keep backend MCP resources and virtual MCP gateways in that namespace
@@ -37,24 +38,44 @@ Check operator logs:
 kubectl --kubeconfig talos/kubeconfig -n toolhive-system logs deploy/toolhive-operator
 ```
 
-## Next Pilot Step
+Check Gmail aggregation resources:
 
-After the operator is healthy, create an `MCPGroup`, add Outline and Penpot as
-remote backend entries, then front them with a `VirtualMCPServer`. Start with an
-internal-only endpoint before exposing a home-network hostname.
+```sh
+kubectl --kubeconfig talos/kubeconfig -n toolhive-system get \
+  mcpgroup,mcpserverentry,mcpexternalauthconfig,mcpoidcconfig,virtualmcpserver,svc,ingressroute
+```
+
+## Gmail Aggregation
+
+Gmail is aggregated through ToolHive so Hermes, Codex, Claude, and other MCP
+clients can eventually share the same governed endpoint:
+
+- `MCPServerEntry/gmail` points to Google's remote Workspace MCP endpoint,
+  `https://gmailmcp.googleapis.com/mcp/v1`.
+- `MCPExternalAuthConfig/gmail-google-upstream-token` injects the Google
+  upstream access token as the backend `Authorization: Bearer` token.
+- `VirtualMCPServer/gmail-mcp` publishes
+  `https://gmail-mcp.home.mcnees.me/mcp`.
+- `Secret/gmail-mcp-auth` stores the Google upstream client secret and stable
+  ToolHive signing/HMAC material. It is managed by
+  `gmail-mcp-secret.sops.yaml`.
+
+The Google OAuth client used by ToolHive must allow this redirect URI:
+
+```text
+https://gmail-mcp.home.mcnees.me/oauth/callback
+```
+
+If the current client is still an installed-app client, create or switch to a
+Google Cloud "Web application" OAuth client with that redirect URI, then update
+`gmail-mcp-secret.sops.yaml` and the inline `clientId` in `gmail-mcp.yaml`.
 
 ## Hermes Direction
 
 ToolHive is useful for centralizing MCP access for Hermes, Codex, Claude, and
-other clients, but it is not the first fix for Hermes Gmail access. Hermes'
-current mail setup has two separate paths:
+other clients. Hermes' current mail setup has two separate paths:
 
 - Himalaya uses Gmail IMAP with an app password.
-- Hermes MCP can use Google's first-party Gmail Workspace MCP endpoint with
-  OAuth.
-
-Pilot Gmail directly in Hermes first. Once the Google MCP flow is proven and
-tokens are stable, move Gmail and other backends behind a ToolHive
-`VirtualMCPServer` if we want one governed endpoint, centralized incoming auth,
-or tool filtering. That avoids debugging Google OAuth and ToolHive gateway
-behavior at the same time.
+- Hermes MCP uses ToolHive's Gmail virtual MCP endpoint, which performs the
+  upstream Google OAuth hop and forwards to Google's first-party Workspace MCP
+  endpoint.

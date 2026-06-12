@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       annotations:
-        hermes.mcnees.me/config-revision: gpt-5.5-outline-gmail-mcp-ipv4-runtime
+        hermes.mcnees.me/config-revision: gpt-5.5-outline-toolhive-gmail-mcp-ipv4-runtime
       labels:
         app.kubernetes.io/name: hermes
     spec:
@@ -201,23 +201,6 @@ spec:
             - -c
           args:
             - |
-              if { [ -z "${GOOGLE_MCP_CLIENT_ID:-}" ] || [ -z "${GOOGLE_MCP_CLIENT_SECRET:-}" ]; } && [ -f /opt/data/google_client_secret.json ]; then
-                eval "$(/opt/hermes/.venv/bin/python - <<'PY'
-              import json
-              import shlex
-              from pathlib import Path
-
-              data = json.loads(Path("/opt/data/google_client_secret.json").read_text(encoding="utf-8"))
-              client = data.get("web") or data.get("installed") or {}
-              client_id = client.get("client_id")
-              client_secret = client.get("client_secret")
-              if client_id:
-                  print("export GOOGLE_MCP_CLIENT_ID=" + shlex.quote(client_id))
-              if client_secret:
-                  print("export GOOGLE_MCP_CLIENT_SECRET=" + shlex.quote(client_secret))
-              PY
-                )"
-              fi
               chown 10000:10000 /opt/data/auth.json /opt/data/auth.json.corrupt 2>/dev/null || true
               chmod 600 /opt/data/auth.json /opt/data/auth.json.corrupt 2>/dev/null || true
               /opt/hermes/.venv/bin/python - <<'PY'

@@ -5,3 +5,5 @@ resources:
   - events-rbac.yaml
   - helmrelease-crds.yaml
   - helmrelease.yaml
+  - gmail-mcp-secret.sops.yaml
+  - gmail-mcp.yaml

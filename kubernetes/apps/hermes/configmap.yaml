@@ -16,12 +16,6 @@ data:
         auth: oauth
         enabled: true
       gmail:
-        url: https://gmailmcp.googleapis.com/mcp/v1
+        url: https://gmail-mcp.home.mcnees.me/mcp
         auth: oauth
         enabled: true
-        oauth:
-          client_id: ${GOOGLE_MCP_CLIENT_ID}
-          client_secret: ${GOOGLE_MCP_CLIENT_SECRET}
-          scope: https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.compose
-          redirect_port: 8765
-          client_name: Hermes Agent
