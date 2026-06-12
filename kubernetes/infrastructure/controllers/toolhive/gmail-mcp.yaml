@@ -126,3 +126,15 @@ spec:
           port: 4483
   tls:
     secretName: gmail-mcp-tls
+---
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: gmail-mcp-public
+  namespace: toolhive-system
+spec:
+  endpoints:
+    - dnsName: gmail-mcp.mcnees.me
+      recordType: A
+      targets:
+        - 104.14.105.18
