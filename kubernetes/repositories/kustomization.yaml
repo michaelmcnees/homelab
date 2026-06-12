@@ -13,4 +13,5 @@ resources:
   - penpot.yaml
   - prometheus-community.yaml
   - tailscale.yaml
+  - toolhive.yaml
   - traefik.yaml

@@ -8,4 +8,5 @@ resources:
   - metallb
   - metrics-server
   - tailscale-operator
+  - toolhive
   - traefik

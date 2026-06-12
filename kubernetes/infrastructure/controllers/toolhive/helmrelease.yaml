@@ -1,0 +1,39 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: toolhive-operator
+  namespace: toolhive-system
+spec:
+  interval: 30m
+  dependsOn:
+    - name: toolhive-operator-crds
+  chart:
+    spec:
+      chart: toolhive-operator
+      version: "0.29.3"
+      sourceRef:
+        kind: HelmRepository
+        name: toolhive
+        namespace: flux-system
+      interval: 12h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    operator:
+      env:
+        - name: TOOLHIVE_SKIP_UPDATE_CHECK
+          value: "true"
+      rbac:
+        scope: namespace
+        allowedNamespaces:
+          - toolhive-system
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          memory: 128Mi
