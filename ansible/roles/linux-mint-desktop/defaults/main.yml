@@ -4,7 +4,10 @@ linux_mint_desktop_enable_host_monitoring: true
 linux_mint_desktop_user: ""
 linux_mint_desktop_shared_games_group: dosgames
 linux_mint_desktop_dos_games_dir: /srv/dos-games
+linux_mint_desktop_dos_games_archive_dir: "{{ linux_mint_desktop_dos_games_dir }}/_archives"
+linux_mint_desktop_dos_game_archives: []
 linux_mint_desktop_launchers: []
+linux_mint_desktop_additional_launchers: []
 
 linux_mint_desktop_packages:
   - curl

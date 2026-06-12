@@ -12,7 +12,11 @@
       - linux_mint_desktop_user is match('^[a-z_][a-z0-9_-]*[$]?$')
       - linux_mint_desktop_launchers is iterable
       - linux_mint_desktop_launchers is not string
-    fail_msg: "linux_mint_desktop_user must be a valid local username and linux_mint_desktop_launchers must be a list."
+      - linux_mint_desktop_additional_launchers is iterable
+      - linux_mint_desktop_additional_launchers is not string
+      - linux_mint_desktop_dos_game_archives is iterable
+      - linux_mint_desktop_dos_game_archives is not string
+    fail_msg: "linux_mint_desktop_user must be a valid local username. Launcher and archive variables must be lists."
 
 - name: Validate desktop user exists
   ansible.builtin.getent:
@@ -33,6 +37,43 @@
   loop: "{{ linux_mint_desktop_launchers }}"
   loop_control:
     label: "{{ item.slug | default(item.name | default('invalid-launcher')) }}"
+
+- name: Validate additional launcher entries
+  ansible.builtin.assert:
+    that:
+      - item.user is defined
+      - item.user is match('^[a-z_][a-z0-9_-]*[$]?$')
+      - item.name is defined
+      - item.name | length > 0
+      - item.slug is defined
+      - item.slug is match('^[a-z0-9][a-z0-9_-]*$')
+      - item.command is defined
+      - item.command | length > 0
+    fail_msg: "Each additional Linux Mint desktop launcher needs user, name, slug, and command."
+  loop: "{{ linux_mint_desktop_additional_launchers }}"
+  loop_control:
+    label: "{{ item.user | default('invalid-user') }}:{{ item.slug | default(item.name | default('invalid-launcher')) }}"
+
+- name: Validate additional launcher users exist
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ item }}"
+    fail_key: true
+  loop: "{{ linux_mint_desktop_additional_launchers | map(attribute='user') | unique | list }}"
+
+- name: Validate DOS game archive entries
+  ansible.builtin.assert:
+    that:
+      - item.slug is defined
+      - item.slug is match('^[a-z0-9][a-z0-9_-]*$')
+      - item.src is defined
+      - item.src | length > 0
+      - item.creates is defined
+      - item.creates | length > 0
+    fail_msg: "Each DOS game archive needs slug, src, and creates."
+  loop: "{{ linux_mint_desktop_dos_game_archives }}"
+  loop_control:
+    label: "{{ item.slug | default('invalid-archive') }}"
 
 - name: Install baseline desktop management packages
   ansible.builtin.apt:
@@ -65,6 +106,50 @@
     group: "{{ linux_mint_desktop_shared_games_group }}"
     mode: "2775"
 
+- name: Create DOS games archive directory
+  ansible.builtin.file:
+    path: "{{ linux_mint_desktop_dos_games_archive_dir }}"
+    state: directory
+    owner: root
+    group: "{{ linux_mint_desktop_shared_games_group }}"
+    mode: "2775"
+
+- name: Move DOS game archives into managed storage
+  ansible.builtin.command:
+    argv:
+      - mv
+      - "{{ item.src }}"
+      - "{{ linux_mint_desktop_dos_games_archive_dir }}/{{ item.src | basename }}"
+    creates: "{{ linux_mint_desktop_dos_games_archive_dir }}/{{ item.src | basename }}"
+    removes: "{{ item.src }}"
+  loop: "{{ linux_mint_desktop_dos_game_archives }}"
+  loop_control:
+    label: "{{ item.slug }}"
+
+- name: Set DOS game archive ownership
+  ansible.builtin.file:
+    path: "{{ linux_mint_desktop_dos_games_archive_dir }}/{{ item.src | basename }}"
+    state: file
+    owner: root
+    group: "{{ linux_mint_desktop_shared_games_group }}"
+    mode: "0664"
+  loop: "{{ linux_mint_desktop_dos_game_archives }}"
+  loop_control:
+    label: "{{ item.slug }}"
+
+- name: Extract DOS game archives
+  ansible.builtin.unarchive:
+    src: "{{ linux_mint_desktop_dos_games_archive_dir }}/{{ item.src | basename }}"
+    dest: "{{ linux_mint_desktop_dos_games_dir }}"
+    owner: root
+    group: "{{ linux_mint_desktop_shared_games_group }}"
+    mode: "u=rwX,g=rwX,o=rX"
+    remote_src: true
+    creates: "{{ item.creates }}"
+  loop: "{{ linux_mint_desktop_dos_game_archives }}"
+  loop_control:
+    label: "{{ item.slug }}"
+
 - name: Create launcher target directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -75,6 +160,28 @@
   loop:
     - "/home/{{ linux_mint_desktop_user }}/.local/share/applications"
     - "/home/{{ linux_mint_desktop_user }}/Desktop"
+
+- name: Create additional launcher target directories
+  ansible.builtin.file:
+    path: "/home/{{ item }}/.local/share/applications"
+    state: directory
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: "0755"
+  loop: "{{ linux_mint_desktop_additional_launchers | map(attribute='user') | unique | list }}"
+  loop_control:
+    label: "{{ item }} applications"
+
+- name: Create additional launcher desktop directories
+  ansible.builtin.file:
+    path: "/home/{{ item }}/Desktop"
+    state: directory
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: "0755"
+  loop: "{{ linux_mint_desktop_additional_launchers | map(attribute='user') | unique | list }}"
+  loop_control:
+    label: "{{ item }} Desktop"
 
 - name: Render application menu DOSBox launchers
   ansible.builtin.template:
@@ -94,6 +201,30 @@
     owner: "{{ linux_mint_desktop_user }}"
     group: "{{ linux_mint_desktop_user }}"
     mode: "0755"
-  loop: "{{ linux_mint_desktop_launchers | selectattr('desktop', 'undefined') | list + linux_mint_desktop_launchers | selectattr('desktop') | list }}"
+  loop: "{{ linux_mint_desktop_launchers }}"
   loop_control:
     label: "{{ item.slug }}"
+  when: item.desktop | default(true) | bool
+
+- name: Render additional user application menu DOSBox launchers
+  ansible.builtin.template:
+    src: dosbox-launcher.desktop.j2
+    dest: "/home/{{ item.user }}/.local/share/applications/{{ item.slug }}.desktop"
+    owner: "{{ item.user }}"
+    group: "{{ item.user }}"
+    mode: "0755"
+  loop: "{{ linux_mint_desktop_additional_launchers }}"
+  loop_control:
+    label: "{{ item.user }}:{{ item.slug }}"
+
+- name: Render additional user desktop DOSBox launchers
+  ansible.builtin.template:
+    src: dosbox-launcher.desktop.j2
+    dest: "/home/{{ item.user }}/Desktop/{{ item.slug }}.desktop"
+    owner: "{{ item.user }}"
+    group: "{{ item.user }}"
+    mode: "0755"
+  loop: "{{ linux_mint_desktop_additional_launchers }}"
+  loop_control:
+    label: "{{ item.user }}:{{ item.slug }}"
+  when: item.desktop | default(true) | bool

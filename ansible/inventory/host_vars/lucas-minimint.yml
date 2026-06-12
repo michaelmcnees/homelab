@@ -5,7 +5,45 @@ linux_desktop_bootstrap_authorized_key_file: "{{ lookup('env', 'HOME') }}/.ssh/i
 linux_mint_desktop_enable_cockpit: true
 linux_mint_desktop_enable_host_monitoring: true
 linux_mint_desktop_user: lmcnees
-linux_mint_desktop_launchers: []
+
+linux_mint_desktop_dos_game_archives:
+  - slug: mario-teaches-typing
+    src: /home/mmcnees/Downloads/Mario-Teaches-Typing_DOS_EN_Pre-installed.zip
+    creates: /srv/dos-games/MARIOTT/MARIO.EXE
+  - slug: oregon-trail-deluxe
+    src: /home/mmcnees/Downloads/Oregon-Trail-Deluxe_DOS_EN.zip
+    creates: /srv/dos-games/oregondlx/OREGON.EXE
+  - slug: treasure-mountain
+    src: /home/mmcnees/Downloads/Super-Solvers-Treasure-Mountain_DOS_EN.zip
+    creates: /srv/dos-games/super-solvers-treasure-mountain/SST.EXE
+  - slug: incredible-machine
+    src: /home/mmcnees/Downloads/The-Incredible-Machine_DOS_EN.zip
+    creates: /srv/dos-games/incredible-machine/TIM.EXE
+
+linux_mint_desktop_launchers:
+  - name: "Mario Teaches Typing"
+    slug: mario-teaches-typing
+    command: "/usr/bin/dosbox -c \"mount c /srv/dos-games/MARIOTT\" -c \"c:\" -c \"MARIO.EXE\" -c \"exit\""
+    comment: "Launch Mario Teaches Typing in DOSBox"
+  - name: "The Oregon Trail Deluxe"
+    slug: oregon-trail-deluxe
+    command: "/usr/bin/dosbox -c \"mount c /srv/dos-games/oregondlx\" -c \"c:\" -c \"OREGON.EXE\" -c \"exit\""
+    comment: "Launch The Oregon Trail Deluxe in DOSBox"
+  - name: "Treasure Mountain"
+    slug: treasure-mountain
+    command: "/usr/bin/dosbox -c \"mount c /srv/dos-games/super-solvers-treasure-mountain\" -c \"c:\" -c \"SST.EXE\" -c \"exit\""
+    comment: "Launch Treasure Mountain in DOSBox"
+  - name: "The Incredible Machine"
+    slug: incredible-machine
+    command: "/usr/bin/dosbox -c \"mount c /srv/dos-games/incredible-machine\" -c \"c:\" -c \"TIM.EXE\" -c \"exit\""
+    comment: "Launch The Incredible Machine in DOSBox"
+
+linux_mint_desktop_additional_launchers:
+  - user: mmcnees
+    name: "The Oregon Trail Deluxe"
+    slug: oregon-trail-deluxe
+    command: "/usr/bin/dosbox -c \"mount c /srv/dos-games/oregondlx\" -c \"c:\" -c \"OREGON.EXE\" -c \"exit\""
+    comment: "Launch The Oregon Trail Deluxe in DOSBox"
 
 host_monitoring_enable_beszel: false
 host_monitoring_node_exporter_listen: "0.0.0.0:9100"
