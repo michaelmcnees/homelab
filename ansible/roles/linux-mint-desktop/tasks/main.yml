@@ -5,11 +5,34 @@
       - ansible_facts['os_family'] == 'Debian'
     fail_msg: "linux-mint-desktop currently supports Debian-family hosts only."
 
-- name: Validate launcher configuration is intentionally empty for first pass
+- name: Validate desktop configuration
   ansible.builtin.assert:
     that:
-      - linux_mint_desktop_launchers | length == 0
-    fail_msg: "Desktop launcher management is not implemented in this first pass."
+      - linux_mint_desktop_user | length > 0
+      - linux_mint_desktop_user is match('^[a-z_][a-z0-9_-]*[$]?$')
+      - linux_mint_desktop_launchers is iterable
+      - linux_mint_desktop_launchers is not string
+    fail_msg: "linux_mint_desktop_user must be a valid local username and linux_mint_desktop_launchers must be a list."
+
+- name: Validate desktop user exists
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ linux_mint_desktop_user }}"
+    fail_key: true
+
+- name: Validate launcher entries
+  ansible.builtin.assert:
+    that:
+      - item.name is defined
+      - item.name | length > 0
+      - item.slug is defined
+      - item.slug is match('^[a-z0-9][a-z0-9_-]*$')
+      - item.command is defined
+      - item.command | length > 0
+    fail_msg: "Each Linux Mint desktop launcher needs name, slug, and command."
+  loop: "{{ linux_mint_desktop_launchers }}"
+  loop_control:
+    label: "{{ item.slug | default(item.name | default('invalid-launcher')) }}"
 
 - name: Install baseline desktop management packages
   ansible.builtin.apt:
@@ -17,3 +40,60 @@
     state: present
     update_cache: true
     cache_valid_time: 3600
+
+- name: Create shared DOS games group
+  ansible.builtin.group:
+    name: "{{ linux_mint_desktop_shared_games_group }}"
+    state: present
+
+- name: Add desktop and admin users to shared DOS games group
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups:
+      - "{{ linux_mint_desktop_shared_games_group }}"
+    append: true
+    state: present
+  loop:
+    - "{{ linux_mint_desktop_user }}"
+    - "{{ ansible_user }}"
+
+- name: Create shared DOS games directory
+  ansible.builtin.file:
+    path: "{{ linux_mint_desktop_dos_games_dir }}"
+    state: directory
+    owner: root
+    group: "{{ linux_mint_desktop_shared_games_group }}"
+    mode: "2775"
+
+- name: Create launcher target directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ linux_mint_desktop_user }}"
+    group: "{{ linux_mint_desktop_user }}"
+    mode: "0755"
+  loop:
+    - "/home/{{ linux_mint_desktop_user }}/.local/share/applications"
+    - "/home/{{ linux_mint_desktop_user }}/Desktop"
+
+- name: Render application menu DOSBox launchers
+  ansible.builtin.template:
+    src: dosbox-launcher.desktop.j2
+    dest: "/home/{{ linux_mint_desktop_user }}/.local/share/applications/{{ item.slug }}.desktop"
+    owner: "{{ linux_mint_desktop_user }}"
+    group: "{{ linux_mint_desktop_user }}"
+    mode: "0755"
+  loop: "{{ linux_mint_desktop_launchers }}"
+  loop_control:
+    label: "{{ item.slug }}"
+
+- name: Render desktop DOSBox launchers
+  ansible.builtin.template:
+    src: dosbox-launcher.desktop.j2
+    dest: "/home/{{ linux_mint_desktop_user }}/Desktop/{{ item.slug }}.desktop"
+    owner: "{{ linux_mint_desktop_user }}"
+    group: "{{ linux_mint_desktop_user }}"
+    mode: "0755"
+  loop: "{{ linux_mint_desktop_launchers | selectattr('desktop', 'undefined') | list + linux_mint_desktop_launchers | selectattr('desktop') | list }}"
+  loop_control:
+    label: "{{ item.slug }}"

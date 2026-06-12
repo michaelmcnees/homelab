@@ -4,6 +4,7 @@ linux_desktop_bootstrap_authorized_key_file: "{{ lookup('env', 'HOME') }}/.ssh/i
 
 linux_mint_desktop_enable_cockpit: true
 linux_mint_desktop_enable_host_monitoring: true
+linux_mint_desktop_user: lmcnees
 linux_mint_desktop_launchers: []
 
 host_monitoring_enable_beszel: false

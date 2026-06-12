@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name={{ item.name }}
+{% if item.comment is defined and item.comment | length > 0 %}
+Comment={{ item.comment }}
+{% endif %}
+Exec={{ item.command }}
+Terminal=false
+Categories={{ item.categories | default(['Game', 'Emulator']) | join(';') }};
+{% if item.icon is defined and item.icon | length > 0 %}
+Icon={{ item.icon }}
+{% else %}
+Icon=dosbox
+{% endif %}
