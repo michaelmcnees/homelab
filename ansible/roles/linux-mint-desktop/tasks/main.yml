@@ -70,6 +70,7 @@
       - item.src | length > 0
       - item.creates is defined
       - item.creates | length > 0
+      - item.dest is not defined or item.dest | length > 0
     fail_msg: "Each DOS game archive needs slug, src, and creates."
   loop: "{{ linux_mint_desktop_dos_game_archives }}"
   loop_control:
@@ -137,6 +138,18 @@
   loop_control:
     label: "{{ item.slug }}"
 
+- name: Create DOS game extraction directories
+  ansible.builtin.file:
+    path: "{{ item.dest }}"
+    state: directory
+    owner: root
+    group: "{{ linux_mint_desktop_shared_games_group }}"
+    mode: "2775"
+  loop: "{{ linux_mint_desktop_dos_game_archives }}"
+  loop_control:
+    label: "{{ item.slug }}"
+  when: item.dest is defined
+
 - name: Extract DOS game archives
   ansible.builtin.unarchive:
     src: "{{ linux_mint_desktop_dos_games_archive_dir }}/{{ item.src | basename }}"
@@ -149,6 +162,66 @@
   loop: "{{ linux_mint_desktop_dos_game_archives }}"
   loop_control:
     label: "{{ item.slug }}"
+  when: item.dest is not defined
+
+- name: Extract DOS game archives into isolated directories
+  ansible.builtin.command:
+    argv:
+      - unzip
+      - -qq
+      - -o
+      - "{{ linux_mint_desktop_dos_games_archive_dir }}/{{ item.src | basename }}"
+      - -d
+      - "{{ item.dest }}"
+    creates: "{{ item.creates }}"
+  loop: "{{ linux_mint_desktop_dos_game_archives }}"
+  loop_control:
+    label: "{{ item.slug }}"
+  when: item.dest is defined
+
+- name: Set isolated DOS game directory group
+  ansible.builtin.command:
+    argv:
+      - chgrp
+      - -R
+      - "{{ linux_mint_desktop_shared_games_group }}"
+      - "{{ item.dest }}"
+  changed_when: false
+  loop: "{{ linux_mint_desktop_dos_game_archives }}"
+  loop_control:
+    label: "{{ item.slug }}"
+  when: item.dest is defined
+
+- name: Set isolated DOS game directory modes
+  ansible.builtin.command:
+    argv:
+      - chmod
+      - -R
+      - u+rwX,g+rwX,o+rX
+      - "{{ item.dest }}"
+  changed_when: false
+  loop: "{{ linux_mint_desktop_dos_game_archives }}"
+  loop_control:
+    label: "{{ item.slug }}"
+  when: item.dest is defined
+
+- name: Preserve shared group on isolated DOS game directories
+  ansible.builtin.command:
+    argv:
+      - find
+      - "{{ item.dest }}"
+      - -type
+      - d
+      - -exec
+      - chmod
+      - g+s
+      - "{}"
+      - +
+  changed_when: false
+  loop: "{{ linux_mint_desktop_dos_game_archives }}"
+  loop_control:
+    label: "{{ item.slug }}"
+  when: item.dest is defined
 
 - name: Create launcher target directories
   ansible.builtin.file:

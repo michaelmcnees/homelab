@@ -19,31 +19,140 @@ linux_mint_desktop_dos_game_archives:
   - slug: incredible-machine
     src: /home/mmcnees/Downloads/The-Incredible-Machine_DOS_EN.zip
     creates: /srv/dos-games/incredible-machine/TIM.EXE
+  - slug: gizmos-gadgets
+    src: /home/mmcnees/Downloads/Super-Solvers-Gizmos-Gadgets_DOS_EN.zip
+    dest: /srv/dos-games/gizmos-gadgets
+    creates: /srv/dos-games/gizmos-gadgets/ssg.exe
+  - slug: amys-first-primer
+    src: /home/mmcnees/Downloads/amyfirst.zip
+    dest: /srv/dos-games/amys-first-primer
+    creates: /srv/dos-games/amys-first-primer/AMY.EXE
+  - slug: babytype
+    src: /home/mmcnees/Downloads/babytype.zip
+    dest: /srv/dos-games/babytype
+    creates: /srv/dos-games/babytype/BABYTYPE.EXE
+  - slug: balloons
+    src: /home/mmcnees/Downloads/ballns10.zip
+    dest: /srv/dos-games/balloons
+    creates: /srv/dos-games/balloons/BAL.EXE
+  - slug: brandons-bigbox
+    src: /home/mmcnees/Downloads/bigbox.zip
+    dest: /srv/dos-games/brandons-bigbox
+    creates: /srv/dos-games/brandons-bigbox/BIGBOX.EXE
+  - slug: carmen-usa
+    src: /home/mmcnees/Downloads/carmenusa.zip
+    dest: /srv/dos-games/carmen-usa
+    creates: /srv/dos-games/carmen-usa/CARMEN.EXE
+  - slug: funny-face
+    src: /home/mmcnees/Downloads/fface30.zip
+    dest: /srv/dos-games/funny-face
+    creates: /srv/dos-games/funny-face/FF_SW.EXE
+  - slug: grape-vine
+    src: /home/mmcnees/Downloads/grpvine.zip
+    dest: /srv/dos-games/grape-vine
+    creates: /srv/dos-games/grape-vine/VINE.EXE
+  - slug: second-guess
+    src: /home/mmcnees/Downloads/guess11.zip
+    dest: /srv/dos-games/second-guess
+    creates: /srv/dos-games/second-guess/GUESS.EXE
+  - slug: magic-crayon
+    src: /home/mmcnees/Downloads/mcrayon.zip
+    dest: /srv/dos-games/magic-crayon
+    creates: /srv/dos-games/magic-crayon/MC.EXE
+  - slug: peter-pan
+    src: /home/mmcnees/Downloads/peterpan.zip
+    dest: /srv/dos-games/peter-pan
+    creates: /srv/dos-games/peter-pan/PAN.EXE
+  - slug: snoopy
+    src: /home/mmcnees/Downloads/snoopy.zip
+    dest: /srv/dos-games/snoopy
+    creates: /srv/dos-games/snoopy/P.EXE
+  - slug: spacekids
+    src: /home/mmcnees/Downloads/spkids.zip
+    dest: /srv/dos-games/spacekids
+    creates: /srv/dos-games/spacekids/KIDS.EXE
 
 linux_mint_desktop_launchers:
   - name: "Mario Teaches Typing"
     slug: mario-teaches-typing
-    command: "/usr/bin/dosbox -c \"mount c /srv/dos-games/MARIOTT\" -c \"c:\" -c \"MARIO.EXE\" -c \"exit\""
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/MARIOTT\" -c \"c:\" -c \"MARIO.EXE\" -c \"exit\""
     comment: "Launch Mario Teaches Typing in DOSBox"
   - name: "The Oregon Trail Deluxe"
     slug: oregon-trail-deluxe
-    command: "/usr/bin/dosbox -c \"mount c /srv/dos-games/oregondlx\" -c \"c:\" -c \"OREGON.EXE\" -c \"exit\""
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/oregondlx\" -c \"c:\" -c \"OREGON.EXE\" -c \"exit\""
     comment: "Launch The Oregon Trail Deluxe in DOSBox"
   - name: "Treasure Mountain"
     slug: treasure-mountain
-    command: "/usr/bin/dosbox -c \"mount c /srv/dos-games/super-solvers-treasure-mountain\" -c \"c:\" -c \"SST.EXE\" -c \"exit\""
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/super-solvers-treasure-mountain\" -c \"c:\" -c \"SST.EXE\" -c \"exit\""
     comment: "Launch Treasure Mountain in DOSBox"
   - name: "The Incredible Machine"
     slug: incredible-machine
-    command: "/usr/bin/dosbox -c \"mount c /srv/dos-games/incredible-machine\" -c \"c:\" -c \"TIM.EXE\" -c \"exit\""
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/incredible-machine\" -c \"c:\" -c \"TIM.EXE\" -c \"exit\""
     comment: "Launch The Incredible Machine in DOSBox"
+  - name: "Super Solvers: Gizmos & Gadgets"
+    slug: gizmos-gadgets
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/gizmos-gadgets\" -c \"c:\" -c \"SSG.BAT\" -c \"exit\""
+    comment: "Launch Super Solvers: Gizmos & Gadgets in DOSBox"
+  - name: "Amy's First Primer"
+    slug: amys-first-primer
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/amys-first-primer\" -c \"c:\" -c \"AMY.EXE\" -c \"exit\""
+    comment: "Launch Amy's First Primer in DOSBox"
+  - name: "BabyType"
+    slug: babytype
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/babytype\" -c \"c:\" -c \"BABYTYPE.BAT\" -c \"exit\""
+    comment: "Launch BabyType in DOSBox"
+  - name: "Balloons"
+    slug: balloons
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/balloons\" -c \"c:\" -c \"BAL.EXE\" -c \"exit\""
+    comment: "Launch Balloons in DOSBox"
+  - name: "Brandon's BigBox"
+    slug: brandons-bigbox
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/brandons-bigbox\" -c \"c:\" -c \"BIGBOX.EXE\" -c \"exit\""
+    comment: "Launch Brandon's BigBox in DOSBox"
+  - name: "Carmen USA"
+    slug: carmen-usa
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/carmen-usa\" -c \"c:\" -c \"CARMEN.EXE\" -c \"exit\""
+    comment: "Launch Carmen USA in DOSBox"
+  - name: "Funny Face"
+    slug: funny-face
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/funny-face\" -c \"c:\" -c \"FF_SW.EXE\" -c \"exit\""
+    comment: "Launch Funny Face in DOSBox"
+  - name: "Grape Vine"
+    slug: grape-vine
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/grape-vine\" -c \"c:\" -c \"VINE.EXE\" -c \"exit\""
+    comment: "Launch Grape Vine in DOSBox"
+  - name: "Second Guess"
+    slug: second-guess
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/second-guess\" -c \"c:\" -c \"GUESS.EXE\" -c \"exit\""
+    comment: "Launch Second Guess in DOSBox"
+  - name: "Magic Crayon"
+    slug: magic-crayon
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/magic-crayon\" -c \"c:\" -c \"MC.EXE\" -c \"exit\""
+    comment: "Launch Magic Crayon in DOSBox"
+  - name: "Peter Pan: A Story Painting Adventure"
+    slug: peter-pan
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/peter-pan\" -c \"c:\" -c \"START.BAT\" -c \"exit\""
+    comment: "Launch Peter Pan in DOSBox"
+  - name: "Snoopy"
+    slug: snoopy
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/snoopy\" -c \"c:\" -c \"P.EXE\" -c \"exit\""
+    comment: "Launch Snoopy in DOSBox"
+  - name: "SpaceKids"
+    slug: spacekids
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/spacekids\" -c \"c:\" -c \"KIDS.EXE\" -c \"exit\""
+    comment: "Launch SpaceKids in DOSBox"
 
 linux_mint_desktop_additional_launchers:
   - user: mmcnees
     name: "The Oregon Trail Deluxe"
     slug: oregon-trail-deluxe
-    command: "/usr/bin/dosbox -c \"mount c /srv/dos-games/oregondlx\" -c \"c:\" -c \"OREGON.EXE\" -c \"exit\""
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/oregondlx\" -c \"c:\" -c \"OREGON.EXE\" -c \"exit\""
     comment: "Launch The Oregon Trail Deluxe in DOSBox"
+  - user: mmcnees
+    name: "Super Solvers: Gizmos & Gadgets"
+    slug: gizmos-gadgets
+    command: "/usr/bin/dosbox -fullscreen -c \"mount c /srv/dos-games/gizmos-gadgets\" -c \"c:\" -c \"SSG.BAT\" -c \"exit\""
+    comment: "Launch Super Solvers: Gizmos & Gadgets in DOSBox"
 
 host_monitoring_enable_beszel: false
 host_monitoring_node_exporter_listen: "0.0.0.0:9100"

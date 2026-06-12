@@ -16,4 +16,5 @@ linux_mint_desktop_packages:
   - htop
   - openssh-client
   - rsync
+  - unzip
   - vim

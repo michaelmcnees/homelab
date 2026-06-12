@@ -32,12 +32,15 @@ Archive entries use this shape:
 linux_mint_desktop_dos_game_archives:
   - slug: example-dos-game
     src: /home/admin/Downloads/example-dos-game.zip
+    dest: /srv/dos-games/example-dos-game
     creates: /srv/dos-games/example-dos-game/GAME.EXE
 ```
 
 The role moves `src` into `linux_mint_desktop_dos_games_archive_dir` and extracts
-it into `linux_mint_desktop_dos_games_dir`. `creates` must point at a file or
-directory from the extracted content so repeated runs remain idempotent.
+it into `dest` when provided, otherwise directly into
+`linux_mint_desktop_dos_games_dir`. Use `dest` for archives that do not contain a
+top-level game directory. `creates` must point at a file or directory from the
+extracted content so repeated runs remain idempotent.
 
 Launcher entries use this shape:
 
