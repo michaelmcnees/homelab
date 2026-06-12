@@ -42,3 +42,19 @@ kubectl --kubeconfig talos/kubeconfig -n toolhive-system logs deploy/toolhive-op
 After the operator is healthy, create an `MCPGroup`, add Outline and Penpot as
 remote backend entries, then front them with a `VirtualMCPServer`. Start with an
 internal-only endpoint before exposing a home-network hostname.
+
+## Hermes Direction
+
+ToolHive is useful for centralizing MCP access for Hermes, Codex, Claude, and
+other clients, but it is not the first fix for Hermes Gmail access. Hermes'
+current mail setup has two separate paths:
+
+- Himalaya uses Gmail IMAP with an app password.
+- Hermes MCP can use Google's first-party Gmail Workspace MCP endpoint with
+  OAuth.
+
+Pilot Gmail directly in Hermes first. Once the Google MCP flow is proven and
+tokens are stable, move Gmail and other backends behind a ToolHive
+`VirtualMCPServer` if we want one governed endpoint, centralized incoming auth,
+or tool filtering. That avoids debugging Google OAuth and ToolHive gateway
+behavior at the same time.
