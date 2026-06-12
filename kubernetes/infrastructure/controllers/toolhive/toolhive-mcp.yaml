@@ -90,7 +90,7 @@ spec:
         type: oidc
         oidcConfig:
           issuerUrl: https://accounts.google.com
-          clientId: 697355755028-s7k8ca3sasiirkgsj3hvg7r33ueolbof.apps.googleusercontent.com
+          clientId: 697355755028-el3khdd8mrvii475gbbfc73ijl3u6tmi.apps.googleusercontent.com
           clientSecretRef:
             name: gmail-mcp-auth
             key: google-client-secret
