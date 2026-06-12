@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       annotations:
-        hermes.mcnees.me/config-revision: gpt-5.5-outline-toolhive-gmail-mcp-ipv4-runtime
+        hermes.mcnees.me/config-revision: gpt-5.5-outline-toolhive-gmail-mcp-public-runtime
       labels:
         app.kubernetes.io/name: hermes
     spec:
