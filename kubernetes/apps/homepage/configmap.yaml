@@ -196,7 +196,7 @@ data:
             description: Media library
         - Grimmory:
             icon: grimmory.png
-            href: https://grimmory.home.mcnees.me
+            href: https://library.mcnees.me
             description: Books
         - webtrees:
             icon: mdi-family-tree

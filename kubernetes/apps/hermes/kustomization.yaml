@@ -6,4 +6,5 @@ resources:
   - secret.sops.yaml
   - deployment.yaml
   - service.yaml
+  - networkpolicy.yaml
   - ingress.yaml

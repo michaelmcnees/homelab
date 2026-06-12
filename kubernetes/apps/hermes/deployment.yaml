@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       annotations:
-        hermes.mcnees.me/config-revision: gpt-5.5-outline-mcp
+        hermes.mcnees.me/config-revision: gpt-5.5-outline-mcp-ipv4-runtime
       labels:
         app.kubernetes.io/name: hermes
     spec:
@@ -44,6 +44,28 @@ spec:
               mountPath: /opt/data
             - name: workspace
               mountPath: /workspace
+        - name: install-hermes-cli-shim
+          image: busybox:1.37.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              mkdir -p /opt/data/home/.local/bin
+              ln -sfn /opt/hermes/.venv/bin/hermes /opt/data/home/.local/bin/hermes
+              chown -R 10000:10000 /opt/data/home/.local
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - CHOWN
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: data
+              mountPath: /opt/data
         - name: inject-icloud-config
           image: curlimages/curl:8.13.0
           imagePullPolicy: IfNotPresent
@@ -57,58 +79,55 @@ spec:
                 "$CALDAV_URL" "$CALDAV_USER" "$CALDAV_PASSWORD" \
                 >> "$ENV_FILE"
               HCONFIG=/opt/data/home/.config/himalaya/config.toml
-              if [ ! -f "$HCONFIG" ]; then
-                mkdir -p /opt/data/home/.config/himalaya
-                printf '%s\n' \
-                  "[accounts.icloud]" \
-                  "email = \"$EMAIL_HOME\"" \
-                  "display-name = \"Michael McNees\"" \
-                  "default = true" \
-                  "backend.type = \"imap\"" \
-                  "backend.host = \"$EMAIL_IMAP_HOST\"" \
-                  "backend.port = $EMAIL_IMAP_PORT" \
-                  "backend.encryption.type = \"tls\"" \
-                  "backend.login = \"$ICLOUD_USER\"" \
-                  "backend.auth.type = \"password\"" \
-                  "backend.auth.raw = \"$ICLOUD_PASSWORD\"" \
-                  "message.send.backend.type = \"smtp\"" \
-                  "message.send.backend.host = \"$EMAIL_SMTP_HOST\"" \
-                  "message.send.backend.port = $EMAIL_SMTP_PORT" \
-                  "message.send.backend.encryption.type = \"start-tls\"" \
-                  "message.send.backend.login = \"$ICLOUD_USER\"" \
-                  "message.send.backend.auth.type = \"password\"" \
-                  "message.send.backend.auth.raw = \"$ICLOUD_PASSWORD\"" \
-                  "folder.aliases.inbox = \"INBOX\"" \
-                  "folder.aliases.sent = \"Sent Messages\"" \
-                  "folder.aliases.drafts = \"Drafts\"" \
-                  "folder.aliases.trash = \"Deleted Messages\"" \
-                  > "$HCONFIG"
-              fi
-              if ! grep -q '\[accounts\.gmail\]' "$HCONFIG"; then
-                printf '\n%s\n' \
-                  "[accounts.gmail]" \
-                  "email = \"$GMAIL_USER\"" \
-                  "display-name = \"Michael McNees\"" \
-                  "backend.type = \"imap\"" \
-                  "backend.host = \"imap.gmail.com\"" \
-                  "backend.port = 993" \
-                  "backend.encryption.type = \"tls\"" \
-                  "backend.login = \"$GMAIL_USER\"" \
-                  "backend.auth.type = \"password\"" \
-                  "backend.auth.raw = \"$GMAIL_PASSWORD\"" \
-                  "message.send.backend.type = \"smtp\"" \
-                  "message.send.backend.host = \"smtp.gmail.com\"" \
-                  "message.send.backend.port = 465" \
-                  "message.send.backend.encryption.type = \"tls\"" \
-                  "message.send.backend.login = \"$GMAIL_USER\"" \
-                  "message.send.backend.auth.type = \"password\"" \
-                  "message.send.backend.auth.raw = \"$GMAIL_PASSWORD\"" \
-                  "folder.aliases.inbox = \"INBOX\"" \
-                  "folder.aliases.sent = \"[Gmail]/Sent Mail\"" \
-                  "folder.aliases.drafts = \"[Gmail]/Drafts\"" \
-                  "folder.aliases.trash = \"[Gmail]/Trash\"" \
-                  >> "$HCONFIG"
-              fi
+              mkdir -p /opt/data/home/.config/himalaya
+              umask 077
+              printf '%s\n' \
+                "[accounts.icloud]" \
+                "email = \"$EMAIL_HOME\"" \
+                "display-name = \"Michael McNees\"" \
+                "default = true" \
+                "backend.type = \"imap\"" \
+                "backend.host = \"$EMAIL_IMAP_HOST\"" \
+                "backend.port = $EMAIL_IMAP_PORT" \
+                "backend.encryption.type = \"tls\"" \
+                "backend.login = \"$ICLOUD_USER\"" \
+                "backend.auth.type = \"password\"" \
+                "backend.auth.raw = \"$ICLOUD_PASSWORD\"" \
+                "message.send.backend.type = \"smtp\"" \
+                "message.send.backend.host = \"$EMAIL_SMTP_HOST\"" \
+                "message.send.backend.port = $EMAIL_SMTP_PORT" \
+                "message.send.backend.encryption.type = \"start-tls\"" \
+                "message.send.backend.login = \"$ICLOUD_USER\"" \
+                "message.send.backend.auth.type = \"password\"" \
+                "message.send.backend.auth.raw = \"$ICLOUD_PASSWORD\"" \
+                "folder.aliases.inbox = \"INBOX\"" \
+                "folder.aliases.sent = \"Sent Messages\"" \
+                "folder.aliases.drafts = \"Drafts\"" \
+                "folder.aliases.trash = \"Deleted Messages\"" \
+                "" \
+                "[accounts.gmail]" \
+                "email = \"$GMAIL_USER\"" \
+                "display-name = \"Michael McNees\"" \
+                "backend.type = \"imap\"" \
+                "backend.host = \"imap.gmail.com\"" \
+                "backend.port = 993" \
+                "backend.encryption.type = \"tls\"" \
+                "backend.login = \"$GMAIL_USER\"" \
+                "backend.auth.type = \"password\"" \
+                "backend.auth.raw = \"$GMAIL_PASSWORD\"" \
+                "message.send.backend.type = \"smtp\"" \
+                "message.send.backend.host = \"smtp.gmail.com\"" \
+                "message.send.backend.port = 465" \
+                "message.send.backend.encryption.type = \"tls\"" \
+                "message.send.backend.login = \"$GMAIL_USER\"" \
+                "message.send.backend.auth.type = \"password\"" \
+                "message.send.backend.auth.raw = \"$GMAIL_PASSWORD\"" \
+                "folder.aliases.inbox = \"INBOX\"" \
+                "folder.aliases.sent = \"[Gmail]/Sent Mail\"" \
+                "folder.aliases.drafts = \"[Gmail]/Drafts\"" \
+                "folder.aliases.trash = \"[Gmail]/Trash\"" \
+                > "$HCONFIG"
+              chmod 600 "$HCONFIG"
               if [ ! -f /opt/data/.local/bin/himalaya ]; then
                 mkdir -p /opt/data/.local/bin
                 curl -sSL https://github.com/pimalaya/himalaya/releases/latest/download/himalaya.x86_64-linux.tgz | tar xz -C /opt/data/.local/bin/
@@ -332,6 +351,10 @@ spec:
               containerPort: 9119
               protocol: TCP
           env:
+            - name: HOME
+              value: /opt/data/home
+            - name: PATH
+              value: /opt/hermes/.venv/bin:/opt/data/home/.local/bin:/opt/data/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
             - name: HERMES_DASHBOARD
               value: "1"
             - name: HERMES_DASHBOARD_HOST
@@ -340,10 +363,14 @@ spec:
               value: "9119"
             - name: HERMES_DATA_DIR
               value: /opt/data
+            - name: HERMES_HOME
+              value: /opt/data
             - name: HERMES_WORKSPACE_DIR
               value: /workspace
             - name: PYTHONPATH
               value: /opt/data/home/.local/lib/python3
+            - name: TELEGRAM_FALLBACK_IPS
+              value: 149.154.166.110,149.154.167.220
             - name: OLLAMA_BASE_URL
               value: http://ollama.apps.svc.cluster.local:11434
             - name: OPENROUTER_API_KEY

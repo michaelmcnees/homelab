@@ -8,6 +8,8 @@ data:
     model:
       provider: openai-codex
       default: gpt-5.5
+    network:
+      force_ipv4: true
     mcp_servers:
       outline:
         url: https://docs.mcnees.me/mcp
