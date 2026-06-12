@@ -121,7 +121,7 @@ spec:
     - match: Host(`gmail-mcp.home.mcnees.me`)
       kind: Rule
       services:
-        - name: gmail-mcp
+        - name: vmcp-gmail-mcp
           port: 4483
   tls:
     secretName: gmail-mcp-tls
