@@ -24,7 +24,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: prowlarr
-          image: ghcr.io/linuxserver/prowlarr:nightly-version-2.3.4.5307
+          image: ghcr.io/linuxserver/prowlarr:nightly-version-2.4.0.5396
           imagePullPolicy: Always
           ports:
             - name: http
