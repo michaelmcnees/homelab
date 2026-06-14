@@ -8,5 +8,6 @@ resources:
   - adguard-config-backup-cronjob.yaml
   - immich-library-restic-cronjob.yaml
   - paperless-restic-cronjob.yaml
+  - questboard-restic-cronjob.yaml
   - backup-metrics-exporter.yaml
   - backup-alerts.yaml
