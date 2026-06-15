@@ -51,8 +51,12 @@ ToolHive aggregates MCP backends so Hermes, Codex, Claude, and other MCP
 clients can share the same governed endpoint:
 
 - `MCPGroup/agent-tools` defines the shared backend group.
-- `MCPServerEntry/gmail` points to Google's remote Workspace MCP endpoint,
-  `https://gmailmcp.googleapis.com/mcp/v1`.
+- Gmail backends point to Google's remote Workspace MCP endpoint,
+  `https://gmailmcp.googleapis.com/mcp/v1`:
+  - `MCPServerEntry/gmail` is the personal Gmail account.
+  - `MCPServerEntry/gmail-develop-for-good` is the Develop for Good account.
+  - `MCPServerEntry/gmail-hoa` is the HOA account.
+  - `MCPServerEntry/gmail-craft-export` is the Craft Export account.
 - `MCPServerEntry/outline` points to Outline at
   `https://docs.mcnees.me/mcp`.
 - `MCPServerEntry/honeydew` points to Honeydew at
@@ -61,7 +65,11 @@ clients can share the same governed endpoint:
 - `MCPServerEntry/linear` points to Linear at
   `https://mcp.linear.app/mcp`.
 - `MCPExternalAuthConfig/gmail-google-upstream-token` injects the Google
-  upstream token for the Gmail backend.
+  upstream token for the personal Gmail backend.
+- `MCPExternalAuthConfig/gmail-develop-for-good-google-upstream-token`,
+  `MCPExternalAuthConfig/gmail-hoa-google-upstream-token`, and
+  `MCPExternalAuthConfig/gmail-craft-export-google-upstream-token` inject the
+  matching Google upstream token for the additional Gmail backends.
 - `MCPExternalAuthConfig/outline-upstream-token`,
   `MCPExternalAuthConfig/honeydew-upstream-token`, and
   `MCPExternalAuthConfig/linear-upstream-token` inject the matching upstream
@@ -103,5 +111,5 @@ Hermes' current mail setup has two separate paths:
 
 - Himalaya uses Gmail IMAP with an app password.
 - Hermes MCP uses ToolHive's shared virtual MCP endpoint, which performs the
-  upstream Google OAuth hop for Gmail and aggregates the other authenticated
-  personal MCP backends.
+  upstream Google OAuth hop for each Gmail backend and aggregates the other
+  authenticated personal MCP backends.

@@ -115,8 +115,9 @@ Hermes is configured with a single remote HTTP MCP server named `toolhive`.
 
 - Endpoint: `https://toolhive.home.mcnees.me/mcp`
 - Auth: OAuth
-- Active backends: Gmail, Outline, Honeydew, Linear, and future personal MCP
-  backends aggregated by ToolHive
+- Active backends: Gmail personal, Gmail Develop for Good, Gmail HOA, Gmail
+  Craft Export, Outline, Honeydew, Linear, and future personal MCP backends
+  aggregated by ToolHive
 - Pending backend: Homey is cataloged in ToolHive, but remains direct-client
   fallback until ToolHive can model Homey's OAuth `form_post` and
   `client_secret_basic` requirements.
@@ -150,6 +151,8 @@ The Gmail upstream Google OAuth hop is mediated by ToolHive:
 
 - ToolHive endpoint: `https://toolhive.home.mcnees.me/mcp`
 - Gmail backend: `https://gmailmcp.googleapis.com/mcp/v1`
+- ToolHive backend names: `gmail`, `gmail-develop-for-good`, `gmail-hoa`,
+  `gmail-craft-export`
 - Scopes: `https://www.googleapis.com/auth/gmail.readonly` and
   `https://www.googleapis.com/auth/gmail.compose`
 - Google upstream callback: `https://toolhive.home.mcnees.me/oauth/callback`

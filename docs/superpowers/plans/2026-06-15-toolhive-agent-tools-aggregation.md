@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Route Hermes, Codex, Claude, and related local clients through one optimized ToolHive MCP endpoint containing Gmail, Outline, Honeydew, and Linear, with Homey tracked in ToolHive as a pending backend until its OAuth flow is compatible with ToolHive upstream auth.
+**Goal:** Route Hermes, Codex, Claude, and related local clients through one optimized ToolHive MCP endpoint containing Gmail account backends, Outline, Honeydew, and Linear, with Homey tracked in ToolHive as a pending backend until its OAuth flow is compatible with ToolHive upstream auth.
 
 **Architecture:** Extend the existing `MCPGroup/agent-tools` with compatible remote `MCPServerEntry` backends, keep Homey in `MCPGroup/pending-agent-tools`, and keep the current `VirtualMCPServer/agent-tools` endpoint and optimizer. Then collapse Hermes and local client MCP configuration so they point at only `https://toolhive.home.mcnees.me/mcp`.
 
@@ -12,7 +12,7 @@
 
 ## File Structure
 
-- Modify `kubernetes/infrastructure/controllers/toolhive/toolhive-mcp.yaml`: add `MCPServerEntry` resources for Outline, Honeydew, Homey, and Linear; active ToolHive aggregation includes Outline, Honeydew, and Linear, while Homey is tracked in a pending group.
+- Modify `kubernetes/infrastructure/controllers/toolhive/toolhive-mcp.yaml`: add `MCPServerEntry` resources for the Gmail account backends, Outline, Honeydew, Homey, and Linear; active ToolHive aggregation includes the four Gmail account backends, Outline, Honeydew, and Linear, while Homey is tracked in a pending group.
 - Modify `kubernetes/apps/hermes/configmap.yaml`: replace direct `outline` and `gmail` MCP entries with one `toolhive` entry.
 - Modify `kubernetes/apps/hermes/deployment.yaml`: bump `hermes.mcnees.me/config-revision` so the ConfigMap mounted with `subPath` refreshes.
 - Modify `docs/runbooks/toolhive.md`: document all aggregated backends and single-endpoint client model.
@@ -263,8 +263,9 @@ Hermes is configured with a single remote HTTP MCP server:
 - Name: `toolhive`
 - Endpoint: `https://toolhive.home.mcnees.me/mcp`
 - Auth: OAuth
-- Active backends: Gmail, Outline, Honeydew, Linear, and future personal MCP
-  backends aggregated by ToolHive
+- Active backends: Gmail personal, Gmail Develop for Good, Gmail HOA, Gmail
+  Craft Export, Outline, Honeydew, Linear, and future personal MCP backends
+  aggregated by ToolHive
 - Pending backend: Homey is cataloged in ToolHive, but remains direct-client
   fallback until ToolHive can model Homey's OAuth `form_post` and
   `client_secret_basic` requirements.
@@ -300,6 +301,8 @@ Gmail's upstream Google OAuth hop is mediated by ToolHive:
 
 - ToolHive endpoint: `https://toolhive.home.mcnees.me/mcp`
 - Gmail backend: `https://gmailmcp.googleapis.com/mcp/v1`
+- ToolHive backend names: `gmail`, `gmail-develop-for-good`, `gmail-hoa`,
+  `gmail-craft-export`
 - Google scopes: `https://www.googleapis.com/auth/gmail.readonly` and
   `https://www.googleapis.com/auth/gmail.compose`
 - Google upstream callback: `https://toolhive.home.mcnees.me/oauth/callback`
@@ -343,9 +346,9 @@ kubectl --kubeconfig talos/kubeconfig -n toolhive-system get \
   mcpgroup,mcpserverentry,mcpexternalauthconfig,mcpoidcconfig,virtualmcpserver,embeddingserver
 ```
 
-Expected: `MCPServerEntry` rows exist for `gmail`, `outline`, `honeydew`, `homey`, and `linear`; `VirtualMCPServer/agent-tools` is `Ready`; active backend count is `4` (`gmail`, `outline`, `honeydew`, `linear`) because `homey` is in `MCPGroup/pending-agent-tools`.
+Expected: `MCPServerEntry` rows exist for `gmail`, `gmail-develop-for-good`, `gmail-hoa`, `gmail-craft-export`, `outline`, `honeydew`, `homey`, and `linear`; `VirtualMCPServer/agent-tools` is `Ready`; active backend count is `7` (`gmail`, `gmail-develop-for-good`, `gmail-hoa`, `gmail-craft-export`, `outline`, `honeydew`, `linear`) because `homey` is in `MCPGroup/pending-agent-tools`.
 
-- [ ] **Step 3: Inspect backend health if backend count is not 4**
+- [ ] **Step 3: Inspect backend health if backend count is not 7**
 
 Run:
 
@@ -353,7 +356,7 @@ Run:
 kubectl --kubeconfig talos/kubeconfig -n toolhive-system describe virtualmcpserver agent-tools
 ```
 
-Expected when healthy: discovered backends list includes the four active names (`gmail`, `outline`, `honeydew`, `linear`). Homey should be valid in `MCPGroup/pending-agent-tools`, not discovered by `VirtualMCPServer/agent-tools`. If an active backend is unavailable or unauthenticated, capture the backend status and continue only after deciding whether to fix auth or temporarily remove that backend.
+Expected when healthy: discovered backends list includes the seven active names (`gmail`, `gmail-develop-for-good`, `gmail-hoa`, `gmail-craft-export`, `outline`, `honeydew`, `linear`). Homey should be valid in `MCPGroup/pending-agent-tools`, not discovered by `VirtualMCPServer/agent-tools`. If an active backend is unavailable or unauthenticated, capture the backend status and continue only after deciding whether to fix auth or temporarily remove that backend.
 
 - [ ] **Step 4: Verify Codex-visible ToolHive discovery**
 

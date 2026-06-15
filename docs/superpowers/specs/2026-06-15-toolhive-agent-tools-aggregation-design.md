@@ -116,7 +116,7 @@ dedicated SOPS-managed secret and reference it with `MCPExternalAuthConfig` or
    `kubernetes/infrastructure/controllers/toolhive/toolhive-mcp.yaml`.
 2. Render the ToolHive kustomization locally with `kubectl kustomize`.
 3. Reconcile ToolHive through Flux.
-4. Confirm `VirtualMCPServer/agent-tools` reports four active backends and
+4. Confirm `VirtualMCPServer/agent-tools` reports seven active backends and
    `MCPServerEntry/homey` is valid in `MCPGroup/pending-agent-tools`.
 5. Use ToolHive discovery from Codex to confirm tools from the aggregated
    backends are visible.
@@ -138,10 +138,11 @@ kubectl --kubeconfig talos/kubeconfig -n toolhive-system describe virtualmcpserv
 
 Expected result:
 
-- `MCPServerEntry` resources for `gmail`, `outline`, `honeydew`, `homey`,
-  and `linear` are valid.
+- `MCPServerEntry` resources for `gmail`, `gmail-develop-for-good`,
+  `gmail-hoa`, `gmail-craft-export`, `outline`, `honeydew`, `homey`, and
+  `linear` are valid.
 - `VirtualMCPServer/agent-tools` is ready.
-- Backend count is `4` for the active virtual endpoint.
+- Backend count is `7` for the active virtual endpoint.
 - ToolHive discovery returns tools from multiple backends without direct
   client-side MCP entries.
 
@@ -161,7 +162,7 @@ kubectl --kubeconfig talos/kubeconfig -n apps exec deployment/hermes -- \
 - Tool name conflicts should be handled by the current prefix strategy, but
   prompts and docs need to use the prefixed names when referring to exact
   tools.
-- The active backend count may temporarily show fewer than four if a remote
+- The active backend count may temporarily show fewer than seven if a remote
   service is degraded or rejects unauthenticated health checks.
 
 ## Decisions
