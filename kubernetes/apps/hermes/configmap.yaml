@@ -11,11 +11,7 @@ data:
     network:
       force_ipv4: true
     mcp_servers:
-      outline:
-        url: https://docs.mcnees.me/mcp
-        auth: oauth
-        enabled: true
-      gmail:
+      toolhive:
         url: https://toolhive.home.mcnees.me/mcp
         auth: oauth
         enabled: true

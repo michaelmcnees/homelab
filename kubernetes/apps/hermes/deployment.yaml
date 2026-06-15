@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       annotations:
-        hermes.mcnees.me/config-revision: gpt-5.5-outline-toolhive-agent-tools-runtime
+        hermes.mcnees.me/config-revision: gpt-5.5-toolhive-agent-tools-aggregation
       labels:
         app.kubernetes.io/name: hermes
     spec:
