@@ -238,6 +238,14 @@ spec:
     hmacSecretRefs:
       - name: gmail-mcp-auth
         key: hmac-secret
+    storage:
+      type: redis
+      redis:
+        addr: toolhive-auth-valkey.toolhive-system.svc.cluster.local:6379
+        aclUserConfig:
+          passwordSecretRef:
+            name: toolhive-auth-redis
+            key: password
     tokenLifespans:
       accessTokenLifespan: 1h
       refreshTokenLifespan: 720h

@@ -110,14 +110,17 @@ server exposes label and thread/message mutation tools, not just read and draft
 tools. Existing Google grants may need a fresh consent flow after scope
 changes.
 
-ToolHive's embedded auth server currently uses in-memory upstream token
-storage. A VMCP pod restart can therefore clear upstream provider grants even
-though the `MCPServerEntry` health checks later report `ready`. If
-`find_tool` returns no backend tools and VMCP logs mention `upstream token not
-found`, rerun client OAuth to rebuild the upstream grants. A durable fix needs
-dedicated auth-enabled Redis storage for ToolHive; the shared homelab Redis has
-authentication disabled and cannot satisfy ToolHive's required Redis password
-configuration as-is.
+ToolHive's embedded auth server stores OAuth server state in a dedicated
+password-protected Valkey instance:
+
+- Deployment: `toolhive-system/toolhive-auth-valkey`
+- Service: `toolhive-auth-valkey.toolhive-system.svc.cluster.local:6379`
+- Password Secret: `toolhive-system/toolhive-auth-redis`
+
+This keeps dynamically registered MCP clients and upstream provider grants
+available across VMCP pod restarts. If `find_tool` returns no backend tools and
+VMCP logs mention `upstream token not found`, rerun client OAuth to rebuild the
+upstream grants.
 
 If the current client is still an installed-app client, create or switch to a
 Google Cloud "Web application" OAuth client with that redirect URI, then update

@@ -171,6 +171,8 @@ Hermes' MCP OAuth client currently registers its own callback as
 pod. That loopback callback is separate from ToolHive's upstream provider
 callback. Until Hermes supports a public callback URL or device-code MCP auth,
 first-time Hermes-to-ToolHive login can still require a `kubectl port-forward`.
+ToolHive itself stores OAuth server state in `toolhive-auth-valkey`, so VMCP pod
+restarts should not invalidate Hermes' dynamically registered ToolHive client.
 
 ## Telegram
 

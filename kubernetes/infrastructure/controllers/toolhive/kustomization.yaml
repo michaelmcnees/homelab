@@ -6,4 +6,6 @@ resources:
   - helmrelease-crds.yaml
   - helmrelease.yaml
   - gmail-mcp-secret.sops.yaml
+  - toolhive-auth-redis-secret.sops.yaml
+  - toolhive-auth-valkey.yaml
   - toolhive-mcp.yaml
