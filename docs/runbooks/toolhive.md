@@ -62,6 +62,10 @@ clients can share the same governed endpoint:
   `https://mcp.linear.app/mcp`.
 - `MCPExternalAuthConfig/gmail-google-upstream-token` injects the Google
   upstream token for the Gmail backend.
+- `MCPExternalAuthConfig/outline-upstream-token`,
+  `MCPExternalAuthConfig/honeydew-upstream-token`, and
+  `MCPExternalAuthConfig/linear-upstream-token` inject the matching upstream
+  OAuth token for those backends.
 - `VirtualMCPServer/agent-tools` publishes
   `https://toolhive.home.mcnees.me/mcp`.
 - `VirtualMCPServer/agent-tools` enables ToolHive's optimizer so MCP clients
@@ -70,6 +74,11 @@ clients can share the same governed endpoint:
 - `Secret/gmail-mcp-auth` stores the Google upstream client secret and stable
   ToolHive signing/HMAC material. It is managed by
   `gmail-mcp-secret.sops.yaml`.
+
+Homey is cataloged as an `MCPServerEntry`, but it is not active in the virtual
+server yet. Homey's OAuth metadata currently advertises a `form_post` response
+mode and `client_secret_basic` token authentication; the current ToolHive
+upstream OAuth path does not model that combination cleanly.
 
 The Google OAuth client used by ToolHive must allow this redirect URI:
 
@@ -86,12 +95,13 @@ Google Cloud "Web application" OAuth client with that redirect URI, then update
 Hermes, Codex, Claude, and similar MCP clients should connect only to
 `https://toolhive.home.mcnees.me/mcp`.
 
-Avoid direct client MCP entries for Gmail, Outline, Honeydew, Homey, or Linear
-unless temporarily debugging outside ToolHive.
+Avoid direct client MCP entries for Gmail, Outline, Honeydew, or Linear unless
+temporarily debugging outside ToolHive. Homey is still a direct-client fallback
+until ToolHive can authenticate it.
 
 Hermes' current mail setup has two separate paths:
 
 - Himalaya uses Gmail IMAP with an app password.
 - Hermes MCP uses ToolHive's shared virtual MCP endpoint, which performs the
-  upstream Google OAuth hop for Gmail and aggregates the other personal MCP
-  backends.
+  upstream Google OAuth hop for Gmail and aggregates the other authenticated
+  personal MCP backends.

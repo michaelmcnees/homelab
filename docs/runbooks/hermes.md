@@ -15,7 +15,9 @@ Hermes is deployed as an experimental in-cluster agent at `https://hermes.home.m
 - Default model: `gpt-5.5`
 - MCP servers:
   - ToolHive at `https://toolhive.home.mcnees.me/mcp`, aggregating Gmail,
-    Outline, Honeydew, Homey, Linear, and future personal MCP backends
+    Outline, Honeydew, Linear, and future compatible personal MCP backends
+  - Homey is cataloged in ToolHive but remains pending until its OAuth flow is
+    compatible with ToolHive upstream auth.
 
 The Hermes Docker docs warn against exposing the dashboard directly. Keep it on the internal Traefik entrypoint and oauth-protected unless we intentionally design a safer public gateway. The pod still runs the dashboard with Hermes' `--insecure` flag internally, so `NetworkPolicy/hermes-ingress` restricts dashboard ingress to Traefik.
 
@@ -113,8 +115,11 @@ Hermes is configured with a single remote HTTP MCP server named `toolhive`.
 
 - Endpoint: `https://toolhive.home.mcnees.me/mcp`
 - Auth: OAuth
-- Backends: Gmail, Outline, Honeydew, Homey, Linear, and future personal MCP
+- Active backends: Gmail, Outline, Honeydew, Linear, and future personal MCP
   backends aggregated by ToolHive
+- Pending backend: Homey is cataloged in ToolHive, but remains direct-client
+  fallback until ToolHive can model Homey's OAuth `form_post` and
+  `client_secret_basic` requirements.
 
 After the ConfigMap is reconciled, authorize ToolHive from Hermes on first use.
 Hermes persists MCP OAuth tokens on the `hermes-data` PVC and reuses them

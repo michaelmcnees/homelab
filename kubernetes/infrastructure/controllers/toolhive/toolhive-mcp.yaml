@@ -7,6 +7,14 @@ spec:
   description: Shared MCP backends for agent access through ToolHive.
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPGroup
+metadata:
+  name: pending-agent-tools
+  namespace: toolhive-system
+spec:
+  description: MCP backends tracked for future ToolHive aggregation work.
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig
 metadata:
   name: gmail-google-upstream-token
@@ -15,6 +23,36 @@ spec:
   type: upstreamInject
   upstreamInject:
     providerName: google
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPExternalAuthConfig
+metadata:
+  name: outline-upstream-token
+  namespace: toolhive-system
+spec:
+  type: upstreamInject
+  upstreamInject:
+    providerName: outline
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPExternalAuthConfig
+metadata:
+  name: honeydew-upstream-token
+  namespace: toolhive-system
+spec:
+  type: upstreamInject
+  upstreamInject:
+    providerName: honeydew
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPExternalAuthConfig
+metadata:
+  name: linear-upstream-token
+  namespace: toolhive-system
+spec:
+  type: upstreamInject
+  upstreamInject:
+    providerName: linear
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
@@ -39,6 +77,8 @@ spec:
     name: agent-tools
   remoteUrl: https://docs.mcnees.me/mcp
   transport: streamable-http
+  externalAuthConfigRef:
+    name: outline-upstream-token
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
@@ -50,6 +90,8 @@ spec:
     name: agent-tools
   remoteUrl: https://mcp.honeydewdone.app
   transport: streamable-http
+  externalAuthConfigRef:
+    name: honeydew-upstream-token
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
@@ -58,7 +100,7 @@ metadata:
   namespace: toolhive-system
 spec:
   groupRef:
-    name: agent-tools
+    name: pending-agent-tools
   remoteUrl: https://mcp.athom.com
   transport: streamable-http
 ---
@@ -72,6 +114,8 @@ spec:
     name: agent-tools
   remoteUrl: https://mcp.linear.app/mcp
   transport: streamable-http
+  externalAuthConfigRef:
+    name: linear-upstream-token
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPOIDCConfig
@@ -148,6 +192,43 @@ spec:
           additionalAuthorizationParams:
             access_type: offline
             prompt: consent
+      - name: outline
+        type: oauth2
+        oauth2Config:
+          authorizationEndpoint: https://docs.mcnees.me/oauth/authorize
+          tokenEndpoint: https://docs.mcnees.me/oauth/token
+          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
+          scopes:
+            - read
+            - write
+          dcrConfig:
+            discoveryUrl: https://docs.mcnees.me/.well-known/oauth-authorization-server
+      - name: honeydew
+        type: oauth2
+        oauth2Config:
+          authorizationEndpoint: https://api.honeydewdone.app/api/auth/oauth2/authorize
+          tokenEndpoint: https://api.honeydewdone.app/api/auth/oauth2/token
+          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
+          scopes:
+            - openid
+            - profile
+            - email
+            - offline_access
+          userInfo:
+            endpointUrl: https://api.honeydewdone.app/api/auth/oauth2/userinfo
+          dcrConfig:
+            discoveryUrl: https://api.honeydewdone.app/.well-known/oauth-authorization-server
+      - name: linear
+        type: oauth2
+        oauth2Config:
+          authorizationEndpoint: https://mcp.linear.app/authorize
+          tokenEndpoint: https://mcp.linear.app/token
+          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
+          scopes:
+            - read
+            - write
+          dcrConfig:
+            discoveryUrl: https://mcp.linear.app/.well-known/oauth-authorization-server
   outgoingAuth:
     source: discovered
 ---

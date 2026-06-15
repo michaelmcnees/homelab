@@ -24,11 +24,11 @@ front door for Hermes, Codex, Claude, and similar clients.
 ## Goals
 
 - Keep one shared ToolHive endpoint for personal agent tools.
-- Aggregate all known personal remote MCP servers into the existing
-  `agent-tools` group.
+- Aggregate compatible personal remote MCP servers into ToolHive's active
+  `agent-tools` group, and keep incompatible known backends in a pending group.
 - Let ToolHive's optimizer decide which tools are returned to MCP clients.
 - Remove direct client-side MCP wiring once the matching ToolHive backend is
-  verified.
+  verified, except for explicitly pending backends such as Homey.
 - Keep credentials out of plaintext manifests.
 
 ## Non-Goals
@@ -43,7 +43,9 @@ front door for Hermes, Codex, Claude, and similar clients.
 ## Architecture
 
 Use the existing `MCPGroup/agent-tools` and
-`VirtualMCPServer/agent-tools`.
+`VirtualMCPServer/agent-tools` for backends ToolHive can actively
+authenticate. Keep incompatible backends in a separate pending group until
+their auth path is understood.
 
 Add remote MCP catalog entries for the personal tools:
 
@@ -52,7 +54,7 @@ Add remote MCP catalog entries for the personal tools:
 | `gmail` | `https://gmailmcp.googleapis.com/mcp/v1` | `streamable-http` | Existing Google Workspace backend with upstream token injection |
 | `outline` | `https://docs.mcnees.me/mcp` | `streamable-http` | Outline built-in MCP endpoint |
 | `honeydew` | `https://mcp.honeydewdone.app` | `streamable-http` | Honeydew production MCP endpoint at host root |
-| `homey` | `https://mcp.athom.com` | `streamable-http` | Homey remote MCP endpoint at host root |
+| `homey` | `https://mcp.athom.com` | `streamable-http` | Homey remote MCP endpoint at host root; tracked in `MCPGroup/pending-agent-tools` until ToolHive can model its `form_post` and `client_secret_basic` OAuth requirements |
 | `linear` | `https://mcp.linear.app/mcp` | `streamable-http` | Linear hosted MCP endpoint |
 
 Keep the existing `VirtualMCPServer` configuration:
@@ -64,10 +66,9 @@ Keep the existing `VirtualMCPServer` configuration:
 - Outgoing auth remains discovered by default.
 
 Gmail continues to use `MCPExternalAuthConfig/gmail-google-upstream-token`.
-Other remote backends should first rely on their published MCP OAuth discovery
-metadata through ToolHive. If a specific backend cannot authenticate through
-that path, handle it as a backend-specific follow-up rather than weakening the
-shared gateway design.
+Outline, Honeydew, and Linear use backend-specific upstream token injection
+from their ToolHive OAuth providers. Homey is a backend-specific follow-up
+rather than a reason to weaken the shared gateway design.
 
 ## Client Configuration
 
@@ -91,8 +92,9 @@ Claude and other clients should similarly connect to only:
 https://toolhive.home.mcnees.me/mcp
 ```
 
-Any existing direct Linear, Honeydew, Homey, Outline, or Gmail MCP wiring
-should be removed after ToolHive discovery and auth are verified.
+Any existing direct Linear, Honeydew, Outline, or Gmail MCP wiring should be
+removed after ToolHive discovery and auth are verified. Direct Homey wiring
+remains acceptable until ToolHive can authenticate Homey's MCP endpoint.
 
 ## Auth And Secrets
 
@@ -114,7 +116,8 @@ dedicated SOPS-managed secret and reference it with `MCPExternalAuthConfig` or
    `kubernetes/infrastructure/controllers/toolhive/toolhive-mcp.yaml`.
 2. Render the ToolHive kustomization locally with `kubectl kustomize`.
 3. Reconcile ToolHive through Flux.
-4. Confirm `VirtualMCPServer/agent-tools` reports five backends.
+4. Confirm `VirtualMCPServer/agent-tools` reports four active backends and
+   `MCPServerEntry/homey` is valid in `MCPGroup/pending-agent-tools`.
 5. Use ToolHive discovery from Codex to confirm tools from the aggregated
    backends are visible.
 6. Update Hermes so it only points at ToolHive, and bump the deployment config
@@ -138,7 +141,7 @@ Expected result:
 - `MCPServerEntry` resources for `gmail`, `outline`, `honeydew`, `homey`,
   and `linear` are valid.
 - `VirtualMCPServer/agent-tools` is ready.
-- Backend count is `5`.
+- Backend count is `4` for the active virtual endpoint.
 - ToolHive discovery returns tools from multiple backends without direct
   client-side MCP entries.
 
@@ -158,12 +161,15 @@ kubectl --kubeconfig talos/kubeconfig -n apps exec deployment/hermes -- \
 - Tool name conflicts should be handled by the current prefix strategy, but
   prompts and docs need to use the prefixed names when referring to exact
   tools.
-- The backend count may temporarily show fewer than five if a remote service
-  is degraded or rejects unauthenticated health checks.
+- The active backend count may temporarily show fewer than four if a remote
+  service is degraded or rejects unauthenticated health checks.
 
 ## Decisions
 
 - Use one ToolHive virtual endpoint for all personal tools.
-- Keep the existing `agent-tools` group rather than introducing new groups.
-- Treat Homey as a remote MCP backend at `https://mcp.athom.com`.
+- Keep the existing `agent-tools` group for active backends, and use
+  `pending-agent-tools` for known backends that should not be exposed through
+  the virtual endpoint yet.
+- Treat Homey as a pending remote MCP backend at `https://mcp.athom.com` until
+  ToolHive can model its OAuth requirements.
 - Make static token injection a fallback, not the default design.
