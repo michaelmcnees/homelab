@@ -143,7 +143,7 @@ metadata:
   namespace: toolhive-system
 spec:
   groupRef:
-    name: agent-tools
+    name: pending-agent-tools
   remoteUrl: https://docs.mcnees.me/mcp
   transport: streamable-http
   externalAuthConfigRef:
@@ -258,6 +258,8 @@ spec:
             - profile
             - https://www.googleapis.com/auth/gmail.readonly
             - https://www.googleapis.com/auth/gmail.compose
+            - https://www.googleapis.com/auth/gmail.modify
+            - https://www.googleapis.com/auth/gmail.labels
           additionalAuthorizationParams:
             access_type: offline
             prompt: consent select_account
@@ -276,6 +278,8 @@ spec:
             - profile
             - https://www.googleapis.com/auth/gmail.readonly
             - https://www.googleapis.com/auth/gmail.compose
+            - https://www.googleapis.com/auth/gmail.modify
+            - https://www.googleapis.com/auth/gmail.labels
           additionalAuthorizationParams:
             access_type: offline
             prompt: consent select_account
@@ -294,6 +298,8 @@ spec:
             - profile
             - https://www.googleapis.com/auth/gmail.readonly
             - https://www.googleapis.com/auth/gmail.compose
+            - https://www.googleapis.com/auth/gmail.modify
+            - https://www.googleapis.com/auth/gmail.labels
           additionalAuthorizationParams:
             access_type: offline
             prompt: consent select_account
@@ -312,20 +318,11 @@ spec:
             - profile
             - https://www.googleapis.com/auth/gmail.readonly
             - https://www.googleapis.com/auth/gmail.compose
+            - https://www.googleapis.com/auth/gmail.modify
+            - https://www.googleapis.com/auth/gmail.labels
           additionalAuthorizationParams:
             access_type: offline
             prompt: consent select_account
-      - name: outline
-        type: oauth2
-        oauth2Config:
-          authorizationEndpoint: https://docs.mcnees.me/oauth/authorize
-          tokenEndpoint: https://docs.mcnees.me/oauth/token
-          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
-          scopes:
-            - read
-            - write
-          dcrConfig:
-            discoveryUrl: https://docs.mcnees.me/.well-known/oauth-authorization-server
       - name: honeydew
         type: oauth2
         oauth2Config:
@@ -340,7 +337,7 @@ spec:
           userInfo:
             endpointUrl: https://api.honeydewdone.app/api/auth/oauth2/userinfo
           dcrConfig:
-            discoveryUrl: https://api.honeydewdone.app/.well-known/oauth-authorization-server
+            discoveryUrl: https://api.honeydewdone.app/.well-known/oauth-authorization-server/api/auth
       - name: linear
         type: oauth2
         oauth2Config:

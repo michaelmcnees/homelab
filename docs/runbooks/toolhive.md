@@ -58,7 +58,8 @@ clients can share the same governed endpoint:
   - `MCPServerEntry/gmail-hoa` is the HOA account.
   - `MCPServerEntry/gmail-craft-export` is the Craft Export account.
 - `MCPServerEntry/outline` points to Outline at
-  `https://docs.mcnees.me/mcp`.
+  `https://docs.mcnees.me/mcp`, but is currently in
+  `MCPGroup/pending-agent-tools`.
 - `MCPServerEntry/honeydew` points to Honeydew at
   `https://mcp.honeydewdone.app`.
 - `MCPServerEntry/homey` points to Homey at `https://mcp.athom.com`.
@@ -83,16 +84,40 @@ clients can share the same governed endpoint:
   ToolHive signing/HMAC material. It is managed by
   `gmail-mcp-secret.sops.yaml`.
 
-Homey is cataloged as an `MCPServerEntry`, but it is not active in the virtual
-server yet. Homey's OAuth metadata currently advertises a `form_post` response
-mode and `client_secret_basic` token authentication; the current ToolHive
-upstream OAuth path does not model that combination cleanly.
+Homey and Outline are cataloged as `MCPServerEntry` resources, but they are not
+active in the virtual server yet. Homey's OAuth metadata currently advertises a
+`form_post` response mode and `client_secret_basic` token authentication; the
+current ToolHive upstream OAuth path does not model that combination cleanly.
+Outline is pending because repeated Dynamic Client Registration attempts hit
+Outline's rate limit during VMCP startup; re-enable it after using a stable
+OAuth client registration or after the rate limit clears.
 
 The Google OAuth client used by ToolHive must allow this redirect URI:
 
 ```text
 https://toolhive.home.mcnees.me/oauth/callback
 ```
+
+The Gmail upstream providers request these Gmail API scopes:
+
+- `https://www.googleapis.com/auth/gmail.readonly`
+- `https://www.googleapis.com/auth/gmail.compose`
+- `https://www.googleapis.com/auth/gmail.modify`
+- `https://www.googleapis.com/auth/gmail.labels`
+
+`gmail.modify` and `gmail.labels` are required because Google's Gmail MCP
+server exposes label and thread/message mutation tools, not just read and draft
+tools. Existing Google grants may need a fresh consent flow after scope
+changes.
+
+ToolHive's embedded auth server currently uses in-memory upstream token
+storage. A VMCP pod restart can therefore clear upstream provider grants even
+though the `MCPServerEntry` health checks later report `ready`. If
+`find_tool` returns no backend tools and VMCP logs mention `upstream token not
+found`, rerun client OAuth to rebuild the upstream grants. A durable fix needs
+dedicated auth-enabled Redis storage for ToolHive; the shared homelab Redis has
+authentication disabled and cannot satisfy ToolHive's required Redis password
+configuration as-is.
 
 If the current client is still an installed-app client, create or switch to a
 Google Cloud "Web application" OAuth client with that redirect URI, then update
@@ -103,9 +128,9 @@ Google Cloud "Web application" OAuth client with that redirect URI, then update
 Hermes, Codex, Claude, and similar MCP clients should connect only to
 `https://toolhive.home.mcnees.me/mcp`.
 
-Avoid direct client MCP entries for Gmail, Outline, Honeydew, or Linear unless
-temporarily debugging outside ToolHive. Homey is still a direct-client fallback
-until ToolHive can authenticate it.
+Avoid direct client MCP entries for Gmail, Honeydew, or Linear unless
+temporarily debugging outside ToolHive. Homey and Outline are still
+direct-client fallbacks until ToolHive can authenticate them reliably.
 
 Hermes' current mail setup has two separate paths:
 

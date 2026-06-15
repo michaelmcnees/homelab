@@ -15,9 +15,9 @@ Hermes is deployed as an experimental in-cluster agent at `https://hermes.home.m
 - Default model: `gpt-5.5`
 - MCP servers:
   - ToolHive at `https://toolhive.home.mcnees.me/mcp`, aggregating Gmail,
-    Outline, Honeydew, Linear, and future compatible personal MCP backends
-  - Homey is cataloged in ToolHive but remains pending until its OAuth flow is
-    compatible with ToolHive upstream auth.
+    Honeydew, Linear, and future compatible personal MCP backends
+  - Homey and Outline are cataloged in ToolHive but remain pending until their
+    OAuth flows are reliable through ToolHive upstream auth.
 
 The Hermes Docker docs warn against exposing the dashboard directly. Keep it on the internal Traefik entrypoint and oauth-protected unless we intentionally design a safer public gateway. The pod still runs the dashboard with Hermes' `--insecure` flag internally, so `NetworkPolicy/hermes-ingress` restricts dashboard ingress to Traefik.
 
@@ -116,11 +116,13 @@ Hermes is configured with a single remote HTTP MCP server named `toolhive`.
 - Endpoint: `https://toolhive.home.mcnees.me/mcp`
 - Auth: OAuth
 - Active backends: Gmail personal, Gmail Develop for Good, Gmail HOA, Gmail
-  Craft Export, Outline, Honeydew, Linear, and future personal MCP backends
+  Craft Export, Honeydew, Linear, and future personal MCP backends
   aggregated by ToolHive
-- Pending backend: Homey is cataloged in ToolHive, but remains direct-client
-  fallback until ToolHive can model Homey's OAuth `form_post` and
-  `client_secret_basic` requirements.
+- Pending backends: Homey and Outline are cataloged in ToolHive, but remain
+  direct-client fallbacks. Homey needs ToolHive support for its OAuth
+  `form_post` and `client_secret_basic` requirements. Outline is pending until
+  its Dynamic Client Registration rate limit clears or a stable OAuth client
+  registration is configured.
 
 After the ConfigMap is reconciled, authorize ToolHive from Hermes on first use.
 Hermes persists MCP OAuth tokens on the `hermes-data` PVC and reuses them
@@ -153,14 +155,22 @@ The Gmail upstream Google OAuth hop is mediated by ToolHive:
 - Gmail backend: `https://gmailmcp.googleapis.com/mcp/v1`
 - ToolHive backend names: `gmail`, `gmail-develop-for-good`, `gmail-hoa`,
   `gmail-craft-export`
-- Scopes: `https://www.googleapis.com/auth/gmail.readonly` and
-  `https://www.googleapis.com/auth/gmail.compose`
+- Scopes: `https://www.googleapis.com/auth/gmail.readonly`,
+  `https://www.googleapis.com/auth/gmail.compose`,
+  `https://www.googleapis.com/auth/gmail.modify`, and
+  `https://www.googleapis.com/auth/gmail.labels`
 - Google upstream callback: `https://toolhive.home.mcnees.me/oauth/callback`
 
 If Google returns `redirect_uri_mismatch`, update the OAuth client in the
 Google Cloud project to allow the ToolHive callback
 `https://toolhive.home.mcnees.me/oauth/callback`, then rerun
 `hermes mcp login toolhive`.
+
+Hermes' MCP OAuth client currently registers its own callback as
+`http://127.0.0.1:<port>/callback` and binds that listener inside the Hermes
+pod. That loopback callback is separate from ToolHive's upstream provider
+callback. Until Hermes supports a public callback URL or device-code MCP auth,
+first-time Hermes-to-ToolHive login can still require a `kubectl port-forward`.
 
 ## Telegram
 
