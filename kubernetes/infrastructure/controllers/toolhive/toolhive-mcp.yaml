@@ -30,6 +30,50 @@ spec:
     name: gmail-google-upstream-token
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata:
+  name: outline
+  namespace: toolhive-system
+spec:
+  groupRef:
+    name: agent-tools
+  remoteUrl: https://docs.mcnees.me/mcp
+  transport: streamable-http
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata:
+  name: honeydew
+  namespace: toolhive-system
+spec:
+  groupRef:
+    name: agent-tools
+  remoteUrl: https://mcp.honeydewdone.app
+  transport: streamable-http
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata:
+  name: homey
+  namespace: toolhive-system
+spec:
+  groupRef:
+    name: agent-tools
+  remoteUrl: https://mcp.athom.com
+  transport: streamable-http
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata:
+  name: linear
+  namespace: toolhive-system
+spec:
+  groupRef:
+    name: agent-tools
+  remoteUrl: https://mcp.linear.app/mcp
+  transport: streamable-http
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPOIDCConfig
 metadata:
   name: agent-tools
