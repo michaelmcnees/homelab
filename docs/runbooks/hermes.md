@@ -129,13 +129,13 @@ Reload MCP servers from inside Hermes after config changes:
 First-time ToolHive authorization:
 
 ```sh
-kubectl --kubeconfig talos/kubeconfig -n apps exec -it deployment/hermes -- sh -lc 'export HOME=/opt/data/home PATH=/opt/hermes/.venv/bin:/opt/data/home/.local/bin:/opt/data/.local/bin:$PATH; hermes mcp login toolhive'
+kubectl --kubeconfig talos/kubeconfig -n apps exec -it deployment/hermes -- sh -lc 'su hermes -s /bin/sh -c "export HOME=/opt/data/home PATH=/opt/hermes/.venv/bin:/opt/data/home/.local/bin:/opt/data/.local/bin:\$PATH; hermes mcp login toolhive"'
 ```
 
 Open the printed OAuth URL and complete the flow, then verify:
 
 ```sh
-kubectl --kubeconfig talos/kubeconfig -n apps exec deployment/hermes -- sh -lc 'export HOME=/opt/data/home PATH=/opt/hermes/.venv/bin:/opt/data/home/.local/bin:/opt/data/.local/bin:$PATH; hermes mcp test toolhive'
+kubectl --kubeconfig talos/kubeconfig -n apps exec deployment/hermes -- sh -lc 'su hermes -s /bin/sh -c "export HOME=/opt/data/home PATH=/opt/hermes/.venv/bin:/opt/data/home/.local/bin:/opt/data/.local/bin:\$PATH; hermes mcp test toolhive"'
 ```
 
 Tokens are stored under `/opt/data/mcp-tokens`. Treat those files like
