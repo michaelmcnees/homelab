@@ -53,8 +53,15 @@ clients can share the same governed endpoint:
 - `MCPGroup/agent-tools` defines the shared backend group.
 - `MCPServerEntry/gmail` points to Google's remote Workspace MCP endpoint,
   `https://gmailmcp.googleapis.com/mcp/v1`.
+- `MCPServerEntry/outline` points to Outline at
+  `https://docs.mcnees.me/mcp`.
+- `MCPServerEntry/honeydew` points to Honeydew at
+  `https://mcp.honeydewdone.app`.
+- `MCPServerEntry/homey` points to Homey at `https://mcp.athom.com`.
+- `MCPServerEntry/linear` points to Linear at
+  `https://mcp.linear.app/mcp`.
 - `MCPExternalAuthConfig/gmail-google-upstream-token` injects the Google
-  upstream access token as the backend `Authorization: Bearer` token.
+  upstream token for the Gmail backend.
 - `VirtualMCPServer/agent-tools` publishes
   `https://toolhive.home.mcnees.me/mcp`.
 - `VirtualMCPServer/agent-tools` enables ToolHive's optimizer so MCP clients
@@ -74,12 +81,17 @@ If the current client is still an installed-app client, create or switch to a
 Google Cloud "Web application" OAuth client with that redirect URI, then update
 `gmail-mcp-secret.sops.yaml` and the inline `clientId` in `toolhive-mcp.yaml`.
 
-## Hermes Direction
+## Client Direction
 
-ToolHive is useful for centralizing MCP access for Hermes, Codex, Claude, and
-other clients. Hermes' current mail setup has two separate paths:
+Hermes, Codex, Claude, and similar MCP clients should connect only to
+`https://toolhive.home.mcnees.me/mcp`.
+
+Avoid direct client MCP entries for Gmail, Outline, Honeydew, Homey, or Linear
+unless temporarily debugging outside ToolHive.
+
+Hermes' current mail setup has two separate paths:
 
 - Himalaya uses Gmail IMAP with an app password.
 - Hermes MCP uses ToolHive's shared virtual MCP endpoint, which performs the
-  upstream Google OAuth hop and forwards to Google's first-party Workspace MCP
-  endpoint.
+  upstream Google OAuth hop for Gmail and aggregates the other personal MCP
+  backends.
