@@ -20,14 +20,17 @@ issues:
 ## Applied Changes
 
 - Alertmanager routing was changed live on 2026-06-18 so `severity=warning` and
-  `severity=critical` both route to the existing `pushover-email` receiver.
+  `severity=critical` both route to the existing `pushover-email` receiver,
+  except Alertmanager's own failed-notification alerts, which stay email-only to
+  avoid a self-referential Pushover failure loop.
 - The encrypted GitOps secret at
   `kubernetes/infrastructure/observability/kube-prometheus-stack/alertmanager-config.sops.yaml`
   was updated with the same route.
 - After reload, active warning alerts routed to `pushover-email` and Pushover
   notification attempts increased from 20 to 25. One initial grouped notification
   hit Pushover HTTP 429 during the burst; the existing `repeat_interval` remains
-  `12h`, so ongoing retries should be low volume.
+  `12h`, so ongoing retries should be low volume. A follow-up guard route keeps
+  `Alertmanager*FailedToSendAlerts` alerts on email only.
 - UniFi was inspected before making network changes. Legacy firewall rules,
   firewall groups, and traffic rules were empty, so there was no explicit
   controller-side VLAN block to remove. mDNS is already enabled on Trusted, IoT,
@@ -86,6 +89,9 @@ route:
     - matchers:
         - severity = info
       receiver: "null"
+    - matchers:
+        - alertname =~ Alertmanager.*FailedToSendAlerts
+      receiver: email
     - matchers:
         - severity =~ warning|critical
       receiver: pushover-email
