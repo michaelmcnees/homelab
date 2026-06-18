@@ -34,6 +34,11 @@ The three production WLANs are imported into OpenTofu as `unifi_wlan.wireless_ne
 
 The WLAN resources intentionally ignore passphrases and provider-noisy rate/MAC-filter fields. Use OpenTofu for SSID-to-network assignment and meaningful security/isolation settings; avoid using it as the source of truth for WiFi secrets.
 
+For the 2026-06-18 HomePod/AirPlay VLAN investigation, keep HomePods on
+`McNet` / Trusted VLAN 20 with phones and use explicit firewall allows for
+Trusted-to-IoT smart-home control. See
+`docs/runbooks/alerting-and-homepod-vlan-fix-2026-06-18.md`.
+
 ## Static IP Ownership
 
 UniFi DHCP reservations are managed with `unifi_user.static_ips`.

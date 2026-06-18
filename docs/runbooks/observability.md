@@ -170,6 +170,10 @@ Prometheus and Alertmanager are protected by the shared `oauth2-proxy` middlewar
 
 The local source values live outside Git in `.secrets/alertmanager.yml`. Regenerate `kubernetes/infrastructure/observability/kube-prometheus-stack/alertmanager-config.sops.yaml` after changing Pushover or SMTP credentials.
 
+For the 2026-06-18 investigation into email-only alert delivery and the
+recommended route change if warnings should also page Pushover, see
+`docs/runbooks/alerting-and-homepod-vlan-fix-2026-06-18.md`.
+
 ## Current Tradeoffs
 
 Node-exporter is enabled through `kube-prometheus-stack`. The `observability` namespace is explicitly labeled with `pod-security.kubernetes.io/enforce=privileged` because node-exporter needs host-level access for node metrics. Keep privileged workloads in this namespace limited to observability components.
