@@ -248,6 +248,8 @@ spec:
       app.kubernetes.io/name: gmail-rest-mcp
   template:
     metadata:
+      annotations:
+        gmail-rest-mcp.mcnees.me/config-revision: metadata-headers-doseq
       labels:
         app.kubernetes.io/name: gmail-rest-mcp
     spec:
