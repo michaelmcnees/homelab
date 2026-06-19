@@ -61,8 +61,7 @@ clients can share the same governed endpoint:
   - `MCPServerEntry/gmail-craft-export` is the Craft Export account,
     currently in `MCPGroup/pending-agent-tools`.
 - `MCPServerEntry/outline` points to Outline at
-  `https://docs.mcnees.me/mcp`, but is currently in
-  `MCPGroup/pending-agent-tools`.
+  `https://docs.mcnees.me/mcp`.
 - `MCPServerEntry/honeydew` points to Honeydew at
   `https://mcp.honeydewdone.app`.
 - `MCPServerEntry/homey` points to Homey at `https://mcp.athom.com`.
@@ -90,11 +89,13 @@ clients can share the same governed endpoint:
   ToolHive signing/HMAC material. It is managed by
   `gmail-mcp-secret.sops.yaml`.
 
-Outline and the additional Gmail accounts are cataloged as
+The additional Gmail accounts are cataloged as
 `MCPServerEntry` resources, but they are not active in the virtual server yet.
-Honeydew, Linear, and Homey are active and intentionally chain after Gmail
-during first-time client auth. Outline is pending because its authorization
-server rejected ToolHive's dynamically registered client during OAuth. Homey is
+Honeydew, Linear, Outline, and Homey are active and intentionally chain after
+Gmail during first-time client auth. Outline uses stable OAuth client
+`izto0734m5xy2xegind3`, registered in Outline for
+`https://toolhive.home.mcnees.me/oauth/callback`, because ToolHive's DCR path
+did not register a usable Outline client before authorization. Homey is
 experimental because its OAuth metadata only advertises a `form_post` response
 mode and `client_secret_basic` token authentication; ToolHive has no explicit
 token endpoint auth method field, so token exchange may still fail.
