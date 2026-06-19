@@ -51,8 +51,10 @@ ToolHive aggregates MCP backends so Hermes, Codex, Claude, and other MCP
 clients can share the same governed endpoint:
 
 - `MCPGroup/agent-tools` defines the shared backend group.
-- Gmail backends point to Google's remote Workspace MCP endpoint,
-  `https://gmailmcp.googleapis.com/mcp/v1`:
+- Gmail backends point to the internal Gmail REST MCP proxy,
+  `https://gmail-rest-mcp.home.mcnees.me/mcp/v1`, because Google's remote
+  Workspace MCP endpoint rejected Gmail-scoped Google OAuth tokens that worked
+  against the Gmail REST API:
   - `MCPServerEntry/gmail` is the personal Gmail account.
   - `MCPServerEntry/gmail-develop-for-good` is the Develop for Good account,
     currently in `MCPGroup/pending-agent-tools`.
@@ -68,7 +70,8 @@ clients can share the same governed endpoint:
 - `MCPServerEntry/linear` points to Linear at
   `https://mcp.linear.app/mcp`.
 - `MCPExternalAuthConfig/gmail-google-upstream-token` injects the Google
-  upstream token for the personal Gmail backend.
+  upstream token for the personal Gmail backend. The internal proxy forwards
+  that bearer token to the Gmail REST API.
 - `MCPExternalAuthConfig/gmail-develop-for-good-google-upstream-token`,
   `MCPExternalAuthConfig/gmail-hoa-google-upstream-token`, and
   `MCPExternalAuthConfig/gmail-craft-export-google-upstream-token` inject the
@@ -106,6 +109,8 @@ provider in `VirtualMCPServer/agent-tools` until multi-account Gmail auth is
 reintroduced intentionally. Google upstream auth intentionally does not set a
 `prompt` override, so a single active Gmail provider does not force account
 selection or a fresh consent screen on every authorization hop.
+The Gmail REST MCP proxy currently exposes read-only Gmail tools:
+`list_labels`, `search_threads`, and `get_thread`.
 
 The Google OAuth client used by ToolHive must allow this redirect URI:
 
@@ -120,10 +125,10 @@ The Gmail upstream providers request these Gmail API scopes:
 - `https://www.googleapis.com/auth/gmail.modify`
 - `https://www.googleapis.com/auth/gmail.labels`
 
-`gmail.modify` and `gmail.labels` are required because Google's Gmail MCP
-server exposes label and thread/message mutation tools, not just read and draft
-tools. Existing Google grants may need a fresh consent flow after scope
-changes.
+The internal Gmail REST MCP proxy currently uses read-only Gmail operations, but
+the configured scopes are kept broad so the ToolHive Google grant can support
+future compose, label, and thread/message mutation tools without another scope
+migration.
 
 ToolHive's embedded auth server stores OAuth server state in a dedicated
 password-protected Valkey instance:
