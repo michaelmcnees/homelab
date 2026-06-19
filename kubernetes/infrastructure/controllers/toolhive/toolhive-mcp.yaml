@@ -270,7 +270,7 @@ spec:
             - https://www.googleapis.com/auth/gmail.labels
           additionalAuthorizationParams:
             access_type: offline
-            prompt: consent select_account
+            prompt: consent
       - name: google-develop-for-good
         type: oidc
         oidcConfig:
@@ -290,7 +290,7 @@ spec:
             - https://www.googleapis.com/auth/gmail.labels
           additionalAuthorizationParams:
             access_type: offline
-            prompt: consent select_account
+            prompt: consent
       - name: google-hoa
         type: oidc
         oidcConfig:
@@ -310,7 +310,7 @@ spec:
             - https://www.googleapis.com/auth/gmail.labels
           additionalAuthorizationParams:
             access_type: offline
-            prompt: consent select_account
+            prompt: consent
       - name: google-craft-export
         type: oidc
         oidcConfig:
@@ -330,7 +330,7 @@ spec:
             - https://www.googleapis.com/auth/gmail.labels
           additionalAuthorizationParams:
             access_type: offline
-            prompt: consent select_account
+            prompt: consent
       - name: honeydew
         type: oauth2
         oauth2Config:
