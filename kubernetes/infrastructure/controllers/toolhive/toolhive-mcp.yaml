@@ -104,7 +104,7 @@ metadata:
   namespace: toolhive-system
 spec:
   groupRef:
-    name: agent-tools
+    name: pending-agent-tools
   remoteUrl: https://gmailmcp.googleapis.com/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
@@ -117,7 +117,7 @@ metadata:
   namespace: toolhive-system
 spec:
   groupRef:
-    name: agent-tools
+    name: pending-agent-tools
   remoteUrl: https://gmailmcp.googleapis.com/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
@@ -130,7 +130,7 @@ metadata:
   namespace: toolhive-system
 spec:
   groupRef:
-    name: agent-tools
+    name: pending-agent-tools
   remoteUrl: https://gmailmcp.googleapis.com/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:

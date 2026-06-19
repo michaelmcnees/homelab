@@ -116,14 +116,16 @@ Hermes is configured with a single remote HTTP MCP server named `toolhive`.
 - Endpoint: `https://toolhive.home.mcnees.me/mcp`
 - Auth: OAuth
 - Hermes callback: `http://127.0.0.1:47035/callback`
-- Active backends: Gmail personal, Gmail Develop for Good, Gmail HOA, Gmail
-  Craft Export, Honeydew, Linear, and future personal MCP backends
-  aggregated by ToolHive
-- Pending backends: Homey and Outline are cataloged in ToolHive, but remain
-  direct-client fallbacks. Homey needs ToolHive support for its OAuth
-  `form_post` and `client_secret_basic` requirements. Outline is pending until
-  its Dynamic Client Registration rate limit clears or a stable OAuth client
-  registration is configured.
+- Active backends: Gmail personal, Honeydew, Linear, and future personal MCP
+  backends aggregated by ToolHive
+- Pending backends: Gmail Develop for Good, Gmail HOA, Gmail Craft Export,
+  Homey, and Outline are cataloged in ToolHive, but remain direct-client
+  fallbacks. The additional Gmail accounts are pending because multiple Google
+  upstream providers create a repeated account-picker consent chain during
+  first-time auth. Homey needs ToolHive support for its OAuth `form_post` and
+  `client_secret_basic` requirements. Outline is pending until its Dynamic
+  Client Registration rate limit clears or a stable OAuth client registration
+  is configured.
 
 After the ConfigMap is reconciled, authorize ToolHive from Hermes on first use.
 Hermes persists MCP OAuth tokens on the `hermes-data` PVC and reuses them
@@ -136,19 +138,21 @@ Reload MCP servers from inside Hermes after config changes:
 /reload-mcp
 ```
 
-First-time ToolHive authorization:
+First-time ToolHive authorization when the Hermes gateway is already running:
 
 ```sh
 kubectl --kubeconfig talos/kubeconfig -n apps port-forward deployment/hermes 47035:47035
 ```
 
-In a second terminal:
+In a second terminal, fetch the latest ToolHive authorization URL from Hermes'
+logs and open that exact URL in a browser:
 
 ```sh
-kubectl --kubeconfig talos/kubeconfig -n apps exec -it deployment/hermes -- sh -lc 'su hermes -s /bin/sh -c "export HOME=/opt/data/home PATH=/opt/hermes/.venv/bin:/opt/data/home/.local/bin:/opt/data/.local/bin:\$PATH; hermes mcp login toolhive"'
+kubectl --kubeconfig talos/kubeconfig -n apps logs deploy/hermes --since=10m \
+  | rg 'https://toolhive\.home\.mcnees\.me/oauth/authorize'
 ```
 
-Open the printed OAuth URL and complete the Google flow. The final redirect to
+Complete the Google flow. The final redirect to
 `http://127.0.0.1:47035/callback` is delivered through the port-forward into
 the Hermes pod. Then verify:
 
@@ -163,8 +167,7 @@ The Gmail upstream Google OAuth hop is mediated by ToolHive:
 
 - ToolHive endpoint: `https://toolhive.home.mcnees.me/mcp`
 - Gmail backend: `https://gmailmcp.googleapis.com/mcp/v1`
-- ToolHive backend names: `gmail`, `gmail-develop-for-good`, `gmail-hoa`,
-  `gmail-craft-export`
+- Active ToolHive backend name: `gmail`
 - Scopes: `https://www.googleapis.com/auth/gmail.readonly`,
   `https://www.googleapis.com/auth/gmail.compose`,
   `https://www.googleapis.com/auth/gmail.modify`, and

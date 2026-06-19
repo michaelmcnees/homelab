@@ -54,9 +54,12 @@ clients can share the same governed endpoint:
 - Gmail backends point to Google's remote Workspace MCP endpoint,
   `https://gmailmcp.googleapis.com/mcp/v1`:
   - `MCPServerEntry/gmail` is the personal Gmail account.
-  - `MCPServerEntry/gmail-develop-for-good` is the Develop for Good account.
-  - `MCPServerEntry/gmail-hoa` is the HOA account.
-  - `MCPServerEntry/gmail-craft-export` is the Craft Export account.
+  - `MCPServerEntry/gmail-develop-for-good` is the Develop for Good account,
+    currently in `MCPGroup/pending-agent-tools`.
+  - `MCPServerEntry/gmail-hoa` is the HOA account, currently in
+    `MCPGroup/pending-agent-tools`.
+  - `MCPServerEntry/gmail-craft-export` is the Craft Export account,
+    currently in `MCPGroup/pending-agent-tools`.
 - `MCPServerEntry/outline` points to Outline at
   `https://docs.mcnees.me/mcp`, but is currently in
   `MCPGroup/pending-agent-tools`.
@@ -84,13 +87,16 @@ clients can share the same governed endpoint:
   ToolHive signing/HMAC material. It is managed by
   `gmail-mcp-secret.sops.yaml`.
 
-Homey and Outline are cataloged as `MCPServerEntry` resources, but they are not
-active in the virtual server yet. Homey's OAuth metadata currently advertises a
-`form_post` response mode and `client_secret_basic` token authentication; the
-current ToolHive upstream OAuth path does not model that combination cleanly.
-Outline is pending because repeated Dynamic Client Registration attempts hit
-Outline's rate limit during VMCP startup; re-enable it after using a stable
-OAuth client registration or after the rate limit clears.
+Homey, Outline, and the additional Gmail accounts are cataloged as
+`MCPServerEntry` resources, but they are not active in the virtual server yet.
+Homey's OAuth metadata currently advertises a `form_post` response mode and
+`client_secret_basic` token authentication; the current ToolHive upstream OAuth
+path does not model that combination cleanly. Outline is pending because
+repeated Dynamic Client Registration attempts hit Outline's rate limit during
+VMCP startup; re-enable it after using a stable OAuth client registration or
+after the rate limit clears. The additional Gmail accounts are pending because
+multiple Google upstream providers with `prompt=consent select_account` create
+a repeated account-picker consent chain during first-time client auth.
 
 The Google OAuth client used by ToolHive must allow this redirect URI:
 
