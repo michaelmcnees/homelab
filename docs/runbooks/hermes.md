@@ -117,17 +117,16 @@ Hermes is configured with a single remote HTTP MCP server named `toolhive`.
 - Endpoint: `https://toolhive.home.mcnees.me/mcp`
 - Auth: OAuth
 - Hermes callback: `http://127.0.0.1:47035/callback`
-- Active backends: Gmail personal
+- Active backends: Gmail personal, Honeydew, Linear
 - Pending backends: Gmail Develop for Good, Gmail HOA, Gmail Craft Export,
-  Honeydew, Linear, Homey, and Outline are cataloged in ToolHive, but remain
-  direct-client fallbacks. The additional Gmail accounts are pending because
-  multiple Google upstream providers create a repeated account-picker consent
-  chain during first-time auth. Honeydew and Linear are pending because
-  ToolHive currently chains auth for every active upstream provider during
-  first-time client auth. Homey needs ToolHive support for its OAuth
-  `form_post` and `client_secret_basic` requirements. Outline is pending until
-  its Dynamic Client Registration rate limit clears or a stable OAuth client
-  registration is configured.
+  Homey, and Outline are cataloged in ToolHive, but remain direct-client
+  fallbacks. The additional Gmail accounts are pending because multiple Google
+  upstream providers create a repeated account-picker consent chain during
+  first-time auth. Honeydew and Linear are active and intentionally chain after
+  Gmail during first-time client auth. Homey needs ToolHive support for its
+  OAuth `form_post` and `client_secret_basic` requirements. Outline is pending
+  until its Dynamic Client Registration rate limit clears or a stable OAuth
+  client registration is configured.
 
 After the ConfigMap is reconciled, authorize ToolHive from Hermes on first use.
 Hermes persists MCP OAuth tokens on the `hermes-data` PVC and reuses them

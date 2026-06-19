@@ -64,12 +64,10 @@ clients can share the same governed endpoint:
   `https://docs.mcnees.me/mcp`, but is currently in
   `MCPGroup/pending-agent-tools`.
 - `MCPServerEntry/honeydew` points to Honeydew at
-  `https://mcp.honeydewdone.app`, but is currently in
-  `MCPGroup/pending-agent-tools`.
+  `https://mcp.honeydewdone.app`.
 - `MCPServerEntry/homey` points to Homey at `https://mcp.athom.com`.
 - `MCPServerEntry/linear` points to Linear at
-  `https://mcp.linear.app/mcp`, but is currently in
-  `MCPGroup/pending-agent-tools`.
+  `https://mcp.linear.app/mcp`.
 - `MCPExternalAuthConfig/gmail-google-upstream-token` injects the Google
   upstream token for the personal Gmail backend.
 - `MCPExternalAuthConfig/gmail-develop-for-good-google-upstream-token`,
@@ -91,11 +89,10 @@ clients can share the same governed endpoint:
   ToolHive signing/HMAC material. It is managed by
   `gmail-mcp-secret.sops.yaml`.
 
-Honeydew, Linear, Homey, Outline, and the additional Gmail accounts are cataloged as
+Homey, Outline, and the additional Gmail accounts are cataloged as
 `MCPServerEntry` resources, but they are not active in the virtual server yet.
-Honeydew and Linear are pending because ToolHive currently chains auth for every
-active upstream provider during first-time client auth; keep them out of the
-active auth server until that behavior is desired or can be scoped per backend.
+Honeydew and Linear are active and intentionally chain after Gmail during
+first-time client auth.
 Homey's OAuth metadata currently advertises a `form_post` response mode and
 `client_secret_basic` token authentication; the current ToolHive upstream OAuth
 path does not model that combination cleanly. Outline is pending because
