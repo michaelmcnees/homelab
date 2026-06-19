@@ -102,7 +102,7 @@ metadata:
 spec:
   groupRef:
     name: agent-tools
-  remoteUrl: https://gmailmcp.googleapis.com/mcp/v1
+  remoteUrl: http://gmail-rest-mcp.toolhive-system.svc.cluster.local:8080/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
     name: gmail-google-upstream-token
@@ -115,7 +115,7 @@ metadata:
 spec:
   groupRef:
     name: pending-agent-tools
-  remoteUrl: https://gmailmcp.googleapis.com/mcp/v1
+  remoteUrl: http://gmail-rest-mcp.toolhive-system.svc.cluster.local:8080/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
     name: gmail-develop-for-good-google-upstream-token
@@ -128,7 +128,7 @@ metadata:
 spec:
   groupRef:
     name: pending-agent-tools
-  remoteUrl: https://gmailmcp.googleapis.com/mcp/v1
+  remoteUrl: http://gmail-rest-mcp.toolhive-system.svc.cluster.local:8080/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
     name: gmail-hoa-google-upstream-token
@@ -141,7 +141,7 @@ metadata:
 spec:
   groupRef:
     name: pending-agent-tools
-  remoteUrl: https://gmailmcp.googleapis.com/mcp/v1
+  remoteUrl: http://gmail-rest-mcp.toolhive-system.svc.cluster.local:8080/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
     name: gmail-craft-export-google-upstream-token
@@ -282,7 +282,6 @@ spec:
             - https://www.googleapis.com/auth/gmail.labels
           additionalAuthorizationParams:
             access_type: offline
-            resource: https://gmailmcp.googleapis.com/mcp/v1
       - name: honeydew
         type: oauth2
         oauth2Config:

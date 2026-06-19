@@ -1,0 +1,314 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gmail-rest-mcp
+  namespace: toolhive-system
+data:
+  server.py: |
+    import base64
+    import json
+    import os
+    import urllib.parse
+    import urllib.request
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me"
+
+    def json_response(handler, status, payload):
+        body = json.dumps(payload, separators=(",", ":")).encode()
+        handler.send_response(status)
+        handler.send_header("Content-Type", "application/json")
+        handler.send_header("Content-Length", str(len(body)))
+        handler.end_headers()
+        handler.wfile.write(body)
+
+    def mcp_result(request_id, result):
+        return {"jsonrpc": "2.0", "id": request_id, "result": result}
+
+    def mcp_error_text(text):
+        return {
+            "content": [{"type": "text", "text": text}],
+            "structuredContent": {"text": text},
+            "isError": True,
+        }
+
+    def bearer(headers):
+        value = headers.get("Authorization", "")
+        if value.lower().startswith("bearer "):
+            return value[7:].strip()
+        return ""
+
+    def gmail(token, path, params=None, method="GET", body=None):
+        url = GMAIL_API + path
+        if params:
+            query = urllib.parse.urlencode({k: v for k, v in params.items() if v not in (None, "")})
+            if query:
+                url += "?" + query
+        data = json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(url, data=data, method=method)
+        req.add_header("Authorization", "Bearer " + token)
+        req.add_header("Accept", "application/json")
+        if body is not None:
+            req.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode() or "{}")
+
+    def header_map(message):
+        headers = message.get("payload", {}).get("headers", [])
+        return {h.get("name", "").lower(): h.get("value", "") for h in headers}
+
+    def decode_part_body(part):
+        data = part.get("body", {}).get("data")
+        if not data:
+            return ""
+        padding = "=" * (-len(data) % 4)
+        return base64.urlsafe_b64decode(data + padding).decode("utf-8", "replace")
+
+    def collect_bodies(part):
+        plain = []
+        html = []
+        stack = [part]
+        while stack:
+            current = stack.pop()
+            mime = current.get("mimeType", "")
+            if mime == "text/plain":
+                plain.append(decode_part_body(current))
+            elif mime == "text/html":
+                html.append(decode_part_body(current))
+            stack.extend(current.get("parts", []))
+        return "\n".join(filter(None, plain)), "\n".join(filter(None, html))
+
+    def message_summary(message, include_body=False):
+        headers = header_map(message)
+        result = {
+            "id": message.get("id", ""),
+            "threadId": message.get("threadId", ""),
+            "labelIds": message.get("labelIds", []),
+            "snippet": message.get("snippet", ""),
+            "subject": headers.get("subject", ""),
+            "sender": headers.get("from", ""),
+            "toRecipients": [headers.get("to", "")] if headers.get("to") else [],
+            "ccRecipients": [headers.get("cc", "")] if headers.get("cc") else [],
+            "date": headers.get("date", ""),
+        }
+        if include_body:
+            plain, html = collect_bodies(message.get("payload", {}))
+            result["plaintextBody"] = plain
+            result["htmlBody"] = html
+            result["attachmentIds"] = []
+            result["attachments"] = []
+        return result
+
+    def list_labels(token, args):
+        labels = gmail(token, "/labels", {"pageToken": args.get("pageToken")}).get("labels", [])
+        labels = [
+            {
+                "labelId": label.get("id", ""),
+                "name": label.get("name", ""),
+                "type": label.get("type", ""),
+                "threadsTotal": label.get("threadsTotal", 0),
+                "threadsUnread": label.get("threadsUnread", 0),
+            }
+            for label in labels
+        ]
+        page_size = args.get("pageSize")
+        if isinstance(page_size, int) and page_size > 0:
+            labels = labels[:page_size]
+        return {"labels": labels}
+
+    def search_threads(token, args):
+        page_size = min(int(args.get("pageSize") or 20), 50)
+        listed = gmail(token, "/threads", {
+            "q": args.get("query", ""),
+            "maxResults": page_size,
+            "pageToken": args.get("pageToken", ""),
+            "includeSpamTrash": bool(args.get("includeTrash", False)),
+        })
+        threads = []
+        for item in listed.get("threads", []):
+            thread = gmail(token, "/threads/" + urllib.parse.quote(item["id"]), {
+                "format": "metadata",
+                "metadataHeaders": ["Subject", "From", "To", "Cc", "Date"],
+            })
+            threads.append({
+                "id": thread.get("id", item["id"]),
+                "messages": [message_summary(m) for m in thread.get("messages", [])],
+            })
+        return {
+            "threads": threads,
+            "nextPageToken": listed.get("nextPageToken", ""),
+            "resultCountEstimate": str(listed.get("resultSizeEstimate", 0)),
+        }
+
+    def get_thread(token, args):
+        thread_id = args.get("threadId")
+        if not thread_id:
+            return mcp_error_text("threadId is required")
+        fmt = args.get("messageFormat", "FULL_CONTENT")
+        full = fmt in ("FULL_CONTENT", "MESSAGE_FORMAT_UNSPECIFIED", "")
+        api_format = "full" if full else "metadata"
+        params = {"format": api_format}
+        if not full:
+            params["metadataHeaders"] = ["Subject", "From", "To", "Cc", "Date"]
+        thread = gmail(token, "/threads/" + urllib.parse.quote(thread_id), params)
+        return {
+            "id": thread.get("id", thread_id),
+            "messages": [message_summary(m, include_body=full) for m in thread.get("messages", [])],
+        }
+
+    TOOLS = [
+        {
+            "name": "list_labels",
+            "description": "Lists Gmail labels from the authenticated user's account.",
+            "annotations": {"title": "Lists Gmail labels.", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"pageSize": {"type": "integer"}, "pageToken": {"type": "string"}}, "required": []},
+        },
+        {
+            "name": "search_threads",
+            "description": "Searches Gmail threads from the authenticated user's account using Gmail search syntax.",
+            "annotations": {"title": "Searches Gmail threads.", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}, "pageSize": {"type": "integer"}, "pageToken": {"type": "string"}, "includeTrash": {"type": "boolean"}}, "required": []},
+        },
+        {
+            "name": "get_thread",
+            "description": "Retrieves a Gmail thread by ID from the authenticated user's account.",
+            "annotations": {"title": "Gets a Gmail thread.", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"threadId": {"type": "string"}, "messageFormat": {"type": "string", "enum": ["MESSAGE_FORMAT_UNSPECIFIED", "MINIMAL", "FULL_CONTENT", "METADATA_ONLY"]}}, "required": ["threadId"]},
+        },
+    ]
+
+    DISPATCH = {
+        "list_labels": list_labels,
+        "search_threads": search_threads,
+        "get_thread": get_thread,
+    }
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            length = int(self.headers.get("Content-Length", "0"))
+            request = json.loads(self.rfile.read(length).decode() or "{}")
+            method = request.get("method")
+            request_id = request.get("id")
+            try:
+                if method == "initialize":
+                    json_response(self, 200, mcp_result(request_id, {
+                        "protocolVersion": request.get("params", {}).get("protocolVersion", "2025-03-26"),
+                        "capabilities": {"tools": {"listChanged": False}},
+                        "serverInfo": {"name": "gmail-rest-mcp", "version": "1.0.0"},
+                    }))
+                    return
+                if method == "notifications/initialized":
+                    json_response(self, 202, {})
+                    return
+                if method == "tools/list":
+                    json_response(self, 200, mcp_result(request_id, {"tools": TOOLS}))
+                    return
+                if method == "tools/call":
+                    token = bearer(self.headers)
+                    if not token:
+                        json_response(self, 200, mcp_result(request_id, mcp_error_text("Missing bearer token")))
+                        return
+                    params = request.get("params", {})
+                    name = params.get("name", "")
+                    args = params.get("arguments", {}) or {}
+                    if name not in DISPATCH:
+                        json_response(self, 200, mcp_result(request_id, mcp_error_text("Unknown tool: " + name)))
+                        return
+                    result = DISPATCH[name](token, args)
+                    if result.get("isError"):
+                        json_response(self, 200, mcp_result(request_id, result))
+                    else:
+                        json_response(self, 200, mcp_result(request_id, {"structuredContent": result, "content": [{"type": "text", "text": json.dumps(result)}]}))
+                    return
+                json_response(self, 404, {"jsonrpc": "2.0", "id": request_id, "error": {"code": -32601, "message": "Method not found"}})
+            except Exception as exc:
+                json_response(self, 200, mcp_result(request_id, mcp_error_text(str(exc))))
+
+        def log_message(self, fmt, *args):
+            print(fmt % args, flush=True)
+
+    if __name__ == "__main__":
+        port = int(os.environ.get("PORT", "8080"))
+        ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gmail-rest-mcp
+  namespace: toolhive-system
+  labels:
+    app.kubernetes.io/name: gmail-rest-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gmail-rest-mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gmail-rest-mcp
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gmail-rest-mcp
+          image: python:3.13-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - /app/server.py
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: app
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: app
+          configMap:
+            name: gmail-rest-mcp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gmail-rest-mcp
+  namespace: toolhive-system
+  labels:
+    app.kubernetes.io/name: gmail-rest-mcp
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: gmail-rest-mcp
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
