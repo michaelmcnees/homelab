@@ -282,7 +282,6 @@ spec:
             - https://www.googleapis.com/auth/gmail.labels
           additionalAuthorizationParams:
             access_type: offline
-            prompt: consent
       - name: honeydew
         type: oauth2
         oauth2Config:
