@@ -14,4 +14,7 @@ data:
       toolhive:
         url: https://toolhive.home.mcnees.me/mcp
         auth: oauth
+        oauth:
+          redirect_port: 47035
+          timeout: 300
         enabled: true

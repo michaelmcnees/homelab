@@ -141,3 +141,6 @@ Hermes' current mail setup has two separate paths:
 - Hermes MCP uses ToolHive's shared virtual MCP endpoint, which performs the
   upstream Google OAuth hop for each Gmail backend and aggregates the other
   authenticated personal MCP backends.
+- Hermes registers its own MCP client callback as
+  `http://127.0.0.1:47035/callback`; keep a matching `kubectl port-forward`
+  open during first-time `hermes mcp login toolhive`.

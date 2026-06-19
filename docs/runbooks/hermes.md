@@ -115,6 +115,7 @@ Hermes is configured with a single remote HTTP MCP server named `toolhive`.
 
 - Endpoint: `https://toolhive.home.mcnees.me/mcp`
 - Auth: OAuth
+- Hermes callback: `http://127.0.0.1:47035/callback`
 - Active backends: Gmail personal, Gmail Develop for Good, Gmail HOA, Gmail
   Craft Export, Honeydew, Linear, and future personal MCP backends
   aggregated by ToolHive
@@ -126,7 +127,8 @@ Hermes is configured with a single remote HTTP MCP server named `toolhive`.
 
 After the ConfigMap is reconciled, authorize ToolHive from Hermes on first use.
 Hermes persists MCP OAuth tokens on the `hermes-data` PVC and reuses them
-across restarts.
+across restarts. The callback server runs inside the Hermes pod, so keep a
+port-forward open while completing browser authorization from a workstation.
 
 Reload MCP servers from inside Hermes after config changes:
 
@@ -137,10 +139,18 @@ Reload MCP servers from inside Hermes after config changes:
 First-time ToolHive authorization:
 
 ```sh
+kubectl --kubeconfig talos/kubeconfig -n apps port-forward deployment/hermes 47035:47035
+```
+
+In a second terminal:
+
+```sh
 kubectl --kubeconfig talos/kubeconfig -n apps exec -it deployment/hermes -- sh -lc 'su hermes -s /bin/sh -c "export HOME=/opt/data/home PATH=/opt/hermes/.venv/bin:/opt/data/home/.local/bin:/opt/data/.local/bin:\$PATH; hermes mcp login toolhive"'
 ```
 
-Open the printed OAuth URL and complete the flow, then verify:
+Open the printed OAuth URL and complete the Google flow. The final redirect to
+`http://127.0.0.1:47035/callback` is delivered through the port-forward into
+the Hermes pod. Then verify:
 
 ```sh
 kubectl --kubeconfig talos/kubeconfig -n apps exec deployment/hermes -- sh -lc 'su hermes -s /bin/sh -c "export HOME=/opt/data/home PATH=/opt/hermes/.venv/bin:/opt/data/home/.local/bin:/opt/data/.local/bin:\$PATH; hermes mcp test toolhive"'
@@ -166,11 +176,11 @@ Google Cloud project to allow the ToolHive callback
 `https://toolhive.home.mcnees.me/oauth/callback`, then rerun
 `hermes mcp login toolhive`.
 
-Hermes' MCP OAuth client currently registers its own callback as
-`http://127.0.0.1:<port>/callback` and binds that listener inside the Hermes
-pod. That loopback callback is separate from ToolHive's upstream provider
-callback. Until Hermes supports a public callback URL or device-code MCP auth,
-first-time Hermes-to-ToolHive login can still require a `kubectl port-forward`.
+Hermes' MCP OAuth client registers its own callback as
+`http://127.0.0.1:47035/callback` and binds that listener inside the Hermes pod.
+That loopback callback is separate from ToolHive's upstream provider callback.
+Until Hermes supports a public callback URL or device-code MCP auth, first-time
+Hermes-to-ToolHive login requires the `kubectl port-forward` above.
 ToolHive itself stores OAuth server state in `toolhive-auth-valkey`, so VMCP pod
 restarts should not invalidate Hermes' dynamically registered ToolHive client.
 
