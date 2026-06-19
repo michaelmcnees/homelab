@@ -73,7 +73,9 @@ clients can share the same governed endpoint:
 - `MCPExternalAuthConfig/gmail-develop-for-good-google-upstream-token`,
   `MCPExternalAuthConfig/gmail-hoa-google-upstream-token`, and
   `MCPExternalAuthConfig/gmail-craft-export-google-upstream-token` inject the
-  matching Google upstream token for the additional Gmail backends.
+  matching Google upstream token for the additional Gmail backends, but their
+  matching Google upstream providers are not listed in the active
+  `VirtualMCPServer/agent-tools` auth server while those backends are pending.
 - `MCPExternalAuthConfig/outline-upstream-token`,
   `MCPExternalAuthConfig/honeydew-upstream-token`, and
   `MCPExternalAuthConfig/linear-upstream-token` inject the matching upstream
@@ -95,10 +97,12 @@ path does not model that combination cleanly. Outline is pending because
 repeated Dynamic Client Registration attempts hit Outline's rate limit during
 VMCP startup; re-enable it after using a stable OAuth client registration or
 after the rate limit clears. The additional Gmail accounts are pending because
-multiple Google upstream providers can create a repeated consent chain during
-first-time client auth. Google upstream auth intentionally uses
-`prompt=consent`, not `prompt=consent select_account`, so a single active Gmail
-provider does not force account selection on every authorization hop.
+multiple active Google upstream providers can create a repeated consent chain
+during first-time client auth. Keep only the personal `google` upstream
+provider in `VirtualMCPServer/agent-tools` until multi-account Gmail auth is
+reintroduced intentionally. Google upstream auth intentionally uses
+`prompt=consent`, not `prompt=consent select_account`, so a single active
+Gmail provider does not force account selection on every authorization hop.
 
 The Google OAuth client used by ToolHive must allow this redirect URI:
 
