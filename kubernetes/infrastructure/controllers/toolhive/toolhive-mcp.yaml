@@ -67,6 +67,16 @@ spec:
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig
 metadata:
+  name: homey-upstream-token
+  namespace: toolhive-system
+spec:
+  type: upstreamInject
+  upstreamInject:
+    providerName: homey
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPExternalAuthConfig
+metadata:
   name: honeydew-upstream-token
   namespace: toolhive-system
 spec:
@@ -143,7 +153,7 @@ metadata:
   namespace: toolhive-system
 spec:
   groupRef:
-    name: pending-agent-tools
+    name: agent-tools
   remoteUrl: https://docs.mcnees.me/mcp
   transport: streamable-http
   externalAuthConfigRef:
@@ -169,9 +179,11 @@ metadata:
   namespace: toolhive-system
 spec:
   groupRef:
-    name: pending-agent-tools
+    name: agent-tools
   remoteUrl: https://mcp.athom.com
   transport: streamable-http
+  externalAuthConfigRef:
+    name: homey-upstream-token
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
@@ -296,6 +308,27 @@ spec:
             - write
           dcrConfig:
             discoveryUrl: https://mcp.linear.app/.well-known/oauth-authorization-server
+      - name: outline
+        type: oauth2
+        oauth2Config:
+          authorizationEndpoint: https://docs.mcnees.me/oauth/authorize
+          tokenEndpoint: https://docs.mcnees.me/oauth/token
+          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
+          scopes:
+            - read
+            - write
+          dcrConfig:
+            discoveryUrl: https://docs.mcnees.me/.well-known/oauth-authorization-server
+      - name: homey
+        type: oauth2
+        oauth2Config:
+          authorizationEndpoint: https://mcp.athom.com/oauth2/authorise
+          tokenEndpoint: https://mcp.athom.com/oauth2/token
+          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
+          additionalAuthorizationParams:
+            response_mode: form_post
+          dcrConfig:
+            discoveryUrl: https://mcp.athom.com/.well-known/oauth-authorization-server
   outgoingAuth:
     source: discovered
 ---

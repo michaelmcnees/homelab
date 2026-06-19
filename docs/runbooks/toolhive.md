@@ -61,8 +61,7 @@ clients can share the same governed endpoint:
   - `MCPServerEntry/gmail-craft-export` is the Craft Export account,
     currently in `MCPGroup/pending-agent-tools`.
 - `MCPServerEntry/outline` points to Outline at
-  `https://docs.mcnees.me/mcp`, but is currently in
-  `MCPGroup/pending-agent-tools`.
+  `https://docs.mcnees.me/mcp`.
 - `MCPServerEntry/honeydew` points to Honeydew at
   `https://mcp.honeydewdone.app`.
 - `MCPServerEntry/homey` points to Homey at `https://mcp.athom.com`.
@@ -77,6 +76,7 @@ clients can share the same governed endpoint:
   matching Google upstream providers are not listed in the active
   `VirtualMCPServer/agent-tools` auth server while those backends are pending.
 - `MCPExternalAuthConfig/outline-upstream-token`,
+  `MCPExternalAuthConfig/homey-upstream-token`,
   `MCPExternalAuthConfig/honeydew-upstream-token`, and
   `MCPExternalAuthConfig/linear-upstream-token` inject the matching upstream
   OAuth token for those backends.
@@ -89,16 +89,14 @@ clients can share the same governed endpoint:
   ToolHive signing/HMAC material. It is managed by
   `gmail-mcp-secret.sops.yaml`.
 
-Homey, Outline, and the additional Gmail accounts are cataloged as
+The additional Gmail accounts are cataloged as
 `MCPServerEntry` resources, but they are not active in the virtual server yet.
 Honeydew and Linear are active and intentionally chain after Gmail during
-first-time client auth.
-Homey's OAuth metadata currently advertises a `form_post` response mode and
-`client_secret_basic` token authentication; the current ToolHive upstream OAuth
-path does not model that combination cleanly. Outline is pending because
-repeated Dynamic Client Registration attempts hit Outline's rate limit during
-VMCP startup; re-enable it after using a stable OAuth client registration or
-after the rate limit clears. The additional Gmail accounts are pending because
+first-time client auth. Outline and Homey are active in the same chain. Homey
+is experimental because its OAuth metadata only advertises a `form_post`
+response mode and `client_secret_basic` token authentication; ToolHive has no
+explicit token endpoint auth method field, so token exchange may still fail.
+The additional Gmail accounts are pending because
 multiple active Google upstream providers can create a repeated consent chain
 during first-time client auth. Keep only the personal `google` upstream
 provider in `VirtualMCPServer/agent-tools` until multi-account Gmail auth is
