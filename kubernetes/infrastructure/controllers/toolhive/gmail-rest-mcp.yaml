@@ -41,7 +41,10 @@ data:
     def gmail(token, path, params=None, method="GET", body=None):
         url = GMAIL_API + path
         if params:
-            query = urllib.parse.urlencode({k: v for k, v in params.items() if v not in (None, "")})
+            query = urllib.parse.urlencode(
+                {k: v for k, v in params.items() if v not in (None, "")},
+                doseq=True,
+            )
             if query:
                 url += "?" + query
         data = json.dumps(body).encode() if body is not None else None
