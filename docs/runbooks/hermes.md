@@ -14,10 +14,11 @@ Hermes is deployed as an experimental in-cluster agent at `https://hermes.home.m
 - Default provider: `openai-codex`
 - Default model: `gpt-5.5`
 - MCP servers:
-  - ToolHive at `https://toolhive.home.mcnees.me/mcp`, aggregating Gmail,
-    Honeydew, Linear, and future compatible personal MCP backends
-  - Homey and Outline are cataloged in ToolHive but remain pending until their
-    OAuth flows are reliable through ToolHive upstream auth.
+  - ToolHive at `https://toolhive.home.mcnees.me/mcp`, currently aggregating
+    the personal Gmail backend
+  - Honeydew, Linear, Homey, Outline, and additional Gmail accounts are
+    cataloged in ToolHive but remain pending until their OAuth flows are
+    intentionally re-enabled through ToolHive upstream auth.
 
 The Hermes Docker docs warn against exposing the dashboard directly. Keep it on the internal Traefik entrypoint and oauth-protected unless we intentionally design a safer public gateway. The pod still runs the dashboard with Hermes' `--insecure` flag internally, so `NetworkPolicy/hermes-ingress` restricts dashboard ingress to Traefik.
 
@@ -116,16 +117,17 @@ Hermes is configured with a single remote HTTP MCP server named `toolhive`.
 - Endpoint: `https://toolhive.home.mcnees.me/mcp`
 - Auth: OAuth
 - Hermes callback: `http://127.0.0.1:47035/callback`
-- Active backends: Gmail personal, Honeydew, Linear, and future personal MCP
-  backends aggregated by ToolHive
+- Active backends: Gmail personal
 - Pending backends: Gmail Develop for Good, Gmail HOA, Gmail Craft Export,
-  Homey, and Outline are cataloged in ToolHive, but remain direct-client
-  fallbacks. The additional Gmail accounts are pending because multiple Google
-  upstream providers create a repeated account-picker consent chain during
-  first-time auth. Homey needs ToolHive support for its OAuth `form_post` and
-  `client_secret_basic` requirements. Outline is pending until its Dynamic
-  Client Registration rate limit clears or a stable OAuth client registration
-  is configured.
+  Honeydew, Linear, Homey, and Outline are cataloged in ToolHive, but remain
+  direct-client fallbacks. The additional Gmail accounts are pending because
+  multiple Google upstream providers create a repeated account-picker consent
+  chain during first-time auth. Honeydew and Linear are pending because
+  ToolHive currently chains auth for every active upstream provider during
+  first-time client auth. Homey needs ToolHive support for its OAuth
+  `form_post` and `client_secret_basic` requirements. Outline is pending until
+  its Dynamic Client Registration rate limit clears or a stable OAuth client
+  registration is configured.
 
 After the ConfigMap is reconciled, authorize ToolHive from Hermes on first use.
 Hermes persists MCP OAuth tokens on the `hermes-data` PVC and reuses them

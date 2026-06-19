@@ -64,10 +64,12 @@ clients can share the same governed endpoint:
   `https://docs.mcnees.me/mcp`, but is currently in
   `MCPGroup/pending-agent-tools`.
 - `MCPServerEntry/honeydew` points to Honeydew at
-  `https://mcp.honeydewdone.app`.
+  `https://mcp.honeydewdone.app`, but is currently in
+  `MCPGroup/pending-agent-tools`.
 - `MCPServerEntry/homey` points to Homey at `https://mcp.athom.com`.
 - `MCPServerEntry/linear` points to Linear at
-  `https://mcp.linear.app/mcp`.
+  `https://mcp.linear.app/mcp`, but is currently in
+  `MCPGroup/pending-agent-tools`.
 - `MCPExternalAuthConfig/gmail-google-upstream-token` injects the Google
   upstream token for the personal Gmail backend.
 - `MCPExternalAuthConfig/gmail-develop-for-good-google-upstream-token`,
@@ -89,8 +91,11 @@ clients can share the same governed endpoint:
   ToolHive signing/HMAC material. It is managed by
   `gmail-mcp-secret.sops.yaml`.
 
-Homey, Outline, and the additional Gmail accounts are cataloged as
+Honeydew, Linear, Homey, Outline, and the additional Gmail accounts are cataloged as
 `MCPServerEntry` resources, but they are not active in the virtual server yet.
+Honeydew and Linear are pending because ToolHive currently chains auth for every
+active upstream provider during first-time client auth; keep them out of the
+active auth server until that behavior is desired or can be scoped per backend.
 Homey's OAuth metadata currently advertises a `form_post` response mode and
 `client_secret_basic` token authentication; the current ToolHive upstream OAuth
 path does not model that combination cleanly. Outline is pending because
@@ -143,9 +148,9 @@ Google Cloud "Web application" OAuth client with that redirect URI, then update
 Hermes, Codex, Claude, and similar MCP clients should connect only to
 `https://toolhive.home.mcnees.me/mcp`.
 
-Avoid direct client MCP entries for Gmail, Honeydew, or Linear unless
-temporarily debugging outside ToolHive. Homey and Outline are still
-direct-client fallbacks until ToolHive can authenticate them reliably.
+Avoid direct client MCP entries for Gmail unless temporarily debugging outside
+ToolHive. Honeydew, Linear, Homey, and Outline are still direct-client
+fallbacks until ToolHive can authenticate them reliably.
 
 Hermes' current mail setup has two separate paths:
 

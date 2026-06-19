@@ -156,7 +156,7 @@ metadata:
   namespace: toolhive-system
 spec:
   groupRef:
-    name: agent-tools
+    name: pending-agent-tools
   remoteUrl: https://mcp.honeydewdone.app
   transport: streamable-http
   externalAuthConfigRef:
@@ -180,7 +180,7 @@ metadata:
   namespace: toolhive-system
 spec:
   groupRef:
-    name: agent-tools
+    name: pending-agent-tools
   remoteUrl: https://mcp.linear.app/mcp
   transport: streamable-http
   externalAuthConfigRef:
@@ -271,32 +271,6 @@ spec:
           additionalAuthorizationParams:
             access_type: offline
             prompt: consent
-      - name: honeydew
-        type: oauth2
-        oauth2Config:
-          authorizationEndpoint: https://api.honeydewdone.app/api/auth/oauth2/authorize
-          tokenEndpoint: https://api.honeydewdone.app/api/auth/oauth2/token
-          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
-          scopes:
-            - openid
-            - profile
-            - email
-            - offline_access
-          userInfo:
-            endpointUrl: https://api.honeydewdone.app/api/auth/oauth2/userinfo
-          dcrConfig:
-            discoveryUrl: https://api.honeydewdone.app/.well-known/oauth-authorization-server/api/auth
-      - name: linear
-        type: oauth2
-        oauth2Config:
-          authorizationEndpoint: https://mcp.linear.app/authorize
-          tokenEndpoint: https://mcp.linear.app/token
-          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
-          scopes:
-            - read
-            - write
-          dcrConfig:
-            discoveryUrl: https://mcp.linear.app/.well-known/oauth-authorization-server
   outgoingAuth:
     source: discovered
 ---
