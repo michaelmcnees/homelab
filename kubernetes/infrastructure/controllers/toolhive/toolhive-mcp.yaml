@@ -270,7 +270,6 @@ spec:
             - https://www.googleapis.com/auth/gmail.labels
           additionalAuthorizationParams:
             access_type: offline
-            prompt: consent
   outgoingAuth:
     source: discovered
 ---

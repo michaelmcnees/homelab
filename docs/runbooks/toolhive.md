@@ -105,9 +105,9 @@ after the rate limit clears. The additional Gmail accounts are pending because
 multiple active Google upstream providers can create a repeated consent chain
 during first-time client auth. Keep only the personal `google` upstream
 provider in `VirtualMCPServer/agent-tools` until multi-account Gmail auth is
-reintroduced intentionally. Google upstream auth intentionally uses
-`prompt=consent`, not `prompt=consent select_account`, so a single active
-Gmail provider does not force account selection on every authorization hop.
+reintroduced intentionally. Google upstream auth intentionally does not set a
+`prompt` override, so a single active Gmail provider does not force account
+selection or a fresh consent screen on every authorization hop.
 
 The Google OAuth client used by ToolHive must allow this redirect URI:
 
