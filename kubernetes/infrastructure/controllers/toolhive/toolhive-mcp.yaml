@@ -282,6 +282,7 @@ spec:
             - https://www.googleapis.com/auth/gmail.labels
           additionalAuthorizationParams:
             access_type: offline
+            resource: https://gmailmcp.googleapis.com/mcp/v1
       - name: honeydew
         type: oauth2
         oauth2Config:
