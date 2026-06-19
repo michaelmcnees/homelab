@@ -153,7 +153,7 @@ metadata:
   namespace: toolhive-system
 spec:
   groupRef:
-    name: agent-tools
+    name: pending-agent-tools
   remoteUrl: https://docs.mcnees.me/mcp
   transport: streamable-http
   externalAuthConfigRef:
@@ -308,17 +308,6 @@ spec:
             - write
           dcrConfig:
             discoveryUrl: https://mcp.linear.app/.well-known/oauth-authorization-server
-      - name: outline
-        type: oauth2
-        oauth2Config:
-          authorizationEndpoint: https://docs.mcnees.me/oauth/authorize
-          tokenEndpoint: https://docs.mcnees.me/oauth/token
-          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
-          scopes:
-            - read
-            - write
-          dcrConfig:
-            discoveryUrl: https://docs.mcnees.me/.well-known/oauth-authorization-server
       - name: homey
         type: oauth2
         oauth2Config:
