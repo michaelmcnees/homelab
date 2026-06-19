@@ -280,6 +280,10 @@ spec:
             - https://www.googleapis.com/auth/gmail.compose
             - https://www.googleapis.com/auth/gmail.modify
             - https://www.googleapis.com/auth/gmail.labels
+            - https://www.googleapis.com/auth/calendar.events
+            - https://www.googleapis.com/auth/calendar.freebusy
+            - https://www.googleapis.com/auth/calendar.calendarlist.readonly
+            - https://www.googleapis.com/auth/drive
           additionalAuthorizationParams:
             access_type: offline
       - name: honeydew

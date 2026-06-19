@@ -10,8 +10,13 @@ data:
     import os
     import urllib.parse
     import urllib.request
+    from email.message import EmailMessage
+    from email.utils import formatdate
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+    CALENDAR_API = "https://www.googleapis.com/calendar/v3"
+    DRIVE_API = "https://www.googleapis.com/drive/v3"
+    DRIVE_UPLOAD_API = "https://www.googleapis.com/upload/drive/v3"
     GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me"
 
     def json_response(handler, status, payload):
@@ -38,8 +43,8 @@ data:
             return value[7:].strip()
         return ""
 
-    def gmail(token, path, params=None, method="GET", body=None):
-        url = GMAIL_API + path
+    def api_json(token, base, path, params=None, method="GET", body=None):
+        url = base + path
         if params:
             query = urllib.parse.urlencode(
                 {k: v for k, v in params.items() if v not in (None, "")},
@@ -55,6 +60,48 @@ data:
             req.add_header("Content-Type", "application/json")
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read().decode() or "{}")
+
+    def api_bytes(token, base, path, params=None, method="GET"):
+        url = base + path
+        if params:
+            query = urllib.parse.urlencode(
+                {k: v for k, v in params.items() if v not in (None, "")},
+                doseq=True,
+            )
+            if query:
+                url += "?" + query
+        req = urllib.request.Request(url, method=method)
+        req.add_header("Authorization", "Bearer " + token)
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.headers, resp.read()
+
+    def multipart_json(token, base, path, metadata, content, mime_type, method="POST"):
+        boundary = "toolhive-google-rest-mcp"
+        metadata_part = json.dumps(metadata, separators=(",", ":")).encode()
+        if content is None:
+            return api_json(token, base, path, method=method, body=metadata)
+        content_bytes = content_bytes_from_args(content)
+        body = b"".join([
+            b"--" + boundary.encode() + b"\r\n",
+            b"Content-Type: application/json; charset=UTF-8\r\n\r\n",
+            metadata_part,
+            b"\r\n--" + boundary.encode() + b"\r\n",
+            ("Content-Type: " + mime_type + "\r\n\r\n").encode(),
+            content_bytes,
+            b"\r\n--" + boundary.encode() + b"--\r\n",
+        ])
+        req = urllib.request.Request(base + path, data=body, method=method)
+        req.add_header("Authorization", "Bearer " + token)
+        req.add_header("Accept", "application/json")
+        req.add_header("Content-Type", "multipart/related; boundary=" + boundary)
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode() or "{}")
+
+    def gmail(token, path, params=None, method="GET", body=None):
+        return api_json(token, GMAIL_API, path, params=params, method=method, body=body)
+
+    def quote_path(value):
+        return urllib.parse.quote(str(value), safe="")
 
     def header_map(message):
         headers = message.get("payload", {}).get("headers", [])
@@ -101,6 +148,38 @@ data:
             result["attachmentIds"] = []
             result["attachments"] = []
         return result
+
+    def content_bytes_from_args(args):
+        if isinstance(args, dict) and args.get("contentBase64"):
+            data = args["contentBase64"]
+            padding = "=" * (-len(data) % 4)
+            return base64.b64decode(data + padding)
+        if isinstance(args, dict):
+            return (args.get("content") or "").encode()
+        return str(args).encode()
+
+    def encode_raw_message(args):
+        msg = EmailMessage()
+        msg["To"] = ", ".join(args.get("to", []))
+        if args.get("cc"):
+            msg["Cc"] = ", ".join(args.get("cc", []))
+        if args.get("bcc"):
+            msg["Bcc"] = ", ".join(args.get("bcc", []))
+        msg["Subject"] = args.get("subject", "")
+        msg["Date"] = formatdate(localtime=True)
+        if args.get("from"):
+            msg["From"] = args["from"]
+        body = args.get("body", "")
+        html_body = args.get("htmlBody")
+        if html_body:
+            msg.set_content(body or "")
+            msg.add_alternative(html_body, subtype="html")
+        else:
+            msg.set_content(body)
+        return base64.urlsafe_b64encode(msg.as_bytes()).decode().rstrip("=")
+
+    def draft_body(args):
+        return {"message": {"raw": encode_raw_message(args)}}
 
     def list_labels(token, args):
         labels = gmail(token, "/labels", {"pageToken": args.get("pageToken")}).get("labels", [])
@@ -159,6 +238,177 @@ data:
             "messages": [message_summary(m, include_body=full) for m in thread.get("messages", [])],
         }
 
+    def create_draft(token, args):
+        if not args.get("to"):
+            return mcp_error_text("to is required")
+        return gmail(token, "/drafts", method="POST", body=draft_body(args))
+
+    def update_draft(token, args):
+        draft_id = args.get("draftId")
+        if not draft_id:
+            return mcp_error_text("draftId is required")
+        return gmail(token, "/drafts/" + quote_path(draft_id), method="PUT", body=draft_body(args))
+
+    def send_draft(token, args):
+        draft_id = args.get("draftId")
+        if not draft_id:
+            return mcp_error_text("draftId is required")
+        return gmail(token, "/drafts/send", method="POST", body={"id": draft_id})
+
+    def delete_draft(token, args):
+        draft_id = args.get("draftId")
+        if not draft_id:
+            return mcp_error_text("draftId is required")
+        gmail(token, "/drafts/" + quote_path(draft_id), method="DELETE")
+        return {"draftId": draft_id, "deleted": True}
+
+    def archive_message(token, args):
+        message_id = args.get("messageId")
+        if not message_id:
+            return mcp_error_text("messageId is required")
+        return gmail(token, "/messages/" + quote_path(message_id) + "/modify", method="POST", body={"removeLabelIds": ["INBOX"]})
+
+    def archive_thread(token, args):
+        thread_id = args.get("threadId")
+        if not thread_id:
+            return mcp_error_text("threadId is required")
+        return gmail(token, "/threads/" + quote_path(thread_id) + "/modify", method="POST", body={"removeLabelIds": ["INBOX"]})
+
+    def list_calendars(token, args):
+        result = api_json(token, CALENDAR_API, "/users/me/calendarList", {
+            "maxResults": args.get("pageSize"),
+            "pageToken": args.get("pageToken"),
+            "showHidden": args.get("showHidden"),
+        })
+        return {"calendars": result.get("items", []), "nextPageToken": result.get("nextPageToken", "")}
+
+    def event_time(value, timezone=None):
+        if len(value) == 10 and value.count("-") == 2:
+            return {"date": value}
+        result = {"dateTime": value}
+        if timezone:
+            result["timeZone"] = timezone
+        return result
+
+    def calendar_event_body(args):
+        body = {
+            "summary": args.get("summary", ""),
+            "description": args.get("description", ""),
+            "location": args.get("location", ""),
+        }
+        if args.get("start"):
+            body["start"] = event_time(args["start"], args.get("timeZone"))
+        if args.get("end"):
+            body["end"] = event_time(args["end"], args.get("timeZone"))
+        if args.get("attendees"):
+            body["attendees"] = [{"email": email} for email in args.get("attendees", [])]
+        return {k: v for k, v in body.items() if v not in ("", [], None)}
+
+    def list_calendar_events(token, args):
+        calendar_id = args.get("calendarId", "primary")
+        result = api_json(token, CALENDAR_API, "/calendars/" + quote_path(calendar_id) + "/events", {
+            "q": args.get("query"),
+            "timeMin": args.get("timeMin"),
+            "timeMax": args.get("timeMax"),
+            "maxResults": args.get("pageSize", 20),
+            "pageToken": args.get("pageToken"),
+            "singleEvents": True,
+            "orderBy": "startTime",
+        })
+        return {"events": result.get("items", []), "nextPageToken": result.get("nextPageToken", "")}
+
+    def create_calendar_event(token, args):
+        calendar_id = args.get("calendarId", "primary")
+        if not args.get("summary"):
+            return mcp_error_text("summary is required")
+        if not args.get("start") or not args.get("end"):
+            return mcp_error_text("start and end are required")
+        return api_json(token, CALENDAR_API, "/calendars/" + quote_path(calendar_id) + "/events", method="POST", body=calendar_event_body(args))
+
+    def update_calendar_event(token, args):
+        calendar_id = args.get("calendarId", "primary")
+        event_id = args.get("eventId")
+        if not event_id:
+            return mcp_error_text("eventId is required")
+        return api_json(token, CALENDAR_API, "/calendars/" + quote_path(calendar_id) + "/events/" + quote_path(event_id), method="PATCH", body=calendar_event_body(args))
+
+    def delete_calendar_event(token, args):
+        calendar_id = args.get("calendarId", "primary")
+        event_id = args.get("eventId")
+        if not event_id:
+            return mcp_error_text("eventId is required")
+        api_json(token, CALENDAR_API, "/calendars/" + quote_path(calendar_id) + "/events/" + quote_path(event_id), method="DELETE")
+        return {"calendarId": calendar_id, "eventId": event_id, "deleted": True}
+
+    def check_calendar_freebusy(token, args):
+        calendars = args.get("calendarIds") or ["primary"]
+        if not args.get("timeMin") or not args.get("timeMax"):
+            return mcp_error_text("timeMin and timeMax are required")
+        body = {"timeMin": args["timeMin"], "timeMax": args["timeMax"], "items": [{"id": cal} for cal in calendars]}
+        if args.get("timeZone"):
+            body["timeZone"] = args["timeZone"]
+        return api_json(token, CALENDAR_API, "/freeBusy", method="POST", body=body)
+
+    def list_drive_files(token, args):
+        result = api_json(token, DRIVE_API, "/files", {
+            "q": args.get("query"),
+            "pageSize": args.get("pageSize", 20),
+            "pageToken": args.get("pageToken"),
+            "spaces": "drive",
+            "fields": args.get("fields", "nextPageToken,files(id,name,mimeType,modifiedTime,webViewLink,size)"),
+        })
+        return {"files": result.get("files", []), "nextPageToken": result.get("nextPageToken", "")}
+
+    def get_drive_file_metadata(token, args):
+        file_id = args.get("fileId")
+        if not file_id:
+            return mcp_error_text("fileId is required")
+        return api_json(token, DRIVE_API, "/files/" + quote_path(file_id), {"fields": args.get("fields", "*")})
+
+    def download_drive_file(token, args):
+        file_id = args.get("fileId")
+        if not file_id:
+            return mcp_error_text("fileId is required")
+        if args.get("exportMimeType"):
+            headers, data = api_bytes(token, DRIVE_API, "/files/" + quote_path(file_id) + "/export", {"mimeType": args["exportMimeType"]})
+        else:
+            headers, data = api_bytes(token, DRIVE_API, "/files/" + quote_path(file_id), {"alt": "media"})
+        result = {
+            "fileId": file_id,
+            "mimeType": headers.get("Content-Type", ""),
+            "contentBase64": base64.b64encode(data).decode(),
+        }
+        try:
+            result["text"] = data.decode("utf-8")
+        except UnicodeDecodeError:
+            pass
+        return result
+
+    def create_drive_file(token, args):
+        metadata = {"name": args.get("name", "Untitled")}
+        if args.get("mimeType"):
+            metadata["mimeType"] = args["mimeType"]
+        if args.get("parents"):
+            metadata["parents"] = args["parents"]
+        mime_type = args.get("contentMimeType", "text/plain")
+        return multipart_json(token, DRIVE_UPLOAD_API, "/files?uploadType=multipart&fields=id,name,mimeType,webViewLink", metadata, args, mime_type)
+
+    def update_drive_file(token, args):
+        file_id = args.get("fileId")
+        if not file_id:
+            return mcp_error_text("fileId is required")
+        metadata = {k: args[k] for k in ("name", "mimeType") if args.get(k)}
+        mime_type = args.get("contentMimeType", "text/plain")
+        content = args if args.get("content") or args.get("contentBase64") else None
+        return multipart_json(token, DRIVE_UPLOAD_API, "/files/" + quote_path(file_id) + "?uploadType=multipart&fields=id,name,mimeType,webViewLink", metadata, content, mime_type, method="PATCH")
+
+    def delete_drive_file(token, args):
+        file_id = args.get("fileId")
+        if not file_id:
+            return mcp_error_text("fileId is required")
+        api_json(token, DRIVE_API, "/files/" + quote_path(file_id), method="DELETE")
+        return {"fileId": file_id, "deleted": True}
+
     TOOLS = [
         {
             "name": "list_labels",
@@ -178,12 +428,138 @@ data:
             "annotations": {"title": "Gets a Gmail thread.", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
             "inputSchema": {"type": "object", "properties": {"threadId": {"type": "string"}, "messageFormat": {"type": "string", "enum": ["MESSAGE_FORMAT_UNSPECIFIED", "MINIMAL", "FULL_CONTENT", "METADATA_ONLY"]}}, "required": ["threadId"]},
         },
+        {
+            "name": "create_draft",
+            "description": "Creates a Gmail draft message.",
+            "annotations": {"title": "Creates a Gmail draft.", "readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
+            "inputSchema": {"type": "object", "properties": {"to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "subject": {"type": "string"}, "body": {"type": "string"}, "htmlBody": {"type": "string"}, "from": {"type": "string"}}, "required": ["to", "subject"]},
+        },
+        {
+            "name": "update_draft",
+            "description": "Updates an existing Gmail draft message.",
+            "annotations": {"title": "Updates a Gmail draft.", "readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
+            "inputSchema": {"type": "object", "properties": {"draftId": {"type": "string"}, "to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "subject": {"type": "string"}, "body": {"type": "string"}, "htmlBody": {"type": "string"}, "from": {"type": "string"}}, "required": ["draftId", "to", "subject"]},
+        },
+        {
+            "name": "send_draft",
+            "description": "Sends an existing Gmail draft.",
+            "annotations": {"title": "Sends a Gmail draft.", "readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
+            "inputSchema": {"type": "object", "properties": {"draftId": {"type": "string"}}, "required": ["draftId"]},
+        },
+        {
+            "name": "delete_draft",
+            "description": "Deletes an existing Gmail draft.",
+            "annotations": {"title": "Deletes a Gmail draft.", "readOnlyHint": False, "destructiveHint": True, "idempotentHint": False, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"draftId": {"type": "string"}}, "required": ["draftId"]},
+        },
+        {
+            "name": "archive_message",
+            "description": "Archives a Gmail message by removing the INBOX label.",
+            "annotations": {"title": "Archives a Gmail message.", "readOnlyHint": False, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"messageId": {"type": "string"}}, "required": ["messageId"]},
+        },
+        {
+            "name": "archive_thread",
+            "description": "Archives a Gmail thread by removing the INBOX label.",
+            "annotations": {"title": "Archives a Gmail thread.", "readOnlyHint": False, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"threadId": {"type": "string"}}, "required": ["threadId"]},
+        },
+        {
+            "name": "list_calendars",
+            "description": "Lists Google calendars available to the authenticated user.",
+            "annotations": {"title": "Lists Google calendars.", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"pageSize": {"type": "integer"}, "pageToken": {"type": "string"}, "showHidden": {"type": "boolean"}}, "required": []},
+        },
+        {
+            "name": "list_calendar_events",
+            "description": "Lists Google Calendar events.",
+            "annotations": {"title": "Lists calendar events.", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"calendarId": {"type": "string"}, "query": {"type": "string"}, "timeMin": {"type": "string"}, "timeMax": {"type": "string"}, "pageSize": {"type": "integer"}, "pageToken": {"type": "string"}}, "required": []},
+        },
+        {
+            "name": "create_calendar_event",
+            "description": "Creates a Google Calendar event.",
+            "annotations": {"title": "Creates a calendar event.", "readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
+            "inputSchema": {"type": "object", "properties": {"calendarId": {"type": "string"}, "summary": {"type": "string"}, "description": {"type": "string"}, "location": {"type": "string"}, "start": {"type": "string"}, "end": {"type": "string"}, "timeZone": {"type": "string"}, "attendees": {"type": "array", "items": {"type": "string"}}}, "required": ["summary", "start", "end"]},
+        },
+        {
+            "name": "update_calendar_event",
+            "description": "Updates a Google Calendar event.",
+            "annotations": {"title": "Updates a calendar event.", "readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
+            "inputSchema": {"type": "object", "properties": {"calendarId": {"type": "string"}, "eventId": {"type": "string"}, "summary": {"type": "string"}, "description": {"type": "string"}, "location": {"type": "string"}, "start": {"type": "string"}, "end": {"type": "string"}, "timeZone": {"type": "string"}, "attendees": {"type": "array", "items": {"type": "string"}}}, "required": ["eventId"]},
+        },
+        {
+            "name": "delete_calendar_event",
+            "description": "Deletes a Google Calendar event.",
+            "annotations": {"title": "Deletes a calendar event.", "readOnlyHint": False, "destructiveHint": True, "idempotentHint": False, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"calendarId": {"type": "string"}, "eventId": {"type": "string"}}, "required": ["eventId"]},
+        },
+        {
+            "name": "check_calendar_freebusy",
+            "description": "Checks Google Calendar free/busy availability.",
+            "annotations": {"title": "Checks calendar availability.", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"calendarIds": {"type": "array", "items": {"type": "string"}}, "timeMin": {"type": "string"}, "timeMax": {"type": "string"}, "timeZone": {"type": "string"}}, "required": ["timeMin", "timeMax"]},
+        },
+        {
+            "name": "list_drive_files",
+            "description": "Searches or lists Google Drive files.",
+            "annotations": {"title": "Lists Drive files.", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}, "pageSize": {"type": "integer"}, "pageToken": {"type": "string"}, "fields": {"type": "string"}}, "required": []},
+        },
+        {
+            "name": "get_drive_file_metadata",
+            "description": "Gets Google Drive file metadata.",
+            "annotations": {"title": "Gets Drive file metadata.", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"fileId": {"type": "string"}, "fields": {"type": "string"}}, "required": ["fileId"]},
+        },
+        {
+            "name": "download_drive_file",
+            "description": "Downloads a Google Drive file or exports a Google Workspace file.",
+            "annotations": {"title": "Downloads a Drive file.", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"fileId": {"type": "string"}, "exportMimeType": {"type": "string"}}, "required": ["fileId"]},
+        },
+        {
+            "name": "create_drive_file",
+            "description": "Creates a Google Drive file with optional text or base64 content.",
+            "annotations": {"title": "Creates a Drive file.", "readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
+            "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}, "mimeType": {"type": "string"}, "parents": {"type": "array", "items": {"type": "string"}}, "content": {"type": "string"}, "contentBase64": {"type": "string"}, "contentMimeType": {"type": "string"}}, "required": ["name"]},
+        },
+        {
+            "name": "update_drive_file",
+            "description": "Updates Google Drive file metadata and optionally replaces content.",
+            "annotations": {"title": "Updates a Drive file.", "readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
+            "inputSchema": {"type": "object", "properties": {"fileId": {"type": "string"}, "name": {"type": "string"}, "mimeType": {"type": "string"}, "content": {"type": "string"}, "contentBase64": {"type": "string"}, "contentMimeType": {"type": "string"}}, "required": ["fileId"]},
+        },
+        {
+            "name": "delete_drive_file",
+            "description": "Deletes a Google Drive file.",
+            "annotations": {"title": "Deletes a Drive file.", "readOnlyHint": False, "destructiveHint": True, "idempotentHint": False, "openWorldHint": False},
+            "inputSchema": {"type": "object", "properties": {"fileId": {"type": "string"}}, "required": ["fileId"]},
+        },
     ]
 
     DISPATCH = {
         "list_labels": list_labels,
         "search_threads": search_threads,
         "get_thread": get_thread,
+        "create_draft": create_draft,
+        "update_draft": update_draft,
+        "send_draft": send_draft,
+        "delete_draft": delete_draft,
+        "archive_message": archive_message,
+        "archive_thread": archive_thread,
+        "list_calendars": list_calendars,
+        "list_calendar_events": list_calendar_events,
+        "create_calendar_event": create_calendar_event,
+        "update_calendar_event": update_calendar_event,
+        "delete_calendar_event": delete_calendar_event,
+        "check_calendar_freebusy": check_calendar_freebusy,
+        "list_drive_files": list_drive_files,
+        "get_drive_file_metadata": get_drive_file_metadata,
+        "download_drive_file": download_drive_file,
+        "create_drive_file": create_drive_file,
+        "update_drive_file": update_drive_file,
+        "delete_drive_file": delete_drive_file,
     }
 
     class Handler(BaseHTTPRequestHandler):
@@ -249,7 +625,7 @@ spec:
   template:
     metadata:
       annotations:
-        gmail-rest-mcp.mcnees.me/config-revision: metadata-headers-doseq
+        gmail-rest-mcp.mcnees.me/config-revision: google-workspace-write-tools
       labels:
         app.kubernetes.io/name: gmail-rest-mcp
     spec:

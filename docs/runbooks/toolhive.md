@@ -54,7 +54,8 @@ clients can share the same governed endpoint:
 - Gmail backends point to the internal Gmail REST MCP proxy,
   `https://gmail-rest-mcp.home.mcnees.me/mcp/v1`, because Google's remote
   Workspace MCP endpoint rejected Gmail-scoped Google OAuth tokens that worked
-  against the Gmail REST API:
+  against the Gmail REST API. The proxy now exposes Gmail, Calendar, and Drive
+  tools through the same Google upstream grant:
   - `MCPServerEntry/gmail` is the personal Gmail account.
   - `MCPServerEntry/gmail-develop-for-good` is the Develop for Good account,
     currently in `MCPGroup/pending-agent-tools`.
@@ -109,8 +110,17 @@ provider in `VirtualMCPServer/agent-tools` until multi-account Gmail auth is
 reintroduced intentionally. Google upstream auth intentionally does not set a
 `prompt` override, so a single active Gmail provider does not force account
 selection or a fresh consent screen on every authorization hop.
-The Gmail REST MCP proxy currently exposes read-only Gmail tools:
-`list_labels`, `search_threads`, and `get_thread`.
+The Gmail REST MCP proxy currently exposes these Google Workspace tools:
+
+- Gmail read tools: `list_labels`, `search_threads`, and `get_thread`.
+- Gmail write tools: `create_draft`, `update_draft`, `send_draft`,
+  `delete_draft`, `archive_message`, and `archive_thread`.
+- Calendar tools: `list_calendars`, `list_calendar_events`,
+  `create_calendar_event`, `update_calendar_event`, `delete_calendar_event`,
+  and `check_calendar_freebusy`.
+- Drive tools: `list_drive_files`, `get_drive_file_metadata`,
+  `download_drive_file`, `create_drive_file`, `update_drive_file`, and
+  `delete_drive_file`.
 
 The Google OAuth client used by ToolHive must allow this redirect URI:
 
@@ -118,17 +128,20 @@ The Google OAuth client used by ToolHive must allow this redirect URI:
 https://toolhive.home.mcnees.me/oauth/callback
 ```
 
-The Gmail upstream providers request these Gmail API scopes:
+The Gmail upstream providers request these Google Workspace API scopes:
 
 - `https://www.googleapis.com/auth/gmail.readonly`
 - `https://www.googleapis.com/auth/gmail.compose`
 - `https://www.googleapis.com/auth/gmail.modify`
 - `https://www.googleapis.com/auth/gmail.labels`
+- `https://www.googleapis.com/auth/calendar.events`
+- `https://www.googleapis.com/auth/calendar.freebusy`
+- `https://www.googleapis.com/auth/calendar.calendarlist.readonly`
+- `https://www.googleapis.com/auth/drive`
 
-The internal Gmail REST MCP proxy currently uses read-only Gmail operations, but
-the configured scopes are kept broad so the ToolHive Google grant can support
-future compose, label, and thread/message mutation tools without another scope
-migration.
+The Drive grant intentionally uses the full `drive` scope so Hermes can manage
+existing Drive files, not only files created by this OAuth client. Expanding
+these scopes requires a fresh Google consent flow for existing ToolHive clients.
 
 ToolHive's embedded auth server stores OAuth server state in a dedicated
 password-protected Valkey instance:
