@@ -157,5 +157,5 @@ Hermes' current mail setup has two separate paths:
   upstream Google OAuth hop for each Gmail backend and aggregates the other
   authenticated personal MCP backends.
 - Hermes registers its own MCP client callback as
-  `http://127.0.0.1:47035/callback`; keep a matching `kubectl port-forward`
+  `http://127.0.0.1:47036/callback`; keep a matching `kubectl port-forward`
   open during first-time `hermes mcp login toolhive`.
