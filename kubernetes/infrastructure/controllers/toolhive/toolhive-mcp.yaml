@@ -102,7 +102,7 @@ metadata:
 spec:
   groupRef:
     name: agent-tools
-  remoteUrl: http://gmail-rest-mcp.toolhive-system.svc.cluster.local:8080/mcp/v1
+  remoteUrl: https://gmail-rest-mcp.home.mcnees.me/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
     name: gmail-google-upstream-token
@@ -115,7 +115,7 @@ metadata:
 spec:
   groupRef:
     name: pending-agent-tools
-  remoteUrl: http://gmail-rest-mcp.toolhive-system.svc.cluster.local:8080/mcp/v1
+  remoteUrl: https://gmail-rest-mcp.home.mcnees.me/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
     name: gmail-develop-for-good-google-upstream-token
@@ -128,7 +128,7 @@ metadata:
 spec:
   groupRef:
     name: pending-agent-tools
-  remoteUrl: http://gmail-rest-mcp.toolhive-system.svc.cluster.local:8080/mcp/v1
+  remoteUrl: https://gmail-rest-mcp.home.mcnees.me/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
     name: gmail-hoa-google-upstream-token
@@ -141,7 +141,7 @@ metadata:
 spec:
   groupRef:
     name: pending-agent-tools
-  remoteUrl: http://gmail-rest-mcp.toolhive-system.svc.cluster.local:8080/mcp/v1
+  remoteUrl: https://gmail-rest-mcp.home.mcnees.me/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
     name: gmail-craft-export-google-upstream-token
@@ -353,6 +353,7 @@ spec:
   secretName: agent-tools-tls
   dnsNames:
     - toolhive.home.mcnees.me
+    - gmail-rest-mcp.home.mcnees.me
   issuerRef:
     kind: ClusterIssuer
     name: letsencrypt-production

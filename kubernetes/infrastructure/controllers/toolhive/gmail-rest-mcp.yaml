@@ -312,3 +312,20 @@ spec:
       port: 8080
       targetPort: http
       protocol: TCP
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gmail-rest-mcp
+  namespace: toolhive-system
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`gmail-rest-mcp.home.mcnees.me`)
+      kind: Rule
+      services:
+        - name: gmail-rest-mcp
+          port: 8080
+  tls:
+    secretName: agent-tools-tls
