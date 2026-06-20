@@ -15,10 +15,7 @@ Hermes is deployed as an experimental in-cluster agent at `https://hermes.home.m
 - Default model: `gpt-5.5`
 - MCP servers:
   - ToolHive at `https://toolhive.home.mcnees.me/mcp`, currently aggregating
-    the personal Gmail backend
-  - Honeydew, Linear, Homey, Outline, and additional Gmail accounts are
-    cataloged in ToolHive but remain pending until their OAuth flows are
-    intentionally re-enabled through ToolHive upstream auth.
+    Google Workspace, Honeydew, Linear, Outline, and Homey backends.
 
 The Hermes Docker docs warn against exposing the dashboard directly. Keep it on the internal Traefik entrypoint and oauth-protected unless we intentionally design a safer public gateway. The pod still runs the dashboard with Hermes' `--insecure` flag internally, so `NetworkPolicy/hermes-ingress` restricts dashboard ingress to Traefik.
 
@@ -117,16 +114,16 @@ Hermes is configured with a single remote HTTP MCP server named `toolhive`.
 - Endpoint: `https://toolhive.home.mcnees.me/mcp`
 - Auth: OAuth
 - Hermes callback: `http://127.0.0.1:47036/callback`
-- Active backends: Gmail personal, Honeydew, Linear, Outline, Homey
-- Pending backends: Gmail Develop for Good, Gmail HOA, Gmail Craft Export,
-  are cataloged in ToolHive, but remain direct-client fallbacks. The additional
-  Gmail accounts are pending because multiple Google upstream providers create
-  a repeated account-picker consent chain during first-time auth. Outline uses
-  a stable pre-registered OAuth client because ToolHive's DCR path did not
-  register a usable Outline client before authorization. Honeydew, Linear,
-  Outline, and Homey are active and intentionally chain after Gmail during
-  first-time client auth. Homey is experimental because it advertises only OAuth
-  `form_post` response mode and `client_secret_basic` token auth.
+- Active backends: Google personal, Google Develop for Good, Google HOA,
+  Google Craft Export, Honeydew, Linear, Outline, Homey
+- Google account-specific tools are prefixed from the backend name, such as
+  `google_{tool}`, `google-develop-for-good_{tool}`, `google-hoa_{tool}`, and
+  `google-craft-export_{tool}`.
+- Outline uses a stable pre-registered OAuth client because ToolHive's DCR path
+  did not register a usable Outline client before authorization. Honeydew,
+  Linear, Outline, and Homey are active and intentionally chain after Google
+  during first-time client auth. Homey is experimental because it advertises
+  only OAuth `form_post` response mode and `client_secret_basic` token auth.
 
 After the ConfigMap is reconciled, authorize ToolHive from Hermes on first use.
 Hermes persists MCP OAuth tokens on the `hermes-data` PVC and reuses them
@@ -164,15 +161,20 @@ kubectl --kubeconfig talos/kubeconfig -n apps exec deployment/hermes -- sh -lc '
 Tokens are stored under `/opt/data/mcp-tokens`. Treat those files like
 credentials; do not paste or hand-edit their contents.
 
-The Gmail upstream Google OAuth hop is mediated by ToolHive:
+The Google Workspace OAuth hops are mediated by ToolHive:
 
 - ToolHive endpoint: `https://toolhive.home.mcnees.me/mcp`
-- Gmail backend: `https://gmailmcp.googleapis.com/mcp/v1`
-- Active ToolHive backend name: `gmail`
+- Workspace proxy backend: `https://gmail-rest-mcp.home.mcnees.me/mcp/v1`
+- Active ToolHive backend names: `google`, `google-develop-for-good`,
+  `google-hoa`, and `google-craft-export`
 - Scopes: `https://www.googleapis.com/auth/gmail.readonly`,
   `https://www.googleapis.com/auth/gmail.compose`,
-  `https://www.googleapis.com/auth/gmail.modify`, and
-  `https://www.googleapis.com/auth/gmail.labels`
+  `https://www.googleapis.com/auth/gmail.modify`,
+  `https://www.googleapis.com/auth/gmail.labels`,
+  `https://www.googleapis.com/auth/calendar.events`,
+  `https://www.googleapis.com/auth/calendar.freebusy`,
+  `https://www.googleapis.com/auth/calendar.calendarlist.readonly`, and
+  `https://www.googleapis.com/auth/drive`
 - Google upstream callback: `https://toolhive.home.mcnees.me/oauth/callback`
 
 If Google returns `redirect_uri_mismatch`, update the OAuth client in the

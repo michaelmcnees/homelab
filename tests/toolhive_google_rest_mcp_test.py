@@ -150,6 +150,36 @@ class GoogleRestMcpTest(unittest.TestCase):
         self.assertIn("https://www.googleapis.com/auth/calendar.calendarlist.readonly", config)
         self.assertIn("https://www.googleapis.com/auth/drive", config)
 
+    def test_toolhive_uses_google_workspace_backend_names(self):
+        config = TOOLHIVE_CONFIG.read_text()
+
+        for name in (
+            "google",
+            "google-develop-for-good",
+            "google-hoa",
+            "google-craft-export",
+        ):
+            self.assertIn(
+                f"  name: {name}\n"
+                "  namespace: toolhive-system\n"
+                "spec:\n"
+                "  groupRef:\n"
+                "    name: agent-tools",
+                config,
+            )
+            self.assertIn(f"    providerName: {name}\n", config)
+            self.assertIn(f"      - name: {name}\n", config)
+
+        for name in (
+            "gmail",
+            "gmail-develop-for-good",
+            "gmail-hoa",
+            "gmail-craft-export",
+        ):
+            self.assertNotIn(f"kind: MCPServerEntry\nmetadata:\n  name: {name}\n", config)
+
+        self.assertNotIn("pending-agent-tools", config)
+
 
 if __name__ == "__main__":
     unittest.main()

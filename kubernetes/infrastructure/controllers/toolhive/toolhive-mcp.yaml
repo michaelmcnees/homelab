@@ -7,17 +7,9 @@ spec:
   description: Shared MCP backends for agent access through ToolHive.
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
-kind: MCPGroup
-metadata:
-  name: pending-agent-tools
-  namespace: toolhive-system
-spec:
-  description: MCP backends tracked for future ToolHive aggregation work.
----
-apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig
 metadata:
-  name: gmail-google-upstream-token
+  name: google-upstream-token
   namespace: toolhive-system
 spec:
   type: upstreamInject
@@ -27,7 +19,7 @@ spec:
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig
 metadata:
-  name: gmail-develop-for-good-google-upstream-token
+  name: google-develop-for-good-upstream-token
   namespace: toolhive-system
 spec:
   type: upstreamInject
@@ -37,7 +29,7 @@ spec:
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig
 metadata:
-  name: gmail-hoa-google-upstream-token
+  name: google-hoa-upstream-token
   namespace: toolhive-system
 spec:
   type: upstreamInject
@@ -47,7 +39,7 @@ spec:
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig
 metadata:
-  name: gmail-craft-export-google-upstream-token
+  name: google-craft-export-upstream-token
   namespace: toolhive-system
 spec:
   type: upstreamInject
@@ -97,7 +89,7 @@ spec:
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
 metadata:
-  name: gmail
+  name: google
   namespace: toolhive-system
 spec:
   groupRef:
@@ -105,46 +97,46 @@ spec:
   remoteUrl: https://gmail-rest-mcp.home.mcnees.me/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
-    name: gmail-google-upstream-token
+    name: google-upstream-token
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
 metadata:
-  name: gmail-develop-for-good
+  name: google-develop-for-good
   namespace: toolhive-system
 spec:
   groupRef:
-    name: pending-agent-tools
+    name: agent-tools
   remoteUrl: https://gmail-rest-mcp.home.mcnees.me/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
-    name: gmail-develop-for-good-google-upstream-token
+    name: google-develop-for-good-upstream-token
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
 metadata:
-  name: gmail-hoa
+  name: google-hoa
   namespace: toolhive-system
 spec:
   groupRef:
-    name: pending-agent-tools
+    name: agent-tools
   remoteUrl: https://gmail-rest-mcp.home.mcnees.me/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
-    name: gmail-hoa-google-upstream-token
+    name: google-hoa-upstream-token
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
 metadata:
-  name: gmail-craft-export
+  name: google-craft-export
   namespace: toolhive-system
 spec:
   groupRef:
-    name: pending-agent-tools
+    name: agent-tools
   remoteUrl: https://gmail-rest-mcp.home.mcnees.me/mcp/v1
   transport: streamable-http
   externalAuthConfigRef:
-    name: gmail-craft-export-google-upstream-token
+    name: google-craft-export-upstream-token
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
@@ -286,6 +278,78 @@ spec:
             - https://www.googleapis.com/auth/drive
           additionalAuthorizationParams:
             access_type: offline
+      - name: google-develop-for-good
+        type: oidc
+        oidcConfig:
+          issuerUrl: https://accounts.google.com
+          clientId: 697355755028-el3khdd8mrvii475gbbfc73ijl3u6tmi.apps.googleusercontent.com
+          clientSecretRef:
+            name: gmail-mcp-auth
+            key: google-client-secret
+          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
+          scopes:
+            - openid
+            - email
+            - profile
+            - https://www.googleapis.com/auth/gmail.readonly
+            - https://www.googleapis.com/auth/gmail.compose
+            - https://www.googleapis.com/auth/gmail.modify
+            - https://www.googleapis.com/auth/gmail.labels
+            - https://www.googleapis.com/auth/calendar.events
+            - https://www.googleapis.com/auth/calendar.freebusy
+            - https://www.googleapis.com/auth/calendar.calendarlist.readonly
+            - https://www.googleapis.com/auth/drive
+          additionalAuthorizationParams:
+            access_type: offline
+            prompt: select_account
+      - name: google-hoa
+        type: oidc
+        oidcConfig:
+          issuerUrl: https://accounts.google.com
+          clientId: 697355755028-el3khdd8mrvii475gbbfc73ijl3u6tmi.apps.googleusercontent.com
+          clientSecretRef:
+            name: gmail-mcp-auth
+            key: google-client-secret
+          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
+          scopes:
+            - openid
+            - email
+            - profile
+            - https://www.googleapis.com/auth/gmail.readonly
+            - https://www.googleapis.com/auth/gmail.compose
+            - https://www.googleapis.com/auth/gmail.modify
+            - https://www.googleapis.com/auth/gmail.labels
+            - https://www.googleapis.com/auth/calendar.events
+            - https://www.googleapis.com/auth/calendar.freebusy
+            - https://www.googleapis.com/auth/calendar.calendarlist.readonly
+            - https://www.googleapis.com/auth/drive
+          additionalAuthorizationParams:
+            access_type: offline
+            prompt: select_account
+      - name: google-craft-export
+        type: oidc
+        oidcConfig:
+          issuerUrl: https://accounts.google.com
+          clientId: 697355755028-el3khdd8mrvii475gbbfc73ijl3u6tmi.apps.googleusercontent.com
+          clientSecretRef:
+            name: gmail-mcp-auth
+            key: google-client-secret
+          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
+          scopes:
+            - openid
+            - email
+            - profile
+            - https://www.googleapis.com/auth/gmail.readonly
+            - https://www.googleapis.com/auth/gmail.compose
+            - https://www.googleapis.com/auth/gmail.modify
+            - https://www.googleapis.com/auth/gmail.labels
+            - https://www.googleapis.com/auth/calendar.events
+            - https://www.googleapis.com/auth/calendar.freebusy
+            - https://www.googleapis.com/auth/calendar.calendarlist.readonly
+            - https://www.googleapis.com/auth/drive
+          additionalAuthorizationParams:
+            access_type: offline
+            prompt: select_account
       - name: honeydew
         type: oauth2
         oauth2Config:

@@ -51,18 +51,15 @@ ToolHive aggregates MCP backends so Hermes, Codex, Claude, and other MCP
 clients can share the same governed endpoint:
 
 - `MCPGroup/agent-tools` defines the shared backend group.
-- Gmail backends point to the internal Gmail REST MCP proxy,
+- Google Workspace backends point to the internal Gmail REST MCP proxy,
   `https://gmail-rest-mcp.home.mcnees.me/mcp/v1`, because Google's remote
   Workspace MCP endpoint rejected Gmail-scoped Google OAuth tokens that worked
   against the Gmail REST API. The proxy now exposes Gmail, Calendar, and Drive
   tools through the same Google upstream grant:
-  - `MCPServerEntry/gmail` is the personal Gmail account.
-  - `MCPServerEntry/gmail-develop-for-good` is the Develop for Good account,
-    currently in `MCPGroup/pending-agent-tools`.
-  - `MCPServerEntry/gmail-hoa` is the HOA account, currently in
-    `MCPGroup/pending-agent-tools`.
-  - `MCPServerEntry/gmail-craft-export` is the Craft Export account,
-    currently in `MCPGroup/pending-agent-tools`.
+  - `MCPServerEntry/google` is the personal Google account.
+  - `MCPServerEntry/google-develop-for-good` is the Develop for Good account.
+  - `MCPServerEntry/google-hoa` is the HOA account.
+  - `MCPServerEntry/google-craft-export` is the Craft Export account.
 - `MCPServerEntry/outline` points to Outline at
   `https://docs.mcnees.me/mcp`.
 - `MCPServerEntry/honeydew` points to Honeydew at
@@ -70,15 +67,12 @@ clients can share the same governed endpoint:
 - `MCPServerEntry/homey` points to Homey at `https://mcp.athom.com`.
 - `MCPServerEntry/linear` points to Linear at
   `https://mcp.linear.app/mcp`.
-- `MCPExternalAuthConfig/gmail-google-upstream-token` injects the Google
-  upstream token for the personal Gmail backend. The internal proxy forwards
-  that bearer token to the Gmail REST API.
-- `MCPExternalAuthConfig/gmail-develop-for-good-google-upstream-token`,
-  `MCPExternalAuthConfig/gmail-hoa-google-upstream-token`, and
-  `MCPExternalAuthConfig/gmail-craft-export-google-upstream-token` inject the
-  matching Google upstream token for the additional Gmail backends, but their
-  matching Google upstream providers are not listed in the active
-  `VirtualMCPServer/agent-tools` auth server while those backends are pending.
+- `MCPExternalAuthConfig/google-upstream-token`,
+  `MCPExternalAuthConfig/google-develop-for-good-upstream-token`,
+  `MCPExternalAuthConfig/google-hoa-upstream-token`, and
+  `MCPExternalAuthConfig/google-craft-export-upstream-token` inject the
+  matching Google upstream token for each Workspace backend. The internal proxy
+  forwards that bearer token to Google Workspace REST APIs.
 - `MCPExternalAuthConfig/outline-upstream-token`,
   `MCPExternalAuthConfig/homey-upstream-token`,
   `MCPExternalAuthConfig/honeydew-upstream-token`, and
@@ -93,24 +87,19 @@ clients can share the same governed endpoint:
   ToolHive signing/HMAC material. It is managed by
   `gmail-mcp-secret.sops.yaml`.
 
-The additional Gmail accounts are cataloged as
-`MCPServerEntry` resources, but they are not active in the virtual server yet.
-Honeydew, Linear, Outline, and Homey are active and intentionally chain after
-Gmail during first-time client auth. Outline uses stable OAuth client
+All four Google Workspace accounts are active in `MCPGroup/agent-tools`.
+Honeydew, Linear, Outline, and Homey are also active and intentionally chain
+after Google during first-time client auth. Outline uses stable OAuth client
 `izto0734m5xy2xegind3`, registered in Outline for
 `https://toolhive.home.mcnees.me/oauth/callback`, because ToolHive's DCR path
 did not register a usable Outline client before authorization. Homey is
 experimental because its OAuth metadata only advertises a `form_post` response
 mode and `client_secret_basic` token authentication; ToolHive has no explicit
 token endpoint auth method field, so token exchange may still fail.
-The additional Gmail accounts are pending because
-multiple active Google upstream providers can create a repeated consent chain
-during first-time client auth. Keep only the personal `google` upstream
-provider in `VirtualMCPServer/agent-tools` until multi-account Gmail auth is
-reintroduced intentionally. Google upstream auth intentionally does not set a
-`prompt` override, so a single active Gmail provider does not force account
-selection or a fresh consent screen on every authorization hop.
-The Gmail REST MCP proxy currently exposes these Google Workspace tools:
+The additional Google upstream providers set `prompt=select_account` so the
+browser does not silently reuse the wrong signed-in Google account while
+ToolHive chains the four grants. The proxy currently exposes these Google
+Workspace tools:
 
 - Gmail read tools: `list_labels`, `search_threads`, and `get_thread`.
 - Gmail write tools: `create_draft`, `update_draft`, `send_draft`,
@@ -128,7 +117,7 @@ The Google OAuth client used by ToolHive must allow this redirect URI:
 https://toolhive.home.mcnees.me/oauth/callback
 ```
 
-The Gmail upstream providers request these Google Workspace API scopes:
+The Google upstream providers request these Workspace API scopes:
 
 - `https://www.googleapis.com/auth/gmail.readonly`
 - `https://www.googleapis.com/auth/gmail.compose`
@@ -172,7 +161,7 @@ Hermes' current mail setup has two separate paths:
 
 - Himalaya uses Gmail IMAP with an app password.
 - Hermes MCP uses ToolHive's shared virtual MCP endpoint, which performs the
-  upstream Google OAuth hop for each Gmail backend and aggregates the other
+  upstream Google OAuth hop for each Workspace backend and aggregates the other
   authenticated personal MCP backends.
 - Hermes registers its own MCP client callback as
   `http://127.0.0.1:47036/callback`; keep a matching `kubectl port-forward`
