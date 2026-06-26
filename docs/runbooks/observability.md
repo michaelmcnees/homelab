@@ -157,8 +157,8 @@ Alertmanager uses the SOPS-encrypted `alertmanager-homelab-config` Secret as its
 Routing is intentionally simple:
 
 - `Watchdog` and `info` alerts are dropped.
-- `warning` alerts go to email.
-- `critical` alerts go to both Pushover and email.
+- `warning` and `critical` alerts go to both Pushover and email.
+- Alert groups use Pushover like an inbox: new groups are delivered, but unresolved groups have a one-year repeat interval instead of periodic paging.
 
 Alert links use internal Traefik hostnames instead of cluster service names:
 
@@ -180,4 +180,4 @@ Node-exporter is enabled through `kube-prometheus-stack`. The `observability` na
 
 Prometheus uses a `50Gi` `local-path` PVC for TSDB data with 30 days of retention. The chart/operator-managed Prometheus pod security context runs as UID/GID `1000:2000` with `fsGroup=2000`. Because the operator mounts the data volume through a subPath, an init container chowns `/prometheus` before startup so Prometheus can create `queries.active` and TSDB files.
 
-Alertmanager uses a `1Gi` `local-path` PVC for silences and the notification log. It uses the same UID/GID pattern and a matching init container chowns `/alertmanager` before startup so Alertmanager can maintain silences and notification dedupe state.
+Alertmanager uses a `1Gi` `local-path` PVC for silences and the notification log. It uses the same UID/GID pattern and a matching init container chowns `/alertmanager` before startup so Alertmanager can maintain silences and notification dedupe state. Notification-log retention is set to `8760h` to match the inbox-style repeat interval.

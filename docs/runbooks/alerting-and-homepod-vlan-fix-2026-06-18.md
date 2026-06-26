@@ -28,8 +28,10 @@ issues:
   was updated with the same route.
 - After reload, active warning alerts routed to `pushover-email` and Pushover
   notification attempts increased from 20 to 25. One initial grouped notification
-  hit Pushover HTTP 429 during the burst; the existing `repeat_interval` remains
-  `12h`, so ongoing retries should be low volume. A follow-up guard route keeps
+  hit Pushover HTTP 429 during the burst. On 2026-06-26 the route
+  `repeat_interval` and Alertmanager notification-log retention were both
+  changed to `8760h`, so Pushover can be used as an inbox without 12-hour
+  repeated messages. A follow-up guard route keeps
   `Alertmanager*FailedToSendAlerts` alerts on email only.
 - UniFi was inspected before making network changes. Legacy firewall rules,
   firewall groups, and traffic rules were empty, so there was no explicit

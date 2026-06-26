@@ -29,6 +29,7 @@ spec:
       alertmanagerSpec:
         configSecret: alertmanager-homelab-config
         externalUrl: https://alertmanager.home.mcnees.me
+        retention: 8760h
         initContainers:
           - name: init-alertmanager-data
             image: busybox:1.37.0
