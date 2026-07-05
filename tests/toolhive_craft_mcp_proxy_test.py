@@ -90,7 +90,7 @@ class CraftMcpProxyTest(unittest.TestCase):
         handler.send_header = mock.Mock()
         handler.end_headers = mock.Mock()
 
-        read_sizes = []
+        read1_sizes = []
         requests = []
 
         class FakeResponse:
@@ -103,13 +103,16 @@ class CraftMcpProxyTest(unittest.TestCase):
             def __exit__(self, exc_type, exc, tb):
                 return False
 
-            def read(self, size=-1):
-                read_sizes.append(size)
-                if len(read_sizes) == 1:
+            def read1(self, size=-1):
+                read1_sizes.append(size)
+                if len(read1_sizes) == 1:
                     return b"data: one\n\n"
-                if len(read_sizes) == 2:
+                if len(read1_sizes) == 2:
                     return b"data: two\n\n"
                 return b""
+
+            def read(self, size=-1):
+                raise AssertionError("read() should not be used when read1() is available")
 
         def fake_urlopen(request, timeout=0):
             requests.append((request, timeout))
@@ -129,7 +132,7 @@ class CraftMcpProxyTest(unittest.TestCase):
         self.assertEqual(b"body", request.data)
         self.assertEqual("Bearer client-token", request.get_header("Authorization"))
         self.assertEqual(120, timeout)
-        self.assertEqual([65536, 65536, 65536], read_sizes)
+        self.assertEqual([65536, 65536, 65536], read1_sizes)
         handler.send_response.assert_called_once_with(200)
         handler.send_header.assert_any_call("Content-Type", "text/event-stream")
         handler.send_header.assert_any_call("Connection", "close")

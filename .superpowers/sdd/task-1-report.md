@@ -35,13 +35,13 @@ None.
 
 ### Reviewer finding addressed
 
-`kubernetes/infrastructure/controllers/toolhive/craft-mcp-proxy.yaml` no longer buffers the entire upstream response with `response.read()`. The proxy now sends upstream headers first, then relays the body in 64 KiB chunks to `wfile`, which keeps streamable HTTP and SSE-style responses flowing instead of waiting for the upstream to finish.
+`kubernetes/infrastructure/controllers/toolhive/craft-mcp-proxy.yaml` no longer relies on `response.read(65536)` for stream relay. The proxy now prefers `response.read1(65536)` when the upstream response exposes it, with a fallback to `read(65536)` only for response objects that truly lack `read1()`. That keeps streamable HTTP and SSE-style responses flowing instead of waiting for coalesced buffering.
 
 ### What changed
 
-- Replaced the single buffering read with chunked relay logic in the Craft MCP proxy handler.
-- Preserved upstream response headers while omitting hop-by-hop headers.
-- Added a focused unit test that mocks the upstream response and verifies multiple incremental reads and writes occur without buffering the whole body.
+- Switched the relay loop to use `read1(65536)` when available, with a safe fallback for non-stream-style response objects.
+- Updated the unit test to use a fake upstream response that provides `read1()` and asserts the relay path uses it rather than `read()`.
+- Left the header forwarding and connection handling intact.
 
 ### Covering tests run
 

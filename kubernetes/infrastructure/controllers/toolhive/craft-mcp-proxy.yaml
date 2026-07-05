@@ -73,8 +73,9 @@ data:
                         self.send_header("Connection", "close")
                         self.close_connection = True
                     self.end_headers()
+                    read_chunk = getattr(response, "read1", response.read)
                     while True:
-                        chunk = response.read(65536)
+                        chunk = read_chunk(65536)
                         if not chunk:
                             break
                         self.wfile.write(chunk)
