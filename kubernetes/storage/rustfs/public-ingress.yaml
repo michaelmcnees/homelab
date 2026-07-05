@@ -1,0 +1,45 @@
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: rustfs-public
+  namespace: object-storage
+spec:
+  endpoints:
+    - dnsName: s3.mcnees.me
+      recordType: A
+      targets:
+        - 104.14.105.18
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: rustfs-public
+  namespace: object-storage
+spec:
+  entryPoints:
+    - websecure-external
+  routes:
+    - match: Host(`s3.mcnees.me`)
+      kind: Rule
+      middlewares:
+        - name: public-chain
+          namespace: infrastructure
+      services:
+        - name: rustfs
+          port: 9000
+          passHostHeader: true
+  tls:
+    secretName: rustfs-public-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rustfs-public
+  namespace: object-storage
+spec:
+  secretName: rustfs-public-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - s3.mcnees.me

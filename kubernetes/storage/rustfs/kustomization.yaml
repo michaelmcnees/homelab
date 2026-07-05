@@ -5,6 +5,7 @@ resources:
   - secret.sops.yaml
   - deployment.yaml
   - service.yaml
+  - public-ingress.yaml
   - job-create-buckets.yaml
   - job-create-bucket-penpot.yaml
   - job-create-bucket-devtron.yaml
