@@ -15,7 +15,7 @@ Task 1 is complete. I added the internal Craft MCP proxy, encrypted the upstream
 
 - `python3 -m unittest tests.toolhive_craft_mcp_proxy_test -v`
 - `kubectl kustomize kubernetes/infrastructure/controllers/toolhive >/tmp/toolhive-render.yaml`
-- `rg "mcp.craft.do|BJauyaGbKsA" kubernetes/infrastructure/controllers/toolhive /tmp/toolhive-render.yaml`
+- `rg "<Craft endpoint host or link token>" kubernetes/infrastructure/controllers/toolhive /tmp/toolhive-render.yaml`
 - `git diff --check -- kubernetes/infrastructure/controllers/toolhive/craft-mcp-proxy.yaml kubernetes/infrastructure/controllers/toolhive/craft-mcp-secret.sops.yaml kubernetes/infrastructure/controllers/toolhive/kustomization.yaml tests/toolhive_craft_mcp_proxy_test.py`
 
 ## Commit
@@ -49,7 +49,7 @@ None.
   Result: `Ran 4 tests ... OK`
 - `kubectl kustomize kubernetes/infrastructure/controllers/toolhive`  
   Result: rendered successfully with the updated proxy manifest included.
-- `rg "mcp.craft.do|BJauyaGbKsA" kubernetes/infrastructure/controllers/toolhive /tmp/toolhive-render.yaml`  
+- `rg "<Craft endpoint host or link token>" kubernetes/infrastructure/controllers/toolhive /tmp/toolhive-render.yaml`  
   Result: no matches, so no cleartext Craft URL or token was introduced.
 
 ### Files changed
@@ -57,3 +57,7 @@ None.
 - `kubernetes/infrastructure/controllers/toolhive/craft-mcp-proxy.yaml`
 - `tests/toolhive_craft_mcp_proxy_test.py`
 - `.superpowers/sdd/task-1-report.md`
+
+## Review Fix
+
+Updated the encrypted Craft MCP upstream secret so the controller renders the approved upstream target while keeping the endpoint out of cleartext repo files.
