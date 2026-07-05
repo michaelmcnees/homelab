@@ -62,14 +62,23 @@ data:
                     headers=forward_headers(self.headers),
                 )
                 with urllib.request.urlopen(request, timeout=120) as response:
-                    payload = response.read()
                     self.send_response(response.status)
+                    content_length = None
                     for key, value in response.headers.items():
                         if key.lower() not in HOP_BY_HOP_HEADERS:
+                            if key.lower() == "content-length":
+                                content_length = value
                             self.send_header(key, value)
-                    self.send_header("Content-Length", str(len(payload)))
+                    if content_length is None:
+                        self.send_header("Connection", "close")
+                        self.close_connection = True
                     self.end_headers()
-                    self.wfile.write(payload)
+                    while True:
+                        chunk = response.read(65536)
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+                        self.wfile.flush()
             except Exception as exc:
                 body = str(exc).encode()
                 self.send_response(502)

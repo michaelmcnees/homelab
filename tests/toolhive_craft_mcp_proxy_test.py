@@ -1,4 +1,5 @@
 import importlib.util
+import io
 import os
 import sys
 import tempfile
@@ -77,6 +78,65 @@ class CraftMcpProxyTest(unittest.TestCase):
         self.assertEqual("application/json", headers["Content-Type"])
         self.assertNotIn("Connection", headers)
         self.assertNotIn("Host", headers)
+
+    def test_proxy_streams_upstream_chunks_without_buffering(self):
+        handler = self.server.Handler.__new__(self.server.Handler)
+        handler.command = "POST"
+        handler.path = "/mcp?session=abc"
+        handler.headers = {"Content-Length": "4", "Authorization": "Bearer client-token"}
+        handler.rfile = io.BytesIO(b"body")
+        handler.wfile = mock.Mock()
+        handler.send_response = mock.Mock()
+        handler.send_header = mock.Mock()
+        handler.end_headers = mock.Mock()
+
+        read_sizes = []
+        requests = []
+
+        class FakeResponse:
+            status = 200
+            headers = {"Content-Type": "text/event-stream"}
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self, size=-1):
+                read_sizes.append(size)
+                if len(read_sizes) == 1:
+                    return b"data: one\n\n"
+                if len(read_sizes) == 2:
+                    return b"data: two\n\n"
+                return b""
+
+        def fake_urlopen(request, timeout=0):
+            requests.append((request, timeout))
+            return FakeResponse()
+
+        with mock.patch.dict(
+            os.environ,
+            {"CRAFT_MCP_UPSTREAM": "https://mcp.example.test/links/token/mcp"},
+            clear=True,
+        ), mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            handler.proxy()
+
+        self.assertEqual(1, len(requests))
+        request, timeout = requests[0]
+        self.assertEqual("POST", request.method)
+        self.assertEqual("https://mcp.example.test/links/token/mcp?session=abc", request.full_url)
+        self.assertEqual(b"body", request.data)
+        self.assertEqual("Bearer client-token", request.get_header("Authorization"))
+        self.assertEqual(120, timeout)
+        self.assertEqual([65536, 65536, 65536], read_sizes)
+        handler.send_response.assert_called_once_with(200)
+        handler.send_header.assert_any_call("Content-Type", "text/event-stream")
+        handler.send_header.assert_any_call("Connection", "close")
+        handler.end_headers.assert_called_once()
+        self.assertEqual([mock.call(b"data: one\n\n"), mock.call(b"data: two\n\n")], handler.wfile.write.call_args_list)
+        self.assertEqual([mock.call(), mock.call()], handler.wfile.flush.call_args_list)
+        self.assertTrue(handler.close_connection)
 
 
 if __name__ == "__main__":
