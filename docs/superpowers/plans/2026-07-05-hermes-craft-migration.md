@@ -16,6 +16,10 @@
 - Keep the Outline Kubernetes app deployed during migration for rollback and data reference.
 - Do not remove the unrelated `google-craft-export` Google Workspace backend.
 - Do not change Hermes model, dashboard, OAuth callback, or Telegram behavior.
+- This Craft migration does not introduce additional Hermes callback changes.
+  If this branch already contains earlier ToolHive OAuth callback work such as
+  a `redirect_port` tweak or callback reuse patch, treat that as pre-existing
+  and outside Craft migration scope.
 
 ---
 
@@ -116,15 +120,15 @@ class CraftMcpProxyTest(unittest.TestCase):
     def test_hop_by_hop_headers_are_not_forwarded(self):
         headers = self.server.forward_headers(
             {
-                "Authorization": "Bearer client-token",
+                "Authorization": "Bearer incoming-token",
                 "Connection": "keep-alive",
                 "Host": "craft-mcp-proxy",
                 "Content-Type": "application/json",
             }
         )
 
-        self.assertEqual("Bearer client-token", headers["Authorization"])
         self.assertEqual("application/json", headers["Content-Type"])
+        self.assertNotIn("Authorization", headers)
         self.assertNotIn("Connection", headers)
         self.assertNotIn("Host", headers)
 
@@ -188,7 +192,7 @@ data:
     def forward_headers(headers):
         forwarded = {}
         for key, value in headers.items():
-            if key.lower() not in HOP_BY_HOP_HEADERS:
+            if key.lower() not in HOP_BY_HOP_HEADERS and key.lower() != "authorization":
                 forwarded[key] = value
         return forwarded
 
@@ -221,7 +225,8 @@ data:
                     self.end_headers()
                     self.wfile.write(payload)
             except Exception as exc:
-                body = str(exc).encode()
+                print(f"proxy error: {exc.__class__.__name__} on {self.path}", flush=True)
+                body = b"Bad Gateway"
                 self.send_response(502)
                 self.send_header("Content-Type", "text/plain; charset=utf-8")
                 self.send_header("Content-Length", str(len(body)))

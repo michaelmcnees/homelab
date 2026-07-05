@@ -61,3 +61,12 @@ so ToolHive is the normal client path while Outline direct MCP is rollback or
 data-reference only.
 
 Verified with `python3 -m unittest tests.toolhive_craft_mcp_proxy_test tests.toolhive_google_rest_mcp_test -v`, `kubectl kustomize kubernetes/infrastructure/controllers/toolhive >/tmp/toolhive-render.yaml`, and the requested `rg` scans.
+
+## Review Fix Note
+
+Updated the Craft migration plan snippets so the proxy example strips client
+`Authorization` before forwarding, returns only a generic `Bad Gateway` on
+upstream failures, and no longer shows raw exception text. Also clarified in
+the Craft migration plan and design that any existing Hermes ToolHive OAuth
+callback work on this branch is pre-existing and outside the Craft migration
+scope.

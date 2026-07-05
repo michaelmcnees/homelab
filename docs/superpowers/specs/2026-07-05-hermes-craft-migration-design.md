@@ -16,6 +16,12 @@ Michael is moving notes, docs, and todo lists from Outline to Craft.do. Craft
 provides an MCP endpoint URL. Treat that URL as sensitive unless Craft
 documents it as non-secret.
 
+This Craft migration is limited to the notes/docs/todo backend swap and does
+not introduce additional Hermes model, dashboard, OAuth callback, or Telegram
+changes. If the branch already contains prior ToolHive OAuth callback work
+such as a `redirect_port` change or callback reuse patch, that work is
+pre-existing and remains outside the Craft migration scope.
+
 ## Goals
 
 - Make Craft.do the canonical Hermes backend for notes, docs, and todo lists.
@@ -33,6 +39,8 @@ documents it as non-secret.
 - Removing the `google-craft-export` Google Workspace backend; that name refers
   to an unrelated Google account and is not Craft.do.
 - Changing Hermes model, dashboard, OAuth callback, or Telegram behavior.
+  Any earlier ToolHive OAuth callback work already present on the branch is
+  outside the Craft migration scope.
 
 ## Recommended Approach
 
