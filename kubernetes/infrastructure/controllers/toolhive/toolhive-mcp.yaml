@@ -49,16 +49,6 @@ spec:
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig
 metadata:
-  name: outline-upstream-token
-  namespace: toolhive-system
-spec:
-  type: upstreamInject
-  upstreamInject:
-    providerName: outline
----
-apiVersion: toolhive.stacklok.dev/v1beta1
-kind: MCPExternalAuthConfig
-metadata:
   name: homey-upstream-token
   namespace: toolhive-system
 spec:
@@ -141,15 +131,13 @@ spec:
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
 metadata:
-  name: outline
+  name: craft
   namespace: toolhive-system
 spec:
   groupRef:
     name: agent-tools
-  remoteUrl: https://docs.mcnees.me/mcp
+  remoteUrl: http://craft-mcp-proxy.toolhive-system.svc.cluster.local:8080/mcp
   transport: streamable-http
-  externalAuthConfigRef:
-    name: outline-upstream-token
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
@@ -376,16 +364,6 @@ spec:
             - write
           dcrConfig:
             discoveryUrl: https://mcp.linear.app/.well-known/oauth-authorization-server
-      - name: outline
-        type: oauth2
-        oauth2Config:
-          authorizationEndpoint: https://docs.mcnees.me/oauth/authorize
-          tokenEndpoint: https://docs.mcnees.me/oauth/token
-          clientId: izto0734m5xy2xegind3
-          redirectUri: https://toolhive.home.mcnees.me/oauth/callback
-          scopes:
-            - read
-            - write
       - name: homey
         type: oauth2
         oauth2Config:

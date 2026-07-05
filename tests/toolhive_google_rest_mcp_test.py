@@ -178,6 +178,12 @@ class GoogleRestMcpTest(unittest.TestCase):
         ):
             self.assertNotIn(f"kind: MCPServerEntry\nmetadata:\n  name: {name}\n", config)
 
+        self.assertIn("kind: MCPServerEntry\nmetadata:\n  name: craft\n", config)
+        self.assertIn(
+            "remoteUrl: http://craft-mcp-proxy.toolhive-system.svc.cluster.local:8080/mcp",
+            config,
+        )
+        self.assertNotIn("kind: MCPServerEntry\nmetadata:\n  name: outline\n", config)
         self.assertNotIn("pending-agent-tools", config)
 
 
