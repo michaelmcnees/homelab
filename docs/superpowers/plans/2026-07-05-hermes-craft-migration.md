@@ -376,7 +376,7 @@ Run:
 ```sh
 python -m unittest tests.toolhive_craft_mcp_proxy_test -v
 kubectl kustomize kubernetes/infrastructure/controllers/toolhive >/tmp/toolhive-render.yaml
-rg "mcp.craft.do|BJauyaGbKsA" kubernetes/infrastructure/controllers/toolhive /tmp/toolhive-render.yaml
+rg "<Craft endpoint host or link token>" kubernetes/infrastructure/controllers/toolhive /tmp/toolhive-render.yaml
 ```
 
 Expected: unittest passes; kustomize exits `0`; `rg` exits `1` because the Craft.do URL is not visible in Git or rendered manifests before SOPS decryption.
