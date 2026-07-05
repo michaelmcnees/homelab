@@ -27,7 +27,7 @@ Syncthing provides file synchronization for the Obsidian vault. The canonical va
 
 ## Hermes Integration
 
-Hermes no longer mounts the Obsidian vault. Use Outline MCP for Hermes-accessible notes and docs.
+Hermes no longer mounts the Obsidian vault. Use Craft.do through ToolHive for Hermes-accessible notes, docs, and todo lists.
 
 ## Troubleshooting
 

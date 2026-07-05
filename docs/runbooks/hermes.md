@@ -15,7 +15,7 @@ Hermes is deployed as an experimental in-cluster agent at `https://hermes.home.m
 - Default model: `gpt-5.5`
 - MCP servers:
   - ToolHive at `https://toolhive.home.mcnees.me/mcp`, currently aggregating
-    Google Workspace, Honeydew, Linear, Outline, and Homey backends.
+    Google Workspace, Honeydew, Linear, Craft.do, and Homey backends.
 
 The Hermes Docker docs warn against exposing the dashboard directly. Keep it on the internal Traefik entrypoint and oauth-protected unless we intentionally design a safer public gateway. The pod still runs the dashboard with Hermes' `--insecure` flag internally, so `NetworkPolicy/hermes-ingress` restricts dashboard ingress to Traefik.
 
@@ -115,15 +115,16 @@ Hermes is configured with a single remote HTTP MCP server named `toolhive`.
 - Auth: OAuth
 - Hermes callback: `http://127.0.0.1:47036/callback`
 - Active backends: Google personal, Google Develop for Good, Google HOA,
-  Google Craft Export, Honeydew, Linear, Outline, Homey
+  Google Craft Export, Craft.do, Honeydew, Linear, Homey
 - Google account-specific tools are prefixed from the backend name, such as
   `google_{tool}`, `google-develop-for-good_{tool}`, `google-hoa_{tool}`, and
   `google-craft-export_{tool}`.
-- Outline uses a stable pre-registered OAuth client because ToolHive's DCR path
-  did not register a usable Outline client before authorization. Honeydew,
-  Linear, Outline, and Homey are active and intentionally chain after Google
-  during first-time client auth. Homey is experimental because it advertises
-  only OAuth `form_post` response mode and `client_secret_basic` token auth.
+- Craft.do is reached through the internal `craft-mcp-proxy` service so the
+  sensitive Craft MCP endpoint URL stays in a SOPS-managed Kubernetes Secret
+  instead of clear-text Git. Honeydew, Linear, and Homey are active and
+  intentionally chain after Google during first-time client auth. Homey is
+  experimental because it advertises only OAuth `form_post` response mode and
+  `client_secret_basic` token auth.
 
 After the ConfigMap is reconciled, authorize ToolHive from Hermes on first use.
 Hermes persists MCP OAuth tokens on the `hermes-data` PVC and reuses them
@@ -272,7 +273,10 @@ If a job is pinned to an unsupported model, update it through Hermes tooling rat
 cronjob(action="update", job_id="<id>", model="gpt-5.5", provider="openai-codex")
 ```
 
-Active durable-note jobs should write canonical notes/rules to Outline. Obsidian is legacy only; paused jobs may retain old Obsidian references for migration history, but active jobs must either use Outline MCP or report that no durable note was written.
+Active durable-note jobs should write canonical notes, docs, todo lists, and
+rules to Craft.do through ToolHive. Obsidian and Outline are legacy only;
+paused jobs may retain old references for migration history, but active jobs
+must either use Craft tools or report that no durable note was written.
 
 ## Optional Tool Warnings
 

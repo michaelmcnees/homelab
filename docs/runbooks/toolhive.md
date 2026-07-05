@@ -60,8 +60,10 @@ clients can share the same governed endpoint:
   - `MCPServerEntry/google-develop-for-good` is the Develop for Good account.
   - `MCPServerEntry/google-hoa` is the HOA account.
   - `MCPServerEntry/google-craft-export` is the Craft Export account.
-- `MCPServerEntry/outline` points to Outline at
-  `https://docs.mcnees.me/mcp`.
+- `MCPServerEntry/craft` points to the internal Craft.do proxy at
+  `http://craft-mcp-proxy.toolhive-system.svc.cluster.local:8080/mcp`.
+  The proxy reads the real Craft MCP endpoint from
+  `Secret/craft-mcp-upstream`.
 - `MCPServerEntry/honeydew` points to Honeydew at
   `https://mcp.honeydewdone.app`.
 - `MCPServerEntry/homey` points to Homey at `https://mcp.athom.com`.
@@ -73,11 +75,11 @@ clients can share the same governed endpoint:
   `MCPExternalAuthConfig/google-craft-export-upstream-token` inject the
   matching Google upstream token for each Workspace backend. The internal proxy
   forwards that bearer token to Google Workspace REST APIs.
-- `MCPExternalAuthConfig/outline-upstream-token`,
-  `MCPExternalAuthConfig/homey-upstream-token`,
+- `MCPExternalAuthConfig/homey-upstream-token`,
   `MCPExternalAuthConfig/honeydew-upstream-token`, and
   `MCPExternalAuthConfig/linear-upstream-token` inject the matching upstream
-  OAuth token for those backends.
+  OAuth token for those backends. Craft.do authentication is embedded in the
+  Craft MCP endpoint URL and held in `Secret/craft-mcp-upstream`.
 - `VirtualMCPServer/agent-tools` publishes
   `https://toolhive.home.mcnees.me/mcp`.
 - `VirtualMCPServer/agent-tools` enables ToolHive's optimizer so MCP clients
@@ -88,14 +90,13 @@ clients can share the same governed endpoint:
   `gmail-mcp-secret.sops.yaml`.
 
 All four Google Workspace accounts are active in `MCPGroup/agent-tools`.
-Honeydew, Linear, Outline, and Homey are also active and intentionally chain
-after Google during first-time client auth. Outline uses stable OAuth client
-`izto0734m5xy2xegind3`, registered in Outline for
-`https://toolhive.home.mcnees.me/oauth/callback`, because ToolHive's DCR path
-did not register a usable Outline client before authorization. Homey is
-experimental because its OAuth metadata only advertises a `form_post` response
-mode and `client_secret_basic` token authentication; ToolHive has no explicit
-token endpoint auth method field, so token exchange may still fail.
+Craft.do, Honeydew, Linear, and Homey are also active. Craft.do is the
+canonical notes, docs, and todo-list backend for Hermes. The similarly named
+`google-craft-export` backend is only a Google Workspace account and is not the
+Craft.do integration. Homey is experimental because its OAuth metadata only
+advertises a `form_post` response mode and `client_secret_basic` token
+authentication; ToolHive has no explicit token endpoint auth method field, so
+token exchange may still fail.
 The additional Google upstream providers set `prompt=select_account` so the
 browser does not silently reuse the wrong signed-in Google account while
 ToolHive chains the four grants. The proxy currently exposes these Google
