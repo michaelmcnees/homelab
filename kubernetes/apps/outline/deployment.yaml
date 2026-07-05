@@ -25,7 +25,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: wait-for-postgres
-          image: busybox:1.37.0
+          image: busybox:1.38.0
           command:
             - sh
             - -c
@@ -36,7 +36,7 @@ spec:
               drop:
                 - ALL
         - name: wait-for-redis
-          image: busybox:1.37.0
+          image: busybox:1.38.0
           command:
             - sh
             - -c
@@ -48,7 +48,7 @@ spec:
                 - ALL
       containers:
         - name: outline
-          image: docker.getoutline.com/outlinewiki/outline:1.7.1
+          image: docker.getoutline.com/outlinewiki/outline:1.8.1
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

@@ -4,7 +4,7 @@ Outline runs in the `apps` namespace at `https://docs.mcnees.me`.
 
 ## Components
 
-- App: `docker.getoutline.com/outlinewiki/outline:1.7.1`
+- App: `docker.getoutline.com/outlinewiki/outline:1.8.1`
 - Database: PostgreSQL database `outline` on metagross
 - Redis: shared Redis at `redis-master.databases.svc.cluster.local`, DB index `4`
 - File storage: RustFS S3 bucket `outline`
