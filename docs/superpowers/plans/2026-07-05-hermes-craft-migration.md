@@ -216,14 +216,18 @@ data:
                     headers=forward_headers(self.headers),
                 )
                 with urllib.request.urlopen(request, timeout=120) as response:
-                    payload = response.read()
                     self.send_response(response.status)
                     for key, value in response.headers.items():
                         if key.lower() not in HOP_BY_HOP_HEADERS:
                             self.send_header(key, value)
-                    self.send_header("Content-Length", str(len(payload)))
                     self.end_headers()
-                    self.wfile.write(payload)
+                    reader = getattr(response, "read1", response.read)
+                    while True:
+                        chunk = reader(65536)
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+                        self.wfile.flush()
             except Exception as exc:
                 print(f"proxy error: {exc.__class__.__name__} on {self.path}", flush=True)
                 body = b"Bad Gateway"
