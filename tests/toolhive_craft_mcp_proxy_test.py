@@ -74,8 +74,8 @@ class CraftMcpProxyTest(unittest.TestCase):
             }
         )
 
-        self.assertEqual("Bearer client-token", headers["Authorization"])
         self.assertEqual("application/json", headers["Content-Type"])
+        self.assertNotIn("Authorization", headers)
         self.assertNotIn("Connection", headers)
         self.assertNotIn("Host", headers)
 
@@ -130,7 +130,7 @@ class CraftMcpProxyTest(unittest.TestCase):
         self.assertEqual("POST", request.method)
         self.assertEqual("https://mcp.example.test/links/token/mcp?session=abc", request.full_url)
         self.assertEqual(b"body", request.data)
-        self.assertEqual("Bearer client-token", request.get_header("Authorization"))
+        self.assertIsNone(request.get_header("Authorization"))
         self.assertEqual(120, timeout)
         self.assertEqual([65536, 65536, 65536], read1_sizes)
         handler.send_response.assert_called_once_with(200)
@@ -140,6 +140,40 @@ class CraftMcpProxyTest(unittest.TestCase):
         self.assertEqual([mock.call(b"data: one\n\n"), mock.call(b"data: two\n\n")], handler.wfile.write.call_args_list)
         self.assertEqual([mock.call(), mock.call()], handler.wfile.flush.call_args_list)
         self.assertTrue(handler.close_connection)
+
+    def test_proxy_returns_generic_bad_gateway_on_upstream_failure(self):
+        handler = self.server.Handler.__new__(self.server.Handler)
+        handler.command = "POST"
+        handler.path = "/mcp?session=abc"
+        handler.headers = {"Content-Length": "4", "Authorization": "Bearer client-token"}
+        handler.rfile = io.BytesIO(b"body")
+        handler.wfile = mock.Mock()
+        handler.send_response = mock.Mock()
+        handler.send_header = mock.Mock()
+        handler.end_headers = mock.Mock()
+
+        requests = []
+
+        def fake_urlopen(request, timeout=0):
+            requests.append((request, timeout))
+            raise ValueError("boom")
+
+        with mock.patch.dict(
+            os.environ,
+            {"CRAFT_MCP_UPSTREAM": "https://mcp.example.test/links/token/mcp"},
+            clear=True,
+        ), mock.patch("urllib.request.urlopen", side_effect=fake_urlopen), mock.patch(
+            "sys.stderr", new_callable=io.StringIO
+        ) as stderr:
+            handler.proxy()
+
+        self.assertEqual(1, len(requests))
+        self.assertEqual("POST", requests[0][0].method)
+        self.assertEqual([mock.call(b"Bad Gateway")], handler.wfile.write.call_args_list)
+        self.assertEqual(502, handler.send_response.call_args.args[0])
+        self.assertIn("ValueError", stderr.getvalue())
+        self.assertNotIn("mcp.example.test", stderr.getvalue())
+        self.assertNotIn("client-token", stderr.getvalue())
 
 
 if __name__ == "__main__":

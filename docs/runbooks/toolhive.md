@@ -155,8 +155,12 @@ Hermes, Codex, Claude, and similar MCP clients should connect only to
 `https://toolhive.home.mcnees.me/mcp`.
 
 Avoid direct client MCP entries for Gmail unless temporarily debugging outside
-ToolHive. Honeydew, Linear, Homey, and Outline are still direct-client
-fallbacks until ToolHive can authenticate them reliably.
+ToolHive. ToolHive is the normal client path for Hermes and other MCP clients,
+including backends that used to be wired up directly.
+
+Outline direct MCP should only be used for an explicit Hermes rollback or for
+data-reference work that intentionally bypasses ToolHive. Do not treat Outline
+as a normal fallback client target.
 
 Hermes' current mail setup has two separate paths:
 
