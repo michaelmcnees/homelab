@@ -4,7 +4,7 @@ Outline runs in the `apps` namespace at `https://docs.mcnees.me`.
 
 ## Components
 
-- App: `docker.getoutline.com/outlinewiki/outline:1.7.1`
+- App: `docker.getoutline.com/outlinewiki/outline:1.8.1`
 - Database: PostgreSQL database `outline` on metagross
 - Redis: shared Redis at `redis-master.databases.svc.cluster.local`, DB index `4`
 - File storage: RustFS S3 bucket `outline`
@@ -34,8 +34,10 @@ https://docs.mcnees.me/mcp
 ```
 
 MCP is controlled at the workspace level under Settings -> AI. Existing
-workspaces may have MCP disabled after upgrading, so enable it there before
-connecting Codex, Claude, Hermes, or other MCP clients.
+workspaces may have MCP disabled after upgrading, so enable it there only when
+you are restoring the legacy Outline MCP path during a Hermes rollback. That
+path is kept for recovery and comparison, not as the canonical Hermes notes,
+docs, or todo backend.
 
 Default MCP auth uses OAuth. API key auth is also available by generating an
 Outline API key and sending it as:

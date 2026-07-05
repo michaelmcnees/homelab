@@ -25,7 +25,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: fix-data-permissions
-          image: busybox:1.37.0
+          image: busybox:1.38.0
           imagePullPolicy: IfNotPresent
           command:
             - sh
@@ -45,7 +45,7 @@ spec:
             - name: workspace
               mountPath: /workspace
         - name: install-hermes-cli-shim
-          image: busybox:1.37.0
+          image: busybox:1.38.0
           imagePullPolicy: IfNotPresent
           command:
             - sh
