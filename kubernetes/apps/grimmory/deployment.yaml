@@ -51,7 +51,7 @@ spec:
             - name: TZ
               value: America/Detroit
             - name: DATABASE_URL
-              value: jdbc:mariadb://registeel.internal.svc.cluster.local:3306/grimmory
+              value: jdbc:mariadb://registeel.internal.svc.cluster.local:3306/grimmory?sessionVariables=innodb_lock_wait_timeout=300
             - name: DATABASE_USERNAME
               value: grimmory
             - name: DATABASE_PASSWORD
@@ -59,8 +59,6 @@ spec:
                 secretKeyRef:
                   name: grimmory-secret
                   key: DB_PASSWORD
-            - name: SPRING_DATASOURCE_HIKARI_CONNECTION_INIT_SQL
-              value: SET SESSION innodb_lock_wait_timeout=300
             - name: API_DOCS_ENABLED
               value: "false"
             - name: DISK_TYPE
