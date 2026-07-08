@@ -59,6 +59,8 @@ spec:
                 secretKeyRef:
                   name: grimmory-secret
                   key: DB_PASSWORD
+            - name: SPRING_DATASOURCE_HIKARI_CONNECTION_INIT_SQL
+              value: SET SESSION innodb_lock_wait_timeout=300
             - name: API_DOCS_ENABLED
               value: "false"
             - name: DISK_TYPE
