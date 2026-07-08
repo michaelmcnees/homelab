@@ -37,7 +37,7 @@ spec:
                 - ALL
       containers:
         - name: grimmory
-          image: ghcr.io/grimmory-tools/grimmory:v3.0.3
+          image: ghcr.io/grimmory-tools/grimmory:v3.2.4
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
