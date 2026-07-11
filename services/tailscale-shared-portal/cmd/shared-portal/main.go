@@ -105,7 +105,6 @@ func run() error {
 		tlsConfig := &tls.Config{
 			MinVersion: tls.VersionTLS12,
 		}
-		tlsListener := tls.NewListener(httpsListener, tlsConfig)
 		httpsServer = &http.Server{
 			Handler:           app,
 			ReadHeaderTimeout: 15 * time.Second,
@@ -113,7 +112,7 @@ func run() error {
 		}
 		go func() {
 			logger.Info("starting tailscale https listener", "addr", httpsListener.Addr())
-			if err := httpsServer.ServeTLS(tlsListener, certFile, keyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			if err := httpsServer.ServeTLS(httpsListener, certFile, keyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				logger.Error("tailscale https listener failed", "error", err)
 				stop()
 			}
