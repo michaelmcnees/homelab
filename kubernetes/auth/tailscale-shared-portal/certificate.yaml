@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tailscale-shared-portal
+  namespace: auth
+  labels:
+    app.kubernetes.io/name: tailscale-shared-portal
+spec:
+  secretName: tailscale-shared-portal-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - portal.mcnees.me

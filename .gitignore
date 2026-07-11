@@ -45,3 +45,4 @@ reference/
 .vscode/
 .idea/
 .claude/worktrees/
+.worktrees/
