@@ -151,13 +151,10 @@ The target shared-user path is `portal.mcnees.me`, backed by the custom `tsnet` 
 
 This path uses Tailscale as authentication. Pocket ID is intentionally not in the request path. The portal authorizes each Tailscale identity against `tailscale-shared-portal-config`, renders only the apps allowed for that identity, and proxies allowed `/app/<name>` paths to in-cluster Services.
 
-Build and push the portal image:
-
-```bash
-cd services/tailscale-shared-portal
-docker build -t ghcr.io/michaelmcnees/homelab/shared-portal:0.1.0 .
-docker push ghcr.io/michaelmcnees/homelab/shared-portal:0.1.0
-```
+The portal image is published by the `Shared portal image` GitHub Actions
+workflow whenever `services/tailscale-shared-portal` changes on `main`.
+Flux deploys the portal from `kubernetes/auth/tailscale-shared-portal`; do not
+deploy it with an imperative `kubectl apply`.
 
 Create a reusable Tailscale auth key in the admin console if the portal has not already enrolled. The key should be reusable, non-ephemeral, and allowed to advertise `tag:homelab-shared-service`. Store it manually in the cluster:
 
@@ -168,7 +165,7 @@ kubectl --kubeconfig talos/kubeconfig -n auth create secret generic shared-porta
 
 If the portal already has stable state in `tailscale-shared-portal-state`, the auth key is ignored by `tsnet` and can be rotated without changing the machine identity.
 
-Deploy or reconcile:
+Reconcile the Git-managed deployment:
 
 ```bash
 flux --kubeconfig talos/kubeconfig reconcile kustomization auth --with-source
@@ -182,19 +179,37 @@ kubectl --kubeconfig talos/kubeconfig -n auth get certificate tailscale-shared-p
 kubectl --kubeconfig talos/kubeconfig -n auth logs deploy/tailscale-shared-portal
 ```
 
-Confirm the machine appears in Tailscale as `shared-portal`, then get its Tailscale IPv4 address from the Machines page or with:
+Confirm the machine appears in Tailscale as `shared-portal`, then get its
+Tailscale IPv4 address from the Machines page or with:
 
 ```bash
 tailscale status | grep shared-portal
 ```
 
-Create or update public DNS:
+Create or update public DNS through Flux, not the Cloudflare UI. Add
+`kubernetes/auth/tailscale-shared-portal/dnsendpoint.yaml` with the assigned
+Tailscale IPv4 address and include it in the local kustomization:
 
-```text
-portal.mcnees.me A <shared-portal-tailscale-ipv4>
+```yaml
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: tailscale-shared-portal
+  namespace: auth
+spec:
+  endpoints:
+    - dnsName: portal.mcnees.me
+      recordType: A
+      targets:
+        - <shared-portal-tailscale-ipv4>
+      providerSpecific:
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "false"
 ```
 
-Do not proxy this DNS record through Cloudflare and do not create a public Traefik route for it. The record may be public, but it points at a Tailscale IP that only Tailscale clients can reach.
+Do not proxy this DNS record through Cloudflare and do not create a public
+Traefik route for it. The record may be public, but it points at a Tailscale IP
+that only Tailscale clients can reach.
 
 Share the `shared-portal` machine with Kenway from the Tailscale Machines page.
 
