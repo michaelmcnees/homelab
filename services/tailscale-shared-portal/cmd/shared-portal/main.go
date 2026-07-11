@@ -38,19 +38,6 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	healthServer := &http.Server{
-		Addr:              env("PORTAL_HEALTH_ADDR", ":8080"),
-		Handler:           healthHandler(),
-		ReadHeaderTimeout: 5 * time.Second,
-	}
-	go func() {
-		logger.Info("starting health listener", "addr", healthServer.Addr)
-		if err := healthServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("health listener failed", "error", err)
-			stop()
-		}
-	}()
-
 	ts := &tsnet.Server{
 		Hostname:      env("TSNET_HOSTNAME", "shared-portal"),
 		Dir:           env("TSNET_STATE_DIR", "/var/lib/shared-portal/tsnet"),
@@ -66,6 +53,19 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("start tsnet local client: %w", err)
 	}
+
+	healthServer := &http.Server{
+		Addr:              env("PORTAL_HEALTH_ADDR", ":8080"),
+		Handler:           healthHandler(localClient),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	go func() {
+		logger.Info("starting health listener", "addr", healthServer.Addr)
+		if err := healthServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("health listener failed", "error", err)
+			stop()
+		}
+	}()
 
 	app := portal.NewServer(cfg, tsnetIdentityResolver{client: localClient}, logger)
 	tlsAvailable := filesExist(env("PORTAL_TLS_CERT", "/tls/tls.crt"), env("PORTAL_TLS_KEY", "/tls/tls.key"))
@@ -172,11 +172,27 @@ func (r tsnetIdentityResolver) Resolve(ctx context.Context, remoteAddr string) (
 	return identity, nil
 }
 
-func healthHandler() http.Handler {
+func healthHandler(localClient *local.Client) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		_, _ = w.Write([]byte("ok\n"))
+	})
+	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+
+		status, err := localClient.Status(ctx)
+		if err != nil {
+			http.Error(w, "tailscale status unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		if status.BackendState != "Running" || len(status.TailscaleIPs) == 0 {
+			http.Error(w, "tailscale not ready", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = w.Write([]byte("ready\n"))
 	})
 	return mux
 }

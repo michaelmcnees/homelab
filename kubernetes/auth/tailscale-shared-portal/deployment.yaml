@@ -25,7 +25,7 @@ spec:
       containers:
         - name: portal
           image: ghcr.io/michaelmcnees/homelab/shared-portal:0.1.0
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: health
               containerPort: 8080
@@ -57,7 +57,7 @@ spec:
                   optional: true
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /readyz
               port: health
             initialDelaySeconds: 5
             periodSeconds: 10
