@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tailscale-shared-portal
+  namespace: auth
+  labels:
+    app.kubernetes.io/name: tailscale-shared-portal
+spec:
+  selector:
+    app.kubernetes.io/name: tailscale-shared-portal
+  ports:
+    - name: health
+      port: 8080
+      targetPort: health

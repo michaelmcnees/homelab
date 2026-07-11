@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tailscale-shared-portal
+  namespace: auth
+  labels:
+    app.kubernetes.io/name: tailscale-shared-portal
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tailscale-shared-portal
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tailscale-shared-portal
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: portal
+          image: ghcr.io/michaelmcnees/homelab/shared-portal:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: health
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: PORTAL_CONFIG
+              value: /etc/shared-portal/config.yaml
+            - name: PORTAL_HEALTH_ADDR
+              value: :8080
+            - name: PORTAL_HTTP_ADDR
+              value: :80
+            - name: PORTAL_HTTPS_ADDR
+              value: :443
+            - name: PORTAL_TLS_CERT
+              value: /tls/tls.crt
+            - name: PORTAL_TLS_KEY
+              value: /tls/tls.key
+            - name: TSNET_HOSTNAME
+              value: shared-portal
+            - name: TSNET_STATE_DIR
+              value: /var/lib/shared-portal/tsnet
+            - name: TSNET_ADVERTISE_TAGS
+              value: tag:homelab-shared-service
+            - name: TS_AUTHKEY
+              valueFrom:
+                secretKeyRef:
+                  name: shared-portal-tsnet-auth
+                  key: TS_AUTHKEY
+                  optional: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 65532
+            runAsNonRoot: true
+            runAsUser: 65532
+          volumeMounts:
+            - name: config
+              mountPath: /etc/shared-portal
+              readOnly: true
+            - name: tls
+              mountPath: /tls
+              readOnly: true
+            - name: state
+              mountPath: /var/lib/shared-portal
+      volumes:
+        - name: config
+          configMap:
+            name: tailscale-shared-portal-config
+        - name: tls
+          secret:
+            secretName: tailscale-shared-portal-tls
+            optional: true
+        - name: state
+          persistentVolumeClaim:
+            claimName: tailscale-shared-portal-state

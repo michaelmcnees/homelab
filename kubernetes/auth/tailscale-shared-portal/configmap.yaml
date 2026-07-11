@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tailscale-shared-portal-config
+  namespace: auth
+  labels:
+    app.kubernetes.io/name: tailscale-shared-portal
+data:
+  config.yaml: |
+    users:
+      mike@kenway.me:
+        displayName: Kenway
+        apps:
+          - sonarr
+          - sonarr-anime
+          - radarr
+          - lidarr
+          - lidarr-kids
+          - bazarr
+          - prowlarr
+
+    apps:
+      sonarr:
+        label: Sonarr
+        path: /app/sonarr
+        upstream: http://sonarr.media.svc.cluster.local:8989
+      sonarr-anime:
+        label: Sonarr Anime
+        path: /app/sonarr-anime
+        upstream: http://sonarr-anime.media.svc.cluster.local:8989
+      radarr:
+        label: Radarr
+        path: /app/radarr
+        upstream: http://radarr.media.svc.cluster.local:7878
+      lidarr:
+        label: Lidarr
+        path: /app/lidarr
+        upstream: http://lidarr.media.svc.cluster.local:8686
+      lidarr-kids:
+        label: Lidarr Kids
+        path: /app/lidarr-kids
+        upstream: http://lidarr-kids.media.svc.cluster.local:8686
+      bazarr:
+        label: Bazarr
+        path: /app/bazarr
+        upstream: http://bazarr.media.svc.cluster.local:6767
+      prowlarr:
+        label: Prowlarr
+        path: /app/prowlarr
+        upstream: http://prowlarr.media.svc.cluster.local:9696
