@@ -22,8 +22,7 @@ Update the tailnet policy before enabling the operator:
 ```json
 {
   "groups": {
-    "group:homelab-admins": ["<your-tailscale-login-email>"],
-    "group:homelab-shared": ["mike@kenway.me"]
+    "group:homelab-admins": ["<your-tailscale-login-email>"]
   },
   "tagOwners": {
     "tag:k8s-operator": ["group:homelab-admins"],
@@ -48,7 +47,7 @@ Update the tailnet policy before enabling the operator:
       "ip": ["*"]
     },
     {
-      "src": ["group:homelab-shared"],
+      "src": ["autogroup:shared"],
       "dst": ["tag:homelab-shared-service"],
       "ip": ["tcp:443"]
     }
@@ -56,7 +55,11 @@ Update the tailnet policy before enabling the operator:
 }
 ```
 
-Replace the example emails with real Tailscale identities before saving the policy.
+Replace the example admin email before saving the policy. `autogroup:shared`
+matches devices that belong to users who accepted a machine sharing invitation
+to this tailnet. Use a specific external recipient email instead of
+`autogroup:shared` if the tailnet policy should grant only one shared user
+network reachability to shared machines.
 
 Then edit the operator secret:
 
@@ -252,3 +255,5 @@ After `https://portal.mcnees.me/` works for Kenway, remove the old per-app share
 - Tailscale Kubernetes Operator: https://tailscale.com/docs/features/kubernetes-operator/
 - Cluster ingress: https://tailscale.com/docs/features/kubernetes-operator/how-to/cluster-ingress
 - Subnet routers with the operator: https://tailscale.com/docs/features/kubernetes-operator/how-to/connector
+- Machine sharing: https://tailscale.com/docs/features/sharing
+- Grants syntax: https://tailscale.com/docs/reference/syntax/grants

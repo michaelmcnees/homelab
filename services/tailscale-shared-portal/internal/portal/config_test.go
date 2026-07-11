@@ -90,3 +90,19 @@ apps:
 		t.Fatal("expected invalid path error")
 	}
 }
+
+func TestLoadConfigRejectsAppPathMismatch(t *testing.T) {
+	_, err := LoadConfig(strings.NewReader(`
+users:
+  mike@kenway.me:
+    apps: [sonarr]
+apps:
+  sonarr:
+    label: Sonarr
+    path: /app/radarr
+    upstream: http://sonarr.media.svc.cluster.local:8989
+`))
+	if err == nil {
+		t.Fatal("expected path mismatch error")
+	}
+}

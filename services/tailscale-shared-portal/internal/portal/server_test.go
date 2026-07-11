@@ -119,6 +119,44 @@ func TestAuthorizedProxyStripsPrefix(t *testing.T) {
 	}
 }
 
+func TestAuthorizedProxyStripsSpoofedIdentityHeaders(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for _, name := range []string{
+			"Authorization",
+			"Cookie",
+			"Tailscale-User-Login",
+			"X-Auth-Request-User",
+			"X-Forwarded-User",
+		} {
+			if got := r.Header.Get(name); got != "" {
+				t.Fatalf("%s was forwarded as %q", name, got)
+			}
+		}
+		if got := r.Header.Get("X-Forwarded-Prefix"); got != "/app/sonarr" {
+			t.Fatalf("X-Forwarded-Prefix=%q", got)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer upstream.Close()
+
+	cfg := testConfigWithUpstream(t, upstream.URL)
+	handler := NewServer(cfg, staticIdentity{identity: Identity{LoginName: "mike@kenway.me"}}, discardLogger())
+	req := httptest.NewRequest(http.MethodGet, "http://portal.mcnees.me/app/sonarr/api", nil)
+	req.RemoteAddr = "100.64.0.10:50000"
+	req.Header.Set("Authorization", "Bearer caller-token")
+	req.Header.Set("Cookie", "session=caller")
+	req.Header.Set("Tailscale-User-Login", "admin@example.com")
+	req.Header.Set("X-Auth-Request-User", "admin")
+	req.Header.Set("X-Forwarded-User", "admin")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestUnauthorizedAppPathReturnsNotFound(t *testing.T) {
 	handler := NewServer(testConfig(t), staticIdentity{identity: Identity{LoginName: "mike@kenway.me"}}, discardLogger())
 	req := httptest.NewRequest(http.MethodGet, "http://portal.mcnees.me/app/lidarr/", nil)

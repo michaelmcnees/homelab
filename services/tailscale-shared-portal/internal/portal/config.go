@@ -132,6 +132,9 @@ func (c *Config) validate() error {
 		if app.Path == "/app" {
 			return fmt.Errorf("app %q path must include app name", name)
 		}
+		if want := "/app/" + name; app.Path != want {
+			return fmt.Errorf("app %q path must be %q", name, want)
+		}
 		parsed, err := url.Parse(app.Upstream)
 		if err != nil || parsed.Scheme == "" || parsed.Host == "" {
 			return fmt.Errorf("app %q upstream must be absolute URL", name)

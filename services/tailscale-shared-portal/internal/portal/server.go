@@ -127,6 +127,7 @@ func (s *Server) handleApp(w http.ResponseWriter, r *http.Request, identity Iden
 		req.URL.Path = stripAppPrefix(r.URL.Path, app.Path)
 		req.URL.RawPath = ""
 		req.URL.RawQuery = r.URL.RawQuery
+		stripSpoofableHeaders(req.Header)
 		req.Header.Set("X-Forwarded-Prefix", app.Path)
 		req.Header.Set("X-Forwarded-Host", r.Host)
 		req.Host = target.Host
@@ -182,6 +183,28 @@ func stripAppPrefix(requestPath, appPath string) string {
 		stripped = "/" + stripped
 	}
 	return path.Clean(stripped)
+}
+
+func stripSpoofableHeaders(header http.Header) {
+	for _, name := range []string{
+		"Authorization",
+		"Cookie",
+		"Tailscale-User-Login",
+		"Tailscale-User-Name",
+		"Tailscale-User-Profile-Pic",
+		"X-Auth-Request-Email",
+		"X-Auth-Request-Groups",
+		"X-Auth-Request-Preferred-Username",
+		"X-Auth-Request-User",
+		"X-Forwarded-Email",
+		"X-Forwarded-Groups",
+		"X-Forwarded-Host",
+		"X-Forwarded-Prefix",
+		"X-Forwarded-Proto",
+		"X-Forwarded-User",
+	} {
+		header.Del(name)
+	}
 }
 
 var dashboardTemplate = template.Must(template.New("dashboard").Parse(`<!doctype html>

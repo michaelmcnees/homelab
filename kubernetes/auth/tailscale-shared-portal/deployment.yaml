@@ -100,7 +100,6 @@ spec:
         - name: tls
           secret:
             secretName: tailscale-shared-portal-tls
-            optional: true
         - name: state
           persistentVolumeClaim:
             claimName: tailscale-shared-portal-state
