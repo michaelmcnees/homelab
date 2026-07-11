@@ -179,6 +179,11 @@ kubectl --kubeconfig talos/kubeconfig -n auth get certificate tailscale-shared-p
 kubectl --kubeconfig talos/kubeconfig -n auth logs deploy/tailscale-shared-portal
 ```
 
+The Kubernetes readiness probe checks process health only. Tailscale enrollment
+is intentionally a separate external step; while enrollment is pending, `/readyz`
+will fail and the logs will print a Tailscale login URL without paging the auth
+stack as unavailable.
+
 Confirm the machine appears in Tailscale as `shared-portal`, then get its
 Tailscale IPv4 address from the Machines page or with:
 
