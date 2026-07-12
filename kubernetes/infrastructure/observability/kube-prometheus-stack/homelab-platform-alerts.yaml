@@ -7,6 +7,35 @@ metadata:
     release: kube-prometheus-stack
 spec:
   groups:
+    - name: homelab.monitoring
+      rules:
+        - alert: TargetDown
+          expr: |
+            100 *
+            (
+              count by (cluster, job, namespace, service) (
+                (
+                  up{job!~"household(_compute|-hosts)"} == 0
+                )
+                or
+                (
+                  up{job="household_compute", household_infra="true"} == 0
+                )
+              )
+              /
+              count by (cluster, job, namespace, service) (
+                up{job!~"household(_compute|-hosts)"}
+                or
+                up{job="household_compute", household_infra="true"}
+              )
+            ) > 10
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "One or more targets are unreachable"
+            description: "{{ printf \"%.4g\" $value }}% of the {{ $labels.job }}/{{ $labels.service }} targets in {{ $labels.namespace }} namespace are down. Non-infra household hosts are excluded."
+            runbook_url: "https://runbooks.prometheus-operator.dev/runbooks/general/targetdown"
     - name: homelab.traefik
       rules:
         - alert: TraefikServiceErrorRateHigh
@@ -106,9 +135,9 @@ spec:
       rules:
         - alert: MediaArrUnhealthy
           expr: |
-            sonarr_system_health_issues{source!="UpdateCheck", source!="IndexerLongTermStatusCheck"} > 0
-            or radarr_system_health_issues{source!="UpdateCheck", source!="IndexerLongTermStatusCheck", source!="RemovedMovieCheck"} > 0
-            or lidarr_system_health_issues{source!="UpdateCheck", source!="IndexerLongTermStatusCheck"} > 0
+            sonarr_system_health_issues{source!="UpdateCheck", source!="IndexerStatusCheck", source!="IndexerLongTermStatusCheck"} > 0
+            or radarr_system_health_issues{source!="UpdateCheck", source!="IndexerStatusCheck", source!="IndexerLongTermStatusCheck", source!="RemovedMovieCheck"} > 0
+            or lidarr_system_health_issues{source!="UpdateCheck", source!="IndexerStatusCheck", source!="IndexerLongTermStatusCheck"} > 0
             or prowlarr_system_health_issues{source!="UpdateCheck"} > 0
           for: 2h
           labels:
@@ -118,7 +147,7 @@ spec:
             description: "An *arr instance has reported one or more actionable system health issues for 2 hours. Check the application UI."
             runbook_url: "https://github.com/michaelmcnees/homelab/blob/main/docs/runbooks/media-workflow.md"
         - alert: MediaIndexerDown
-          expr: prowlarr_indexer_enabled - prowlarr_indexer_average_response_time_milliseconds > 0 and prowlarr_indexer_average_response_time_milliseconds < 0
+          expr: prowlarr_indexer_average_response_time_ms < 0
           for: 1h
           labels:
             severity: warning

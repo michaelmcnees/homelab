@@ -6,7 +6,7 @@ metadata:
   labels:
     release: kube-prometheus-stack
 spec:
-  jobName: household-hosts
+  jobName: household_compute
   scrapeInterval: 30s
   scrapeTimeout: 15s
   metricsPath: /metrics
@@ -19,19 +19,19 @@ spec:
     #     - "michael-mbp.tail-scale.ts.net:9100"
     #     - "mac-studio.tail-scale.ts.net:9100"
     #   labels:
-    #     job: household_compute
     #     household_role: workstation
+    #     household_infra: "false"
     - targets:
         - "10.0.30.183:9100"
       labels:
-        job: household_compute
         household_role: signage
+        household_infra: "true"
         host: rotom
     - targets:
         - "10.0.20.98:9100"
       labels:
-        job: household_compute
         household_role: personal_desktop
+        household_infra: "false"
         host: lucas-minimint
   relabelings:
     - sourceLabels: [host]

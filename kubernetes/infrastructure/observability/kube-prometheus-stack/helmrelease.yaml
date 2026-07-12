@@ -25,6 +25,8 @@ spec:
   values:
     defaultRules:
       create: true
+      disabled:
+        TargetDown: true
     alertmanager:
       alertmanagerSpec:
         configSecret: alertmanager-homelab-config
