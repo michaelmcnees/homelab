@@ -9,3 +9,4 @@ resources:
   - lidarr-kids.yaml
   - bazarr.yaml
   - prowlarr.yaml
+  - shared-host.yaml

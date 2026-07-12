@@ -9,6 +9,10 @@ The current media apps still run outside Kubernetes and are exposed through temp
 - Prowlarr: `https://prowlarr.home.mcnees.me`, internal service `http://prowlarr-external.apps.svc.cluster.local:30050`
 - SABnzbd: `https://sabnzbd.home.mcnees.me`, internal service `http://sabnzbd-external.apps.svc.cluster.local:30055`
 
+LazyLibrarian uses Prowlarr through `https://prowlarr.home.mcnees.me/<indexer>/api` rather than the Kubernetes service DNS name. SABnzbd runs on TrueNAS for direct disk access, so the Prowlarr download URLs handed to SAB must resolve from `10.0.1.1`. The Prowlarr Traefik route allows only `/<indexer>/api` and `/<indexer>/download` from TrueNAS and the Kubernetes networks; the normal UI route stays behind OAuth.
+
+Prowlarr's LazyLibrarian application sync must also set `prowlarrUrl` to `https://prowlarr.home.mcnees.me`. Keep the LazyLibrarian `baseUrl` internal, for example `http://lazylibrarian.media.svc.cluster.local:5299`, because Prowlarr talks to LazyLibrarian from inside the cluster. If `prowlarrUrl` is set to `http://prowlarr.media.svc.cluster.local:9696`, a full sync will push internal Newznab URLs back into LazyLibrarian and SABnzbd will leave book jobs stuck in `Grabbing`/wait at `0 MB`.
+
 Sonarr and Radarr were verified reachable from inside the Kubernetes cluster on 2026-05-06. Movies and TV shows were confirmed flowing through the full stack on 2026-05-06: request/search, SABnzbd download, import, and Plex visibility.
 
 ## Profile Management
@@ -90,6 +94,13 @@ Grimmory runs in the `apps` namespace, but its content paths are part of the sha
 - BookDrop: `10.0.1.1:/mnt/data/media/bookdrop`, mounted in Grimmory at `/bookdrop`.
 
 Keep these directories owned/writable by the media dataset identity, UID/GID `568`. Grimmory runs with `USER_ID=568`, `GROUP_ID=568`, and `DISK_TYPE=NETWORK` so it treats the library as shared network storage.
+
+LazyLibrarian runs in the `media` namespace and mounts the same shared books library at `/books`; keep its `EBOOK_DIR` config value set to `/books`. It also mounts the shared audiobook library at `/audiobooks`; keep `AUDIO_DIR` set to `/audiobooks`, not `/books`. If audiobook files land under Grimmory's `/books` mount, multi-file audiobooks can be indexed as separate book entries. If `EBOOK_DIR` or `AUDIO_DIR` is blank, LazyLibrarian can fall back to `/config`, so completed SAB downloads appear successful but never land in the intended library. A public-domain Moby Dick canary on 2026-07-07 verified the ebook path:
+
+- LazyLibrarian searched Prowlarr via `https://prowlarr.home.mcnees.me/13/api`.
+- SABnzbd completed `Herman Melville - Moby Dick (epub)` in the `books` category.
+- LazyLibrarian imported and renamed the files under `/books/Herman Melville/Moby Dick/`.
+- Grimmory saw the same epub, opf, and cover files in its `/books` mount.
 
 ## Games
 

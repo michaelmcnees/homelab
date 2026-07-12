@@ -1,0 +1,31 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: prowlarr-truenas-only
+  namespace: media
+spec:
+  ipAllowList:
+    sourceRange:
+      - 10.0.1.1/32
+      - 10.0.10.0/24
+      - 10.244.0.0/16
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: prowlarr-api
+  namespace: media
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`prowlarr.home.mcnees.me`) && PathRegexp(`^/[0-9]+/(api|download)`)
+      kind: Rule
+      priority: 1000
+      middlewares:
+        - name: prowlarr-truenas-only
+      services:
+        - name: prowlarr
+          port: 9696
+  tls:
+    secretName: legacy-home-wildcard-tls

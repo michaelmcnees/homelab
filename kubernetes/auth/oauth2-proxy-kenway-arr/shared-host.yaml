@@ -1,0 +1,202 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kenway-arr-shared-host-nginx
+  namespace: auth
+data:
+  nginx.conf: |
+    events {}
+
+    http {
+      map $http_upgrade $connection_upgrade {
+        default upgrade;
+        '' close;
+      }
+
+      proxy_http_version 1.1;
+      proxy_buffering off;
+      proxy_set_header Host $host:$server_port;
+      proxy_set_header X-Forwarded-Host $host:$server_port;
+      proxy_set_header X-Forwarded-Proto http;
+      proxy_set_header X-Forwarded-Port $server_port;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+
+      server {
+        listen 8989;
+        location / {
+          proxy_pass http://oauth2-proxy-kenway-sonarr.auth.svc.cluster.local:4180;
+        }
+      }
+
+      server {
+        listen 8990;
+        location / {
+          proxy_pass http://oauth2-proxy-kenway-sonarr-anime.auth.svc.cluster.local:4180;
+        }
+      }
+
+      server {
+        listen 7878;
+        location / {
+          proxy_pass http://oauth2-proxy-kenway-radarr.auth.svc.cluster.local:4180;
+        }
+      }
+
+      server {
+        listen 8686;
+        location / {
+          proxy_pass http://oauth2-proxy-kenway-lidarr.auth.svc.cluster.local:4180;
+        }
+      }
+
+      server {
+        listen 8687;
+        location / {
+          proxy_pass http://oauth2-proxy-kenway-lidarr-kids.auth.svc.cluster.local:4180;
+        }
+      }
+
+      server {
+        listen 6767;
+        location / {
+          proxy_pass http://oauth2-proxy-kenway-bazarr.auth.svc.cluster.local:4180;
+        }
+      }
+
+      server {
+        listen 9696;
+        location / {
+          proxy_pass http://oauth2-proxy-kenway-prowlarr.auth.svc.cluster.local:4180;
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kenway-arr-shared-host
+  namespace: auth
+  labels:
+    app.kubernetes.io/name: kenway-arr-shared-host
+    app.kubernetes.io/component: kenway-arr-share
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kenway-arr-shared-host
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kenway-arr-shared-host
+        app.kubernetes.io/component: kenway-arr-share
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.29-alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+          ports:
+            - name: sonarr
+              containerPort: 8989
+              protocol: TCP
+            - name: sonarr-anime
+              containerPort: 8990
+              protocol: TCP
+            - name: radarr
+              containerPort: 7878
+              protocol: TCP
+            - name: lidarr
+              containerPort: 8686
+              protocol: TCP
+            - name: lidarr-kids
+              containerPort: 8687
+              protocol: TCP
+            - name: bazarr
+              containerPort: 6767
+              protocol: TCP
+            - name: prowlarr
+              containerPort: 9696
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: sonarr
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: sonarr
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              memory: 96Mi
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: kenway-arr-shared-host-nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kenway-arr
+  namespace: auth
+  annotations:
+    tailscale.com/hostname: kenway-arr
+    tailscale.com/tags: tag:homelab-shared-service
+  labels:
+    app.kubernetes.io/name: kenway-arr-shared-host
+    app.kubernetes.io/component: kenway-arr-share
+spec:
+  type: LoadBalancer
+  loadBalancerClass: tailscale
+  selector:
+    app.kubernetes.io/name: kenway-arr-shared-host
+  ports:
+    - name: sonarr
+      port: 8989
+      targetPort: sonarr
+      protocol: TCP
+    - name: sonarr-anime
+      port: 8990
+      targetPort: sonarr-anime
+      protocol: TCP
+    - name: radarr
+      port: 7878
+      targetPort: radarr
+      protocol: TCP
+    - name: lidarr
+      port: 8686
+      targetPort: lidarr
+      protocol: TCP
+    - name: lidarr-kids
+      port: 8687
+      targetPort: lidarr-kids
+      protocol: TCP
+    - name: bazarr
+      port: 6767
+      targetPort: bazarr
+      protocol: TCP
+    - name: prowlarr
+      port: 9696
+      targetPort: prowlarr
+      protocol: TCP

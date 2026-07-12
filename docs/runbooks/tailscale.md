@@ -49,7 +49,7 @@ Update the tailnet policy before enabling the operator:
     {
       "src": ["autogroup:shared"],
       "dst": ["tag:homelab-shared-service"],
-      "ip": ["tcp:443"]
+      "ip": ["tcp:443", "tcp:6767", "tcp:7878", "tcp:8686", "tcp:8687", "tcp:8989", "tcp:8990", "tcp:9696"]
     }
   ]
 }
@@ -112,11 +112,9 @@ kubectl --kubeconfig talos/kubeconfig annotate connector homelab-subnet-router t
 
 The subnet router should run with `spec.replicas: 2` so a single worker loss does not remove admin access to lab subnets. Both generated Tailscale devices must advertise the same routes. Route auto-approval should be handled by `tag:homelab-admin-router`, but confirm the generated devices are approved in the Tailscale admin console after changes.
 
-Legacy shared Kenway ingress proxies use the `homelab-shared-ingress` `ProxyGroup` with two replicas. Each Tailscale `Ingress` in `kubernetes/auth/oauth2-proxy-kenway-arr` should set:
-
-```yaml
-tailscale.com/proxy-group: homelab-shared-ingress
-```
+Shared portal and Kenway Arr access are separate paths. The shared portal runs
+as its own tsnet app. Kenway Arr access uses the standalone `auth/kenway-arr`
+Tailscale LoadBalancer machine so it can be shared from the Machines page.
 
 Failover drill:
 
@@ -124,12 +122,11 @@ Failover drill:
 kubectl --kubeconfig talos/kubeconfig cordon lugia
 kubectl --kubeconfig talos/kubeconfig get pods -n tailscale -o wide
 kubectl --kubeconfig talos/kubeconfig delete pod -n tailscale <one-subnet-router-pod>
-kubectl --kubeconfig talos/kubeconfig delete pod -n tailscale <one-shared-ingress-proxy-pod>
 kubectl --kubeconfig talos/kubeconfig get pods -n tailscale -o wide
 kubectl --kubeconfig talos/kubeconfig uncordon lugia
 ```
 
-During the drill, verify admin subnet access plus the shared portal. Do not leave `lugia` cordoned after the test.
+During the drill, verify admin subnet access plus the Kenway shared Arr URLs. Do not leave `lugia` cordoned after the test.
 
 ## Shared Services
 
@@ -143,7 +140,11 @@ Default rule:
 
 `shared-service-ingress.example.yaml` is a shape reference for direct service exposure. Before using it for a real app, confirm whether it should be protected by native auth or by a dedicated OAuth2-Proxy route.
 
-For services we want Kenway to use, create an explicit Tailscale service tag such as `tag:homelab-shared-service` and keep the tailnet ACL limited to `tcp:443`.
+For services we want Kenway to use through machine sharing, expose a single
+shareable tailnet host instead of Tailscale Services. Tailscale Services use
+`svc:<name>` identities and are access-controlled inside the owning tailnet; they
+are not shared like machines. Kenway access depends on sharing a machine from
+the Machines page.
 
 ### Shared Portal
 
@@ -244,31 +245,39 @@ Then update `kubernetes/auth/tailscale-shared-portal/configmap.yaml` with the ex
 
 ### Kenway Arr Access
 
-The old Kenway Arr path used dedicated OAuth2-Proxy reverse proxies in `kubernetes/auth/oauth2-proxy-kenway-arr`. Keep these manifests only until the shared portal is validated end to end.
+Kenway gets Tailscale-only Arr access through dedicated OAuth2-Proxy reverse proxies in `kubernetes/auth/oauth2-proxy-kenway-arr`. These proxies only allow `mike@kenway.me` and forward to the in-cluster Arr services after Pocket ID login.
 
-Do not expose the Arr app services directly with Tailscale. The apps trust local cluster traffic, so direct exposure would bypass the shared portal's authorization layer.
+Do not expose the Arr app services directly with Tailscale. The apps trust local cluster traffic, so direct exposure would bypass the auth layer.
 
-Legacy redirect URLs that were required by the old Pocket ID/OAuth2-Proxy path:
+The shareable host is the standalone Tailscale LoadBalancer Service
+`auth/kenway-arr`. Share the generated `kenway-arr` machine with Kenway from the
+Tailscale Machines page. Do not put this Service behind `homelab-shared-ingress`
+or any other `ProxyGroup`, because ProxyGroup mode creates Tailscale Services
+instead of a machine that can be shared externally.
 
-- `https://kenway-sonarr.halfbeak-chimaera.ts.net/oauth2/callback`
-- `https://kenway-sonarr-anime.halfbeak-chimaera.ts.net/oauth2/callback`
-- `https://kenway-radarr.halfbeak-chimaera.ts.net/oauth2/callback`
-- `https://kenway-lidarr.halfbeak-chimaera.ts.net/oauth2/callback`
-- `https://kenway-lidarr-kids.halfbeak-chimaera.ts.net/oauth2/callback`
-- `https://kenway-bazarr.halfbeak-chimaera.ts.net/oauth2/callback`
-- `https://kenway-prowlarr.halfbeak-chimaera.ts.net/oauth2/callback`
+Add these redirect URLs to the Pocket ID OAuth client used by OAuth2-Proxy:
+
+- `http://kenway-arr.halfbeak-chimaera.ts.net:8989/oauth2/callback`
+- `http://kenway-arr.halfbeak-chimaera.ts.net:8990/oauth2/callback`
+- `http://kenway-arr.halfbeak-chimaera.ts.net:7878/oauth2/callback`
+- `http://kenway-arr.halfbeak-chimaera.ts.net:8686/oauth2/callback`
+- `http://kenway-arr.halfbeak-chimaera.ts.net:8687/oauth2/callback`
+- `http://kenway-arr.halfbeak-chimaera.ts.net:6767/oauth2/callback`
+- `http://kenway-arr.halfbeak-chimaera.ts.net:9696/oauth2/callback`
 
 Shared URLs:
 
-- `https://kenway-sonarr.halfbeak-chimaera.ts.net`
-- `https://kenway-sonarr-anime.halfbeak-chimaera.ts.net`
-- `https://kenway-radarr.halfbeak-chimaera.ts.net`
-- `https://kenway-lidarr.halfbeak-chimaera.ts.net`
-- `https://kenway-lidarr-kids.halfbeak-chimaera.ts.net`
-- `https://kenway-bazarr.halfbeak-chimaera.ts.net`
-- `https://kenway-prowlarr.halfbeak-chimaera.ts.net`
+- Sonarr: `http://kenway-arr.halfbeak-chimaera.ts.net:8989`
+- Sonarr Anime: `http://kenway-arr.halfbeak-chimaera.ts.net:8990`
+- Radarr: `http://kenway-arr.halfbeak-chimaera.ts.net:7878`
+- Lidarr: `http://kenway-arr.halfbeak-chimaera.ts.net:8686`
+- Lidarr Kids: `http://kenway-arr.halfbeak-chimaera.ts.net:8687`
+- Bazarr: `http://kenway-arr.halfbeak-chimaera.ts.net:6767`
+- Prowlarr: `http://kenway-arr.halfbeak-chimaera.ts.net:9696`
 
-After `https://portal.mcnees.me/` works for Kenway, remove the old per-app shared Tailscale Services and the `oauth2-proxy-kenway-arr` kustomization from `kubernetes/auth/kustomization.yaml`.
+The browser URLs are HTTP because the Tailscale Kubernetes Operator's standalone
+L3 LoadBalancer exposes a machine-level TCP listener, not a Tailscale Serve HTTPS
+endpoint. Traffic is still carried over Tailscale's encrypted WireGuard tunnel.
 
 ## References
 

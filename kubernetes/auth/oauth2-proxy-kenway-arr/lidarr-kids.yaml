@@ -30,9 +30,9 @@ spec:
             - --http-address=0.0.0.0:4180
             - --provider=oidc
             - --oidc-issuer-url=https://id.mcnees.me
-            - --redirect-url=https://kenway-lidarr-kids.halfbeak-chimaera.ts.net/oauth2/callback
+            - --redirect-url=http://kenway-arr.halfbeak-chimaera.ts.net:8687/oauth2/callback
             - --scope=openid profile email groups
-            - --cookie-secure=true
+            - --cookie-secure=false
             - --cookie-samesite=lax
             - --cookie-refresh=1h
             - --cookie-expire=8h
@@ -109,22 +109,3 @@ spec:
     - name: http
       port: 4180
       targetPort: http
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: kenway-lidarr-kids
-  namespace: auth
-  annotations:
-    tailscale.com/proxy-group: homelab-shared-ingress
-    tailscale.com/tags: tag:homelab-shared-service
-spec:
-  ingressClassName: tailscale
-  defaultBackend:
-    service:
-      name: oauth2-proxy-kenway-lidarr-kids
-      port:
-        number: 4180
-  tls:
-    - hosts:
-        - kenway-lidarr-kids
