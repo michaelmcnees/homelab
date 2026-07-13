@@ -4,6 +4,8 @@ metadata:
   name: local-path-provisioner
   namespace: storage
 spec:
+  driftDetection:
+    mode: enabled
   interval: 30m
   chart:
     spec:

@@ -4,6 +4,8 @@ metadata:
   name: traefik
   namespace: infrastructure
 spec:
+  driftDetection:
+    mode: enabled
   interval: 30m
   dependsOn:
     - name: metallb
