@@ -6,6 +6,7 @@ resources:
   - ceph-csi.yaml
   - cert-manager.yaml
   - external-dns.yaml
+  - flux-operator.yaml
   - grafana.yaml
   - jetstack.yaml
   - local-path-provisioner.yaml

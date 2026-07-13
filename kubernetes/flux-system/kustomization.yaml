@@ -5,8 +5,8 @@ resources:
 - auth.yaml
 - backups.yaml
 - databases.yaml
-- gotk-components.yaml
-- gotk-sync.yaml
+- flux-instance.yaml
+- flux-operator.yaml
 - hdf.yaml
 - infrastructure-configs.yaml
 - infrastructure.yaml
@@ -14,11 +14,3 @@ resources:
 - observability.yaml
 - smart-home.yaml
 - storage.yaml
-patches:
-- path: patches/sops-decryption.yaml
-  target:
-    group: kustomize.toolkit.fluxcd.io
-    version: v1
-    kind: Kustomization
-    name: flux-system
-    namespace: flux-system
