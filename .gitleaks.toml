@@ -1,0 +1,8 @@
+[allowlist]
+description = "Allowlist false positives"
+paths = [
+  # Helm chart templates contain 'kind: Secret' boilerplate — not actual secrets
+  '''kubernetes/charts/.*\.yaml$''',
+  # SOPS-encrypted files contain ENC[...] ciphertext — not plaintext secrets
+  '''\.sops\.yaml$''',
+]
