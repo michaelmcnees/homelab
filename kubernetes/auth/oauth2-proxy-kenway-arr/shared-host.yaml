@@ -5,6 +5,8 @@ metadata:
   namespace: auth
 data:
   nginx.conf: |
+    pid /tmp/nginx.pid;
+
     events {}
 
     http {
