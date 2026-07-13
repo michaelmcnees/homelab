@@ -24,7 +24,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: questboard
-          image: ghcr.io/thillygooth/questboard:latest
+          image: ghcr.io/thillygooth/questboard:1.12.4
           imagePullPolicy: Always
           ports:
             - name: http

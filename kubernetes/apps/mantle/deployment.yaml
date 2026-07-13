@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: migrate
-          image: ghcr.io/dvflw/mantle:latest
+          image: ghcr.io/dvflw/mantle:latest@sha256:dee440be68d324d6745c193408eefda265f13152d18107e849c1b1f700c41cff
           imagePullPolicy: IfNotPresent
           command:
             - mantle
@@ -57,7 +57,7 @@ spec:
                 - ALL
       containers:
         - name: mantle
-          image: ghcr.io/dvflw/mantle:latest
+          image: ghcr.io/dvflw/mantle:latest@sha256:dee440be68d324d6745c193408eefda265f13152d18107e849c1b1f700c41cff
           imagePullPolicy: IfNotPresent
           command:
             - mantle

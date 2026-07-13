@@ -47,7 +47,7 @@ spec:
               mountPath: /var/syncthing/Sync
       containers:
         - name: syncthing
-          image: syncthing/syncthing:latest
+          image: syncthing/syncthing:2.1.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: gui

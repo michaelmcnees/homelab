@@ -24,7 +24,7 @@ spec:
         kubernetes.io/hostname: lugia
       containers:
         - name: homebridge
-          image: homebridge/homebridge:latest
+          image: homebridge/homebridge:2026-05-06
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ
