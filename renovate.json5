@@ -1,0 +1,23 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["config:recommended"],
+  labels: ["dependencies"],
+  prHourlyLimit: 2,
+  "flux": {
+    managerFilePatterns: ["/kubernetes/.+\\.yaml$/"],
+  },
+  "kubernetes": {
+    managerFilePatterns: ["/kubernetes/.+\\.yaml$/"],
+  },
+  packageRules: [
+    {
+      matchUpdateTypes: ["patch", "minor"],
+      groupName: "{{depName}} non-major",
+    },
+    {
+      matchUpdateTypes: ["major"],
+      dependencyDashboardApproval: false,
+      groupName: null,
+    },
+  ],
+}
