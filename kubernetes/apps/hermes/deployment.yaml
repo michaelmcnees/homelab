@@ -194,7 +194,7 @@ spec:
               mountPath: /opt/data
       containers:
         - name: hermes
-          image: nousresearch/hermes-agent@sha256:5731e3f580a850e0810605b27c61198cc43288bd7fefccf1168f386487683c5f
+          image: nousresearch/hermes-agent@sha256:60f10381777d14f74f3ef2be39b0c437f89f5c27376cdd5ca40919ab9e2306bb
           imagePullPolicy: IfNotPresent
           command:
             - sh
