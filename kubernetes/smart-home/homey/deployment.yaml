@@ -24,7 +24,7 @@ spec:
         kubernetes.io/hostname: ho-oh
       containers:
         - name: homey
-          image: ghcr.io/athombv/homey-shs:latest@sha256:721f4252c673dd4bdab4e69c8783cbb554fa3ebcf8b56b147f4d3b2f2708b433
+          image: ghcr.io/athombv/homey-shs:latest@sha256:97b00d6a074f8abc5d14a457f32e1c7a2b0bcbadfd56999932292efbe071abb9
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
