@@ -24,7 +24,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: backup
-              image: alpine/git:2.52.0
+              image: alpine/git:v2.54.0
               imagePullPolicy: IfNotPresent
               securityContext:
                 allowPrivilegeEscalation: false
