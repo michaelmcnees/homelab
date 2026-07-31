@@ -467,7 +467,7 @@ monitoring:
     enabled: false
     registry: ""
     image: "grafana:7.3.1"
-    busyboxImage: "busybox:1.31.1"
+    busyboxImage: "busybox:1.38.0"
     batsImage: "bats:v1.4.1"
     imagePullPolicy: IfNotPresent
     resources: {}
